@@ -1,0 +1,67 @@
+import { api } from '@/lib/api';
+
+export interface User {
+  id: number;
+  email: string;
+  role: 'patient' | 'caregiver' | 'primary_physician' | 'system_manager' | 'regional_manager';
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  isVerified: boolean;
+  isActive: boolean;
+}
+
+export interface LoginData {
+  email: string;
+  password: string;
+}
+
+export interface RegisterData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  role?: string;
+}
+
+export const authService = {
+  login: async (data: LoginData) => {
+    const response = await api.post('/auth/login', data);
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  },
+
+  register: async (data: RegisterData | FormData) => {
+    const response = await api.post('/auth/register', data, {
+      headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {}
+    });
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  },
+
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  },
+
+  getProfile: async (): Promise<User> => {
+    const response = await api.get('/auth/profile');
+    return response.data.user;
+  },
+
+  getCurrentUser: (): User | null => {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  },
+
+  isAuthenticated: (): boolean => {
+    return !!localStorage.getItem('token');
+  }
+};

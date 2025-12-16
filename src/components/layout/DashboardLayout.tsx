@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -45,6 +46,28 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  
+  // Use actual user role if available, fallback to prop
+  const actualRole = user?.role === 'system_manager' || user?.role === 'regional_manager' ? 'admin' : (user?.role || userRole);
+
+  // Get user initials
+  const getInitials = () => {
+    if (!user) return "?";
+    return `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase();
+  };
+
+  // Get full name
+  const getFullName = () => {
+    if (!user) return "User";
+    return `${user.firstName || ""} ${user.lastName || ""}`.trim();
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   const menuItems = {
     patient: [
@@ -71,14 +94,13 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
     ],
     admin: [
       { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-      { icon: Shield, label: "Verification", href: "/dashboard/verification" },
-      { icon: Users, label: "Users", href: "/dashboard/users" },
+      { icon: Shield, label: "Administration", href: "/dashboard/admin" },
+      { icon: Users, label: "User Management", href: "/dashboard/users" },
       { icon: FileText, label: "Reports", href: "/dashboard/reports" },
-      { icon: Settings, label: "Settings", href: "/dashboard/settings" },
     ],
   };
 
-  const currentMenu = menuItems[userRole];
+  const currentMenu = menuItems[actualRole as keyof typeof menuItems] || [];
 
   const isActive = (href: string) => location.pathname === href;
 
@@ -169,9 +191,9 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="gap-2">
                     <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-sm font-bold">
-                      JD
+                      {getInitials()}
                     </div>
-                    <span className="hidden md:inline">John Doe</span>
+                    <span className="hidden md:inline">{getFullName()}</span>
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -189,9 +211,9 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     className="text-destructive cursor-pointer"
-                    onClick={() => navigate("/login")}
+                    onClick={handleLogout}
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign Out

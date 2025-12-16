@@ -1,8 +1,14 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
+import { mapUserRole } from "@/lib/roleMapper";
+import AdminReports from "./AdminReports";
 import {
   FileText,
   Download,
@@ -15,52 +21,39 @@ import {
   Droplet,
 } from "lucide-react";
 
-const reports = [
-  {
-    id: 1,
-    date: "2024-12-12",
-    caregiver: "Dr. Sarah Johnson",
-    type: "Care Session Report",
-    status: "Stable",
-    vitals: {
-      bloodPressure: "120/80",
-      heartRate: "72 bpm",
-      temperature: "98.6°F",
-      oxygenLevel: "98%",
-    },
-    notes: "Patient is showing good progress. Medication adherence is excellent. Recommend continuing current treatment plan.",
-  },
-  {
-    id: 2,
-    date: "2024-12-10",
-    caregiver: "Michael Chen",
-    type: "Physiotherapy Report",
-    status: "Improving",
-    vitals: {
-      bloodPressure: "118/78",
-      heartRate: "70 bpm",
-      temperature: "98.4°F",
-      oxygenLevel: "99%",
-    },
-    notes: "Range of motion has improved by 15%. Patient is able to perform exercises independently. Continue daily stretching routine.",
-  },
-  {
-    id: 3,
-    date: "2024-12-05",
-    caregiver: "Dr. Sarah Johnson",
-    type: "Care Session Report",
-    status: "Stable",
-    vitals: {
-      bloodPressure: "122/82",
-      heartRate: "74 bpm",
-      temperature: "98.5°F",
-      oxygenLevel: "97%",
-    },
-    notes: "Routine checkup completed. All vitals within normal range. Patient reports no new symptoms or concerns.",
-  },
-];
-
 const CareReports = () => {
+  const { user } = useAuth();
+
+  // Redirect admin users to admin reports
+  if (user?.role === 'system_manager' || user?.role === 'regional_manager') {
+    return <AdminReports />;
+  }
+
+  const { data: reportsData, isLoading } = useQuery({
+    queryKey: ["reports", user?.role],
+    queryFn: async () => {
+      const endpoint = user?.role === 'caregiver' 
+        ? '/reports/caregiver'
+        : user?.role === 'primary_physician'
+        ? '/reports/physician'
+        : '/reports';
+      const response = await api.get(endpoint);
+      return response.data.reports || [];
+    },
+  });
+
+  const rawReports = Array.isArray(reportsData) ? reportsData : [];
+  
+  // Map backend data to frontend format
+  const reports = rawReports.map((report: any) => ({
+    id: report.id,
+    type: "Care Session Report",
+    caregiver: `${report.Appointment?.Patient?.User?.firstName || 'Unknown'} ${report.Appointment?.Patient?.User?.lastName || 'Patient'}`,
+    date: report.createdAt,
+    status: report.patientStatus?.charAt(0).toUpperCase() + report.patientStatus?.slice(1) || 'Stable',
+    vitals: report.vitals || {},
+    notes: report.observations || report.sessionSummary || 'No notes available'
+  }));
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Stable":
@@ -76,16 +69,36 @@ const CareReports = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
-    <DashboardLayout userRole="patient">
+    <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
       <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="font-display text-2xl md:text-3xl font-bold">
-            Care Reports
+            {user?.role === 'caregiver' 
+              ? 'Session Reports'
+              : user?.role === 'primary_physician'
+              ? 'Patient Reports'
+              : 'Care Reports'
+            }
           </h1>
           <p className="text-muted-foreground mt-1">
-            View your healthcare session reports and health history
+            {user?.role === 'caregiver' 
+              ? 'Reports from your care sessions with patients'
+              : user?.role === 'primary_physician'
+              ? 'Monitor patient health and care outcomes'
+              : 'View your healthcare session reports and health history'
+            }
           </p>
         </div>
 
@@ -98,8 +111,8 @@ const CareReports = () => {
                   <Activity className="h-6 w-6 text-success" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">Stable</p>
-                  <p className="text-sm text-muted-foreground">Current Status</p>
+                  <p className="text-2xl font-bold">{reports.length}</p>
+                  <p className="text-sm text-muted-foreground">Total Reports</p>
                 </div>
               </div>
             </CardContent>
@@ -111,8 +124,8 @@ const CareReports = () => {
                   <Heart className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">72 bpm</p>
-                  <p className="text-sm text-muted-foreground">Heart Rate</p>
+                  <p className="text-2xl font-bold">{reports.filter(r => r.status === 'Stable').length}</p>
+                  <p className="text-sm text-muted-foreground">Stable Patients</p>
                 </div>
               </div>
             </CardContent>
@@ -124,8 +137,8 @@ const CareReports = () => {
                   <Droplet className="h-6 w-6 text-secondary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">120/80</p>
-                  <p className="text-sm text-muted-foreground">Blood Pressure</p>
+                  <p className="text-2xl font-bold">{reports.filter(r => r.status === 'Improving').length}</p>
+                  <p className="text-sm text-muted-foreground">Improving</p>
                 </div>
               </div>
             </CardContent>
@@ -137,8 +150,8 @@ const CareReports = () => {
                   <Thermometer className="h-6 w-6 text-accent" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">98.6°F</p>
-                  <p className="text-sm text-muted-foreground">Temperature</p>
+                  <p className="text-2xl font-bold">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                  <p className="text-sm text-muted-foreground">Last Updated</p>
                 </div>
               </div>
             </CardContent>
@@ -154,7 +167,7 @@ const CareReports = () => {
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
-            {reports.map((report) => (
+            {reports.length > 0 ? reports.map((report) => (
               <Card key={report.id} className="overflow-hidden">
                 <CardHeader className="pb-4">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -197,24 +210,38 @@ const CareReports = () => {
                 </CardHeader>
                 <CardContent>
                   {/* Vitals */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-xl mb-4">
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Blood Pressure</p>
-                      <p className="font-semibold">{report.vitals.bloodPressure}</p>
+                  {Object.keys(report.vitals).length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-xl mb-4">
+                      {report.vitals.bloodPressure && (
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">Blood Pressure</p>
+                          <p className="font-semibold">{report.vitals.bloodPressure}</p>
+                        </div>
+                      )}
+                      {report.vitals.heartRate && (
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">Heart Rate</p>
+                          <p className="font-semibold">{report.vitals.heartRate}</p>
+                        </div>
+                      )}
+                      {report.vitals.temperature && (
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">Temperature</p>
+                          <p className="font-semibold">{report.vitals.temperature}</p>
+                        </div>
+                      )}
+                      {report.vitals.oxygenLevel && (
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">Oxygen Level</p>
+                          <p className="font-semibold">{report.vitals.oxygenLevel}</p>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Heart Rate</p>
-                      <p className="font-semibold">{report.vitals.heartRate}</p>
+                  ) : (
+                    <div className="p-4 bg-muted/50 rounded-xl mb-4 text-center">
+                      <p className="text-sm text-muted-foreground">No vitals recorded for this session</p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Temperature</p>
-                      <p className="font-semibold">{report.vitals.temperature}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Oxygen Level</p>
-                      <p className="font-semibold">{report.vitals.oxygenLevel}</p>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Notes */}
                   <div>
@@ -226,7 +253,20 @@ const CareReports = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            )) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-semibold mb-2">No reports available</h3>
+                  <p className="text-muted-foreground">
+                    {user?.role === 'caregiver' 
+                      ? 'Your session reports will appear here after completing care sessions'
+                      : 'Your care reports will be available once sessions are completed'
+                    }
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="care" className="space-y-4">

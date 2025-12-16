@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,15 +6,36 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Heart, Mail, Lock, Eye, EyeOff, User, Phone, ArrowRight, ArrowLeft, Check } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { api } from "@/lib/api";
 
 const Register = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
+
+  useEffect(() => {
+    fetchSpecialties();
+  }, []);
+
+  const fetchSpecialties = async () => {
+    try {
+      const response = await api.get('/specialties');
+      setSpecialties(response.data.specialties || []);
+    } catch (error) {
+      console.error('Failed to fetch specialties:', error);
+    }
+  };
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [termsContent, setTermsContent] = useState("");
+  const [specialties, setSpecialties] = useState([]);
   const [formData, setFormData] = useState({
     userType: "patient",
     firstName: "",
@@ -24,19 +45,102 @@ const Register = () => {
     password: "",
     confirmPassword: "",
     agreeTerms: false,
+    // Patient fields
+    dateOfBirth: "",
+    address: "",
+    emergencyContact: "",
+    // Caregiver fields
+    licenseNumber: "",
+    experience: "",
+    qualifications: "",
+    hourlyRate: "",
+    supportingDocuments: null,
+    specialties: [],
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (step < 3) {
       setStep(step + 1);
       return;
     }
+
+    // Validate password confirmation
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    if (!formData.agreeTerms) {
+      toast.error("Please agree to the terms and conditions");
+      return;
+    }
+
     setIsLoading(true);
-    setTimeout(() => {
+
+    try {
+      const formDataToSend = new FormData();
+      
+      // Add basic fields
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('password', formData.password);
+      formDataToSend.append('firstName', formData.firstName);
+      formDataToSend.append('lastName', formData.lastName);
+      formDataToSend.append('phone', formData.phone);
+      formDataToSend.append('role', formData.userType);
+
+      // Add role-specific fields
+      if (formData.userType === 'patient') {
+        formDataToSend.append('dateOfBirth', formData.dateOfBirth);
+        formDataToSend.append('address', formData.address);
+        formDataToSend.append('emergencyContact', formData.emergencyContact);
+      } else if (formData.userType === 'caregiver') {
+        formDataToSend.append('licenseNumber', formData.licenseNumber);
+        formDataToSend.append('experience', formData.experience || '0');
+        formDataToSend.append('qualifications', formData.qualifications);
+        formDataToSend.append('hourlyRate', formData.hourlyRate || '50');
+        
+        // Add specialties
+        if (formData.specialties.length > 0) {
+          formData.specialties.forEach(specialtyId => {
+            formDataToSend.append('specialties[]', specialtyId);
+          });
+        }
+        
+        // Add supporting documents
+        if (formData.supportingDocuments) {
+          Array.from(formData.supportingDocuments).slice(0, 5).forEach((file: any) => {
+            formDataToSend.append('supportingDocuments', file);
+          });
+        }
+      }
+
+      const result = await register(formDataToSend);
+      
+      if (result?.requiresApproval) {
+        toast.success("Registration submitted successfully! Please check your email for confirmation and wait for admin approval.");
+        navigate("/login");
+      } else {
+        toast.success("Account created successfully! Welcome to CareConnect.");
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      // Error toast is already shown by API interceptor
+    } finally {
       setIsLoading(false);
-      navigate("/dashboard");
-    }, 1500);
+    }
+  };
+
+  const fetchTerms = async (role: string) => {
+    try {
+      const response = await api.get(`/terms/${role}`);
+      setTermsContent(response.data.data.terms);
+      setShowTerms(true);
+    } catch (error) {
+      toast.error("Failed to load terms and conditions");
+    }
   };
 
   const userTypes = [
@@ -56,7 +160,7 @@ const Register = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="flex items-center justify-center py-16 lg:py-24">
-        <div className="container max-w-lg">
+        <div className="container max-w-4xl">
           <Card className="border-0 shadow-xl">
             <CardHeader className="text-center pb-2">
               <div className="flex justify-center mb-4">
@@ -141,8 +245,8 @@ const Register = () => {
 
                 {/* Step 2: Personal Info */}
                 {step === 2 && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="firstName">First Name</Label>
                         <div className="relative">
@@ -167,41 +271,172 @@ const Register = () => {
                           required
                         />
                       </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="name@example.com"
-                          className="pl-10"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          required
-                        />
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email Address</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="email"
+                            type="email"
+                            placeholder="name@example.com"
+                            className="pl-10"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            required
+                          />
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="+1 (555) 000-0000"
-                          className="pl-10"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          required
-                        />
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="phone"
+                            type="tel"
+                            placeholder="+1 (555) 000-0000"
+                            className="pl-10"
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            required
+                          />
+                        </div>
                       </div>
+                      {formData.userType === 'caregiver' && (
+                        <div className="space-y-2">
+                          <Label htmlFor="supportingDocuments">Supporting Documents (Max 5 files)</Label>
+                          <Input
+                            id="supportingDocuments"
+                            type="file"
+                            multiple
+                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                            onChange={(e) => setFormData({ ...formData, supportingDocuments: e.target.files })}
+                            className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Upload licenses, certificates, or other credentials (PDF, DOC, DOCX, JPG, PNG)
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-4">
+                      {/* Role-specific fields */}
+                      {formData.userType === 'patient' && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                            <Input
+                              id="dateOfBirth"
+                              type="date"
+                              value={formData.dateOfBirth}
+                              onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="address">Address</Label>
+                            <Input
+                              id="address"
+                              placeholder="Your home address"
+                              value={formData.address}
+                              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="emergencyContact">Emergency Contact</Label>
+                            <Input
+                              id="emergencyContact"
+                              placeholder="Emergency contact phone"
+                              value={formData.emergencyContact}
+                              onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
+                              required
+                            />
+                          </div>
+                        </>
+                      )}
+
+                      {formData.userType === 'caregiver' && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="licenseNumber">License Number</Label>
+                            <Input
+                              id="licenseNumber"
+                              placeholder="Professional license number"
+                              value={formData.licenseNumber}
+                              onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="experience">Years of Experience</Label>
+                            <Input
+                              id="experience"
+                              type="number"
+                              placeholder="5"
+                              value={formData.experience}
+                              onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
+                            <Input
+                              id="hourlyRate"
+                              type="number"
+                              placeholder="50"
+                              value={formData.hourlyRate}
+                              onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="qualifications">Qualifications</Label>
+                            <Input
+                              id="qualifications"
+                              placeholder="RN, BSN, Certified Nursing Assistant"
+                              value={formData.qualifications}
+                              onChange={(e) => setFormData({ ...formData, qualifications: e.target.value })}
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Specialties</Label>
+                            <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto border rounded-md p-2">
+                              {specialties.map((specialty: any) => (
+                                <div key={specialty.id} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`specialty-${specialty.id}`}
+                                    checked={formData.specialties.includes(specialty.id.toString())}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setFormData({
+                                          ...formData,
+                                          specialties: [...formData.specialties, specialty.id.toString()]
+                                        });
+                                      } else {
+                                        setFormData({
+                                          ...formData,
+                                          specialties: formData.specialties.filter(id => id !== specialty.id.toString())
+                                        });
+                                      }
+                                    }}
+                                  />
+                                  <Label htmlFor={`specialty-${specialty.id}`} className="text-sm">
+                                    {specialty.name}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                        </>
+                      )}
+                    </div>
+                    <div className="space-y-4">
                     </div>
                   </div>
                 )}
+
 
                 {/* Step 3: Password */}
                 {step === 3 && (
@@ -259,9 +494,13 @@ const Register = () => {
                         className="text-sm text-muted-foreground cursor-pointer leading-tight"
                       >
                         I agree to the{" "}
-                        <Link to="/terms" className="text-primary hover:underline">
+                        <button
+                          type="button"
+                          onClick={() => fetchTerms(formData.userType)}
+                          className="text-primary hover:underline"
+                        >
                           Terms of Service
-                        </Link>{" "}
+                        </button>{" "}
                         and{" "}
                         <Link to="/privacy" className="text-primary hover:underline">
                           Privacy Policy
@@ -317,6 +556,18 @@ const Register = () => {
         </div>
       </main>
       <Footer />
+      
+      {/* Terms Dialog */}
+      <Dialog open={showTerms} onOpenChange={setShowTerms}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Terms and Conditions</DialogTitle>
+          </DialogHeader>
+          <div className="whitespace-pre-wrap text-sm">
+            {termsContent}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
