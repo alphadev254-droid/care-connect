@@ -109,13 +109,13 @@ const Specialties = () => {
       <Header />
       <main>
         {/* Hero Section */}
-        <section className="py-16 lg:py-24 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+        <section className="py-8 lg:py-12 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
           <div className="container">
             <div className="text-center max-w-4xl mx-auto">
-              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+              <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
                 Healthcare <span className="text-primary">Specialties</span>
               </h1>
-              <p className="text-xl text-muted-foreground mb-8">
+              <p className="text-lg text-muted-foreground mb-6">
                 Our network of verified healthcare professionals covers a wide range of medical specialties, 
                 ensuring you receive expert care tailored to your specific health needs.
               </p>

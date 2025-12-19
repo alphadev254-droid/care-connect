@@ -5,7 +5,7 @@ import { ArrowRight, Play, Shield, Clock, Users, Star } from "lucide-react";
 
 const HeroSection = () => {
   return (
-    <section className="relative overflow-hidden bg-gradient-hero py-20 lg:py-32">
+    <section className="relative overflow-hidden bg-gradient-hero py-14 lg:py-18">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl" />
@@ -21,8 +21,8 @@ const HeroSection = () => {
               Trusted by 10,000+ Families
             </Badge>
 
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-              Quality Home Care,{" "}
+            <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
+              Welcome to <span className="text-gradient">CareConnect</span> - Quality Home Care,{" "}
               <span className="text-gradient">Right at Your Doorstep</span>
             </h1>
 
@@ -39,10 +39,7 @@ const HeroSection = () => {
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="gap-2">
-                <Play className="h-4 w-4" />
-                Watch Demo
-              </Button>
+         
             </div>
 
             {/* Trust Indicators */}
@@ -79,24 +76,20 @@ const HeroSection = () => {
 
           {/* Hero Image/Illustration */}
           <div className="relative hidden lg:block">
-            <div className="relative animate-float">
+            <div className="relative ">
               {/* Main Card */}
               <div className="bg-card rounded-3xl shadow-xl p-8 border">
-                <div className="aspect-square rounded-2xl bg-gradient-primary/10 flex items-center justify-center">
-                  <div className="text-center space-y-4 p-8">
-                    <div className="h-24 w-24 mx-auto rounded-full bg-gradient-primary flex items-center justify-center">
-                      <Users className="h-12 w-12 text-primary-foreground" />
-                    </div>
-                    <h3 className="font-display text-xl font-bold">Find Your Caregiver</h3>
-                    <p className="text-muted-foreground text-sm">
-                      Browse verified professionals matching your healthcare needs
-                    </p>
-                  </div>
+                <div className="aspect-square rounded-2xl overflow-hidden">
+                  <img 
+                    src="landing2.png" 
+                    alt="CareConnect Healthcare" 
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
 
               {/* Floating Cards */}
-              <div className="absolute -top-6 -left-6 bg-card rounded-2xl shadow-lg p-4 border animate-pulse-soft">
+              <div className="absolute -top-6 -left-6 bg-card rounded-2xl shadow-lg p-4 border ">
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-full bg-success/20 flex items-center justify-center">
                     <Shield className="h-6 w-6 text-success" />

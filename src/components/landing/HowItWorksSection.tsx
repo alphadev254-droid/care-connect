@@ -29,7 +29,7 @@ const steps = [
 
 const HowItWorksSection = () => {
   return (
-    <section className="py-20 lg:py-32 bg-background">
+    <section className="py-8 lg:py-13 bg-background">
       <div className="container">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16 animate-fade-in">

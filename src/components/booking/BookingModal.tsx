@@ -25,13 +25,24 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('+265 ');
+  const [specialty, setSpecialty] = useState<any>(null);
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     if (open && caregiverId) {
       fetchAvailableSlots();
+      fetchSpecialty();
     }
-  }, [open, caregiverId]);
+  }, [open, caregiverId, specialtyId]);
+
+  const fetchSpecialty = async () => {
+    try {
+      const response = await api.get(`/specialties/${specialtyId}`);
+      setSpecialty(response.data.specialty);
+    } catch (error) {
+      toast.error('Failed to load specialty details');
+    }
+  };
 
   const fetchAvailableSlots = async () => {
     setLoading(true);
@@ -143,30 +154,26 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 text-sm">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                             <span>{new Date(slot.date).toLocaleDateString()}</span>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 text-sm">
                             <Clock className="h-4 w-4 text-muted-foreground" />
                             <span>{slot.startTime} - {slot.endTime}</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4 text-muted-foreground" />
-                          <span>MWK {slot.price}</span>
-                          <Badge variant="secondary">{slot.duration}min</Badge>
-                        </div>
+                        <Badge variant="secondary">{slot.duration || 180} min</Badge>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
 
-              {selectedSlot && (
+              {selectedSlot && specialty && (
                 <div className="border-t pt-6">
                   <h4 className="font-semibold text-lg mb-4">Booking Summary</h4>
-                  
+
                   <div className="bg-muted/50 rounded-lg p-4 mb-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -182,9 +189,9 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
                         <p className="font-medium">{selectedSlot.startTime} - {selectedSlot.endTime}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Duration & Cost</p>
-                        <p className="font-medium">{selectedSlot.duration} minutes</p>
-                        <p className="text-2xl font-bold text-primary">MWK {selectedSlot.price}</p>
+                        <p className="text-sm text-muted-foreground">Duration & Specialty</p>
+                        <p className="font-medium">{selectedSlot.duration || 180} minutes</p>
+                        <p className="font-medium text-primary">{specialty.name}</p>
                       </div>
                     </div>
                   </div>
@@ -206,28 +213,35 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
                         </p>
                       </div>
                     </div>
-                    
+
                     <div>
-                      <h5 className="font-medium">Payment Details</h5>
-                      <div className="text-sm space-y-1">
+                      <h5 className="font-medium mb-2">Payment Details</h5>
+                      <div className="text-sm space-y-2 bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          <strong>Two-stage payment:</strong> Pay booking fee now, session fee after service
+                        </p>
                         <div className="flex justify-between">
-                          <span>Session fee:</span>
-                          <span>MWK {selectedSlot.price}</span>
+                          <span>Booking Fee (pay now):</span>
+                          <span className="font-semibold text-green-600">
+                            MWK {Number(specialty.bookingFee || 0).toFixed(0)}
+                          </span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Platform fee:</span>
-                          <span>MWK 0</span>
+                          <span>Session Fee (pay after):</span>
+                          <span className="font-semibold text-blue-600">
+                            MWK {Number(specialty.sessionFee || 0).toFixed(0)}
+                          </span>
                         </div>
-                        <div className="flex justify-between font-semibold border-t pt-2">
-                          <span>Total:</span>
-                          <span>MWK {selectedSlot.price}</span>
+                        <div className="flex justify-between font-semibold border-t pt-2 text-base">
+                          <span>Total Cost:</span>
+                          <span>MWK {(Number(specialty.bookingFee || 0) + Number(specialty.sessionFee || 0)).toFixed(0)}</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  
-                  <Button 
-                    className="w-full h-12 text-lg" 
+
+                  <Button
+                    className="w-full h-12 text-lg"
                     onClick={handleBookSlot}
                     disabled={booking}
                   >
@@ -237,12 +251,12 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
                         Preparing Payment...
                       </div>
                     ) : (
-                      `Proceed to Pay MWK ${selectedSlot.price}`
+                      `Pay Booking Fee - MWK ${Number(specialty.bookingFee || 0).toFixed(0)}`
                     )}
                   </Button>
-                  
+
                   <p className="text-xs text-muted-foreground text-center mt-2">
-                    You will be redirected to Paychangu for secure payment. Appointment will be confirmed after successful payment.
+                    You will be redirected to Paychangu to pay the booking fee. Session fee is paid after the service is completed.
                   </p>
                 </div>
               )}

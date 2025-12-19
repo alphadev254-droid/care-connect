@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Search, Clock, DollarSign, LogIn } from "lucide-react";
+import { Heart, Search, Clock, DollarSign, LogIn, MapPin, Award, User } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { BookingModal } from "@/components/booking/BookingModal";
@@ -35,27 +35,35 @@ const PublicCaregivers = () => {
     }
   };
 
-  const filteredCaregivers = caregivers.filter((caregiver: any) =>
-    `${caregiver.firstName} ${caregiver.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    caregiver.qualifications?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCaregivers = caregivers.filter((caregiver: any) => {
+    const searchLower = searchTerm.toLowerCase();
+    const fullName = `${caregiver.firstName} ${caregiver.lastName}`.toLowerCase();
+    const qualifications = caregiver.qualifications?.toLowerCase() || '';
+    const specialties = caregiver.specialties?.map((s: any) => s.name.toLowerCase()).join(' ') || '';
+    const location = `${caregiver.region || ''} ${caregiver.district || ''} ${caregiver.village || ''}`.toLowerCase();
+
+    return fullName.includes(searchLower) ||
+           qualifications.includes(searchLower) ||
+           specialties.includes(searchLower) ||
+           location.includes(searchLower);
+  });
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 py-16">
+      <section className="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 py-8">
         <div className="container max-w-6xl mx-auto px-4 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-primary flex items-center justify-center">
-              <Heart className="h-8 w-8 text-primary-foreground" />
+          <div className="flex justify-center mb-4">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-primary flex items-center justify-center">
+              <Heart className="h-6 w-6 text-primary-foreground" />
             </div>
           </div>
-          <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">
+          <h1 className="font-display text-2xl md:text-3xl font-bold mb-3">
             Our Verified Caregivers
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
             Meet our team of qualified healthcare professionals ready to provide exceptional home care services
           </p>
           
@@ -63,7 +71,7 @@ const PublicCaregivers = () => {
           <div className="max-w-md mx-auto relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search caregivers by name or specialty..."
+              placeholder="Search by name, specialty, or location..."
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -103,48 +111,84 @@ const PublicCaregivers = () => {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredCaregivers.map((caregiver: any) => (
                 <Card key={caregiver.id} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6 text-center">
-                    <div className="h-20 w-20 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xl mx-auto mb-4">
-                      {caregiver.firstName?.charAt(0)}{caregiver.lastName?.charAt(0)}
-                    </div>
-                    
-                    <h3 className="font-semibold text-lg mb-1">
-                      {caregiver.firstName} {caregiver.lastName}
-                    </h3>
-                    
-                    <p className="text-muted-foreground text-sm mb-4">
-                      {caregiver.qualifications || "Healthcare Professional"}
-                    </p>
+                  <CardContent className="p-6">
+                    <div className="text-center mb-4">
+                      {caregiver.profileImage ? (
+                        <img
+                          src={caregiver.profileImage}
+                          alt={`${caregiver.firstName} ${caregiver.lastName}`}
+                          className="h-20 w-20 rounded-full object-cover mx-auto mb-4"
+                        />
+                      ) : (
+                        <div className="h-20 w-20 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xl mx-auto mb-4">
+                          {caregiver.firstName?.charAt(0)}{caregiver.lastName?.charAt(0)}
+                        </div>
+                      )}
 
-                    <div className="space-y-3 text-sm">
-                      <div className="flex items-center justify-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
+                      <h3 className="font-semibold text-lg mb-1">
+                        {caregiver.firstName} {caregiver.lastName}
+                      </h3>
+
+                      <p className="text-muted-foreground text-sm mb-2">
+                        {caregiver.qualifications || "Healthcare Professional"}
+                      </p>
+
+                      {caregiver.specialties && caregiver.specialties.length > 0 && (
+                        <div className="flex flex-wrap gap-1 justify-center mb-3">
+                          {caregiver.specialties.slice(0, 3).map((specialty: any) => (
+                            <Badge key={specialty.id} variant="outline" className="text-xs">
+                              {specialty.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {caregiver.bio && (
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-3 text-center">
+                        {caregiver.bio}
+                      </p>
+                    )}
+
+                    <div className="space-y-2 text-sm mb-4">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         <span>{caregiver.experience || 0} years experience</span>
                       </div>
-                      
-                      <div className="flex items-center justify-center gap-2">
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         <span>MWK {caregiver.hourlyRate || 50000}/hour</span>
                       </div>
-                      
 
+                      {(caregiver.region || caregiver.district || caregiver.village) && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="truncate">
+                            {[caregiver.village, caregiver.district, caregiver.region]
+                              .filter(Boolean)
+                              .join(', ')}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="mt-4 pt-4 border-t space-y-2">
-                      <Badge variant="secondary" className="text-xs">
+                    <div className="pt-4 border-t space-y-2">
+                      <Badge variant="secondary" className="text-xs w-full justify-center">
+                        <Award className="h-3 w-3 mr-1" />
                         Verified Professional
                       </Badge>
                       {isAuthenticated ? (
-                        <Button 
-                          className="w-full" 
+                        <Button
+                          className="w-full"
                           size="sm"
                           onClick={() => setBookingModal({ open: true, caregiver })}
                         >
                           Book Now
                         </Button>
                       ) : (
-                        <Button 
-                          className="w-full" 
+                        <Button
+                          className="w-full"
                           size="sm"
                           variant="outline"
                           onClick={() => navigate('/login')}

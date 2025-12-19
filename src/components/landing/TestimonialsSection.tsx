@@ -37,7 +37,7 @@ const testimonials = [
 
 const TestimonialsSection = () => {
   return (
-    <section className="py-20 lg:py-32 bg-muted/30">
+    <section className="py-8 lg:py-13 bg-muted/30">
       <div className="container">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16 animate-fade-in">

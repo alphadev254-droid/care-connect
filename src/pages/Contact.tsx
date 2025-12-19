@@ -93,13 +93,13 @@ const Contact = () => {
       <Header />
       <main>
         {/* Hero Section */}
-        <section className="py-16 lg:py-24 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+        <section className="py-8 lg:py-12 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
           <div className="container">
             <div className="text-center max-w-3xl mx-auto">
-              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+              <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
                 Get in <span className="text-primary">Touch</span>
               </h1>
-              <p className="text-xl text-muted-foreground mb-8">
+              <p className="text-lg text-muted-foreground mb-6">
                 We're here to help! Whether you have questions about our services, 
                 need technical support, or want to provide feedback, our team is ready to assist you.
               </p>

@@ -20,16 +20,21 @@ import {
   Check,
   X,
   Phone,
+  DollarSign,
+  CheckCircle,
+  Eye,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Schedule = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: appointmentsData, isLoading } = useQuery({
     queryKey: ["caregiver-appointments"],
     queryFn: async () => {
-      const response = await api.get("/appointments/caregiver");
+      const response = await api.get("/appointments");
       return response.data.appointments || [];
     },
   });
@@ -50,104 +55,112 @@ const Schedule = () => {
 
   const appointments = Array.isArray(appointmentsData) ? appointmentsData : [];
 
-  const pendingAppointments = appointments.filter(apt => apt.status === 'pending');
-  const confirmedAppointments = appointments.filter(apt => apt.status === 'confirmed');
-  const completedAppointments = appointments.filter(apt => apt.status === 'completed');
+  const confirmedAppointments = appointments.filter(apt => apt.bookingFeeStatus === 'completed' && apt.status === 'session_waiting');
+  const completedAppointments = appointments.filter(apt => apt.paymentStatus === 'completed' && apt.status === 'session_attended');
 
-  const handleAccept = (id: number) => {
-    updateAppointmentMutation.mutate({ id, status: 'confirmed' });
-  };
+  const AppointmentCard = ({ appointment }: any) => {
+    const bookingFeePaid = appointment.bookingFeeStatus === 'completed';
+    const sessionFeePaid = appointment.sessionFeeStatus === 'completed';
 
-  const handleDecline = (id: number) => {
-    updateAppointmentMutation.mutate({ id, status: 'cancelled' });
-  };
-
-  const AppointmentCard = ({ appointment, showActions = false }: any) => (
+    return (
     <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
               {appointment.Patient?.User?.firstName?.charAt(0) || 'P'}
             </div>
             <div>
-              <h3 className="font-semibold">
+              <h3 className="font-semibold text-sm">
                 {appointment.Patient?.User?.firstName} {appointment.Patient?.User?.lastName}
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {appointment.Specialty?.name || 'General Care'}
               </p>
             </div>
           </div>
-          <Badge variant={appointment.status === 'confirmed' ? 'default' : 'secondary'}>
-            {appointment.status}
-          </Badge>
+          <div className="flex flex-col gap-1 items-end">
+            <Badge variant={appointment.status === 'session_waiting' ? 'default' : 'secondary'} className="text-xs">
+              {appointment.status === 'session_waiting' ? 'Confirmed' : appointment.status}
+            </Badge>
+            <div className="flex gap-1">
+              <Badge
+                variant={bookingFeePaid ? 'default' : 'outline'}
+                className={`text-xs ${bookingFeePaid ? 'bg-green-100 text-green-800' : ''}`}
+              >
+                {bookingFeePaid ? <CheckCircle className="h-3 w-3 mr-1" /> : <DollarSign className="h-3 w-3 mr-1" />}
+                Booking
+              </Badge>
+              <Badge
+                variant={sessionFeePaid ? 'default' : 'outline'}
+                className={`text-xs ${sessionFeePaid ? 'bg-blue-100 text-blue-800' : ''}`}
+              >
+                {sessionFeePaid ? <CheckCircle className="h-3 w-3 mr-1" /> : <DollarSign className="h-3 w-3 mr-1" />}
+                Session
+              </Badge>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="flex items-center gap-2 text-sm">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+        <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-3 w-3 text-muted-foreground" />
             <span>{new Date(appointment.scheduledDate).toLocaleDateString()}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span>{new Date(appointment.scheduledDate).toLocaleTimeString()}</span>
+          <div className="flex items-center gap-2">
+            <Clock className="h-3 w-3 text-muted-foreground" />
+            <span>{appointment.TimeSlot?.startTime} - {appointment.TimeSlot?.endTime}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm col-span-2">
-            {appointment.sessionType === 'video' ? (
-              <Video className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-2 col-span-2">
+            {appointment.sessionType === 'video' || appointment.sessionType === 'teleconference' ? (
+              <Video className="h-3 w-3 text-muted-foreground" />
             ) : (
-              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <MapPin className="h-3 w-3 text-muted-foreground" />
             )}
-            <span>{appointment.sessionType === 'video' ? 'Video Call' : 'In-Person Visit'}</span>
+            <span>{appointment.sessionType === 'video' || appointment.sessionType === 'teleconference' ? 'Video Call' : 'In-Person Visit'}</span>
           </div>
         </div>
 
         {appointment.notes && (
-          <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-            <p className="text-sm">{appointment.notes}</p>
+          <div className="mb-3 p-2 bg-muted/50 rounded text-xs">
+            <p>{appointment.notes}</p>
           </div>
         )}
 
-        {showActions && (
-          <div className="flex gap-2 pt-4 border-t">
+        <div className="flex gap-2 pt-3 border-t">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/appointment/${appointment.id}`)}
+            className="flex-1 gap-1 h-8"
+          >
+            <Eye className="h-3 w-3" />
+            View
+          </Button>
+          {appointment.status === 'session_waiting' && (
             <Button
-              onClick={() => handleAccept(appointment.id)}
-              disabled={updateAppointmentMutation.isPending}
-              className="flex-1 gap-2"
+              variant="default"
+              size="sm"
+              onClick={() => navigate(`/dashboard/reports?appointment=${appointment.id}`)}
+              className="flex-1 gap-1 h-8 bg-green-600 hover:bg-green-700"
             >
-              <Check className="h-4 w-4" />
-              Accept
+              <Check className="h-3 w-3" />
+              Complete
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleDecline(appointment.id)}
-              disabled={updateAppointmentMutation.isPending}
-              className="flex-1 gap-2"
-            >
-              <X className="h-4 w-4" />
-              Decline
-            </Button>
-          </div>
-        )}
+          )}
+        </div>
 
-        {appointment.status === 'confirmed' && (
-          <div className="flex gap-2 pt-4 border-t">
-            <Button variant="outline" className="flex-1 gap-2">
-              <Phone className="h-4 w-4" />
-              Contact Patient
-            </Button>
-            {appointment.sessionType === 'video' && (
-              <Button className="flex-1 gap-2">
-                <Video className="h-4 w-4" />
-                Start Session
-              </Button>
-            )}
+        {appointment.status === 'session_waiting' && !sessionFeePaid && (
+          <div className="pt-3 border-t">
+            <p className="text-xs text-muted-foreground text-center">
+              Waiting for patient to pay session fee
+            </p>
           </div>
         )}
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   if (isLoading) {
     return (
@@ -171,33 +184,23 @@ const Schedule = () => {
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold">{pendingAppointments.length}</div>
-              <p className="text-sm text-muted-foreground">Pending Requests</p>
-            </CardContent>
-          </Card>
+        <div className="grid sm:grid-cols-2 gap-4">
           <Card>
             <CardContent className="p-6">
               <div className="text-2xl font-bold">{confirmedAppointments.length}</div>
-              <p className="text-sm text-muted-foreground">Confirmed Today</p>
+              <p className="text-sm text-muted-foreground">Confirmed Appointments</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-6">
               <div className="text-2xl font-bold">{completedAppointments.length}</div>
-              <p className="text-sm text-muted-foreground">Completed This Week</p>
+              <p className="text-sm text-muted-foreground">Completed Appointments</p>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="pending" className="space-y-6">
+        <Tabs defaultValue="confirmed" className="space-y-6">
           <TabsList>
-            <TabsTrigger value="pending" className="gap-2">
-              Pending Requests
-              <Badge variant="secondary">{pendingAppointments.length}</Badge>
-            </TabsTrigger>
             <TabsTrigger value="confirmed" className="gap-2">
               Confirmed
               <Badge variant="secondary">{confirmedAppointments.length}</Badge>
@@ -214,32 +217,24 @@ const Schedule = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="pending" className="space-y-4">
-            {pendingAppointments.length > 0 ? (
+          <TabsContent value="confirmed" className="space-y-4">
+            {confirmedAppointments.length > 0 ? (
               <div className="grid md:grid-cols-2 gap-4">
-                {pendingAppointments.map((appointment) => (
-                  <AppointmentCard key={appointment.id} appointment={appointment} showActions={true} />
+                {confirmedAppointments.map((appointment) => (
+                  <AppointmentCard key={appointment.id} appointment={appointment} />
                 ))}
               </div>
             ) : (
               <Card>
                 <CardContent className="py-12 text-center">
                   <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-semibold mb-2">No pending requests</h3>
+                  <h3 className="font-semibold mb-2">No confirmed appointments</h3>
                   <p className="text-muted-foreground">
-                    New appointment requests will appear here
+                    Confirmed appointments will appear here
                   </p>
                 </CardContent>
               </Card>
             )}
-          </TabsContent>
-
-          <TabsContent value="confirmed" className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              {confirmedAppointments.map((appointment) => (
-                <AppointmentCard key={appointment.id} appointment={appointment} />
-              ))}
-            </div>
           </TabsContent>
 
           <TabsContent value="completed" className="space-y-4">

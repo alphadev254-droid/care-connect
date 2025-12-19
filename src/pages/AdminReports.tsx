@@ -18,7 +18,17 @@ import {
   Calendar,
   FileText,
   Heart,
+  DollarSign,
+  Award,
 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { generatePDFReport } from "@/components/ReportPDF";
 
 const AdminReports = () => {
@@ -36,47 +46,89 @@ const AdminReports = () => {
     },
   });
 
+  const { data: specialtyAppointments } = useQuery({
+    queryKey: ["admin", "analytics", "specialty-appointments", selectedPeriod],
+    queryFn: async () => {
+      const response = await api.get(`/admin/analytics/specialty-appointments?period=${selectedPeriod}`);
+      return response.data.data || [];
+    },
+  });
+
+  const { data: topCaregivers } = useQuery({
+    queryKey: ["admin", "analytics", "top-caregivers", selectedPeriod],
+    queryFn: async () => {
+      const response = await api.get(`/admin/analytics/top-caregivers?period=${selectedPeriod}`);
+      return response.data.data || [];
+    },
+  });
+
+  const { data: appointmentStats } = useQuery({
+    queryKey: ["admin", "analytics", "appointment-stats", selectedPeriod],
+    queryFn: async () => {
+      const response = await api.get(`/admin/analytics/appointment-stats?period=${selectedPeriod}`);
+      return response.data.data || {};
+    },
+  });
+
+  const { data: revenueBySpecialty } = useQuery({
+    queryKey: ["admin", "analytics", "revenue-by-specialty", selectedPeriod],
+    queryFn: async () => {
+      const response = await api.get(`/admin/analytics/revenue-by-specialty?period=${selectedPeriod}`);
+      return response.data.data || [];
+    },
+  });
+
+  const { data: caregiversByLocation } = useQuery({
+    queryKey: ["admin", "analytics", "caregivers-by-location"],
+    queryFn: async () => {
+      const response = await api.get(`/admin/analytics/caregivers-by-location?groupBy=all`);
+      return response.data.data || [];
+    },
+  });
+
+  const { data: patientsByLocation } = useQuery({
+    queryKey: ["admin", "analytics", "patients-by-location"],
+    queryFn: async () => {
+      const response = await api.get(`/admin/analytics/patients-by-location?groupBy=all`);
+      return response.data.data || [];
+    },
+  });
+
+  const { data: locationSummary } = useQuery({
+    queryKey: ["admin", "analytics", "location-summary"],
+    queryFn: async () => {
+      const response = await api.get(`/admin/analytics/location-summary`);
+      return response.data.data || [];
+    },
+  });
+
   const stats = [
     {
-      title: "Total Users",
-      value: usersData?.length || 0,
-      icon: Users,
+      title: "Total Appointments",
+      value: appointmentStats?.total || 0,
+      icon: Calendar,
       color: "bg-primary/10 text-primary",
+    },
+    {
+      title: "Total Revenue",
+      value: `MWK ${(appointmentStats?.totalRevenue || 0).toLocaleString()}`,
+      icon: TrendingUp,
+      color: "bg-success/10 text-success",
     },
     {
       title: "Active Caregivers",
       value: usersData?.filter((u: any) => u.Role?.name === 'caregiver' && u.isActive)?.length || 0,
       icon: Heart,
-      color: "bg-success/10 text-success",
+      color: "bg-secondary/10 text-secondary",
     },
     {
       title: "Total Patients",
       value: usersData?.filter((u: any) => u.Role?.name === 'patient')?.length || 0,
-      icon: Activity,
-      color: "bg-secondary/10 text-secondary",
-    },
-    {
-      title: "Pending Approvals",
-      value: usersData?.filter((u: any) => u.Role?.name === 'caregiver' && !u.isActive)?.length || 0,
-      icon: TrendingUp,
+      icon: Users,
       color: "bg-accent/10 text-accent",
     },
   ];
 
-  const caregiversBySpecialty = [
-    { specialty: "General Care", count: 15, percentage: 35 },
-    { specialty: "Elderly Care", count: 12, percentage: 28 },
-    { specialty: "Nursing Care", count: 8, percentage: 19 },
-    { specialty: "Physical Therapy", count: 5, percentage: 12 },
-    { specialty: "Mental Health", count: 3, percentage: 6 },
-  ];
-
-  const appointmentStats = [
-    { status: "Completed", count: 145, color: "bg-success" },
-    { status: "Scheduled", count: 32, color: "bg-primary" },
-    { status: "Cancelled", count: 8, color: "bg-destructive" },
-    { status: "Pending", count: 12, color: "bg-warning" },
-  ];
 
   if (isLoading) {
     return (
@@ -123,18 +175,18 @@ const AdminReports = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Stats Cards - Compact */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {stats.map((stat) => (
             <Card key={stat.title}>
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground">{stat.title}</p>
+                    <p className="text-xl font-bold mt-1">{stat.value}</p>
                   </div>
-                  <div className={`h-12 w-12 rounded-xl ${stat.color} flex items-center justify-center`}>
-                    <stat.icon className="h-6 w-6" />
+                  <div className={`h-10 w-10 rounded-lg ${stat.color} flex items-center justify-center`}>
+                    <stat.icon className="h-5 w-5" />
                   </div>
                 </div>
               </CardContent>
@@ -148,41 +200,86 @@ const AdminReports = () => {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="caregivers">Caregiver Analytics</TabsTrigger>
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
-            <TabsTrigger value="compliance">Compliance</TabsTrigger>
+            <TabsTrigger value="locations">Location Reports</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid lg:grid-cols-2 gap-6">
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid lg:grid-cols-2 gap-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Caregiver Distribution by Specialty</CardTitle>
-                  <CardDescription>Breakdown of caregivers by their specializations</CardDescription>
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base">Appointments by Specialty</CardTitle>
+                  <CardDescription className="text-xs">Number of appointments per specialty</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {caregiversBySpecialty.length > 0 ? (
-                      <div className="text-center py-8">
-                        <p className="text-lg font-semibold">{caregiversBySpecialty.length}</p>
-                        <p className="text-sm text-muted-foreground">Total Caregivers</p>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <p>No caregivers registered yet</p>
-                      </div>
-                    )}
-                  </div>
+                <CardContent className="p-0">
+                  {specialtyAppointments && specialtyAppointments.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="h-9">Specialty</TableHead>
+                          <TableHead className="h-9 text-right">Count</TableHead>
+                          <TableHead className="h-9 text-right">Avg Cost</TableHead>
+                          <TableHead className="h-9 text-right">Revenue</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {specialtyAppointments.map((item: any) => (
+                          <TableRow key={item.specialtyId}>
+                            <TableCell className="py-2 font-medium">{item.Specialty?.name || 'Unknown'}</TableCell>
+                            <TableCell className="py-2 text-right">{item.appointmentCount}</TableCell>
+                            <TableCell className="py-2 text-right text-xs text-muted-foreground">
+                              MWK {parseFloat(item.avgRevenue || 0).toLocaleString()}
+                            </TableCell>
+                            <TableCell className="py-2 text-right font-semibold">
+                              MWK {parseFloat(item.totalRevenue || 0).toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-8 text-sm text-muted-foreground">
+                      No appointment data available
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle>Appointment Statistics</CardTitle>
-                  <CardDescription>Current appointment status breakdown</CardDescription>
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base">Appointment Status</CardTitle>
+                  <CardDescription className="text-xs">Breakdown by current status</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">Appointment statistics will be available when appointments are created</p>
-                  </div>
+                <CardContent className="p-0">
+                  {appointmentStats?.byStatus && appointmentStats.byStatus.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="h-9">Status</TableHead>
+                          <TableHead className="h-9 text-right">Count</TableHead>
+                          <TableHead className="h-9 text-right">Percentage</TableHead>
+                          <TableHead className="h-9 text-right">Amount</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {appointmentStats.byStatus.map((item: any) => (
+                          <TableRow key={item.status}>
+                            <TableCell className="py-2 font-medium capitalize">{item.status}</TableCell>
+                            <TableCell className="py-2 text-right">{item.count}</TableCell>
+                            <TableCell className="py-2 text-right text-xs">
+                              {((item.count / appointmentStats.total) * 100).toFixed(1)}%
+                            </TableCell>
+                            <TableCell className="py-2 text-right font-semibold">
+                              MWK {parseFloat(item.totalAmount || 0).toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-8 text-sm text-muted-foreground">
+                      No appointment data available
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -216,57 +313,241 @@ const AdminReports = () => {
 
           <TabsContent value="caregivers" className="space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle>Caregiver Performance</CardTitle>
-                <CardDescription>Analytics on caregiver activity and performance</CardDescription>
+              <CardHeader className="p-4">
+                <CardTitle className="text-base">Top Performing Caregivers</CardTitle>
+                <CardDescription className="text-xs">Ranked by appointments and revenue</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-semibold mb-2">Detailed Analytics Coming Soon</h3>
-                  <p className="text-muted-foreground">
-                    Comprehensive caregiver performance metrics will be available here
-                  </p>
-                </div>
+              <CardContent className="p-0">
+                {topCaregivers && topCaregivers.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="h-9 w-12">Rank</TableHead>
+                        <TableHead className="h-9">Caregiver</TableHead>
+                        <TableHead className="h-9">Email</TableHead>
+                        <TableHead className="h-9 text-right">Appointments</TableHead>
+                        <TableHead className="h-9 text-right">Total Earnings</TableHead>
+                        <TableHead className="h-9 text-right">Avg Per Appointment</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[...topCaregivers]
+                        .sort((a: any, b: any) => parseFloat(b.totalEarnings || 0) - parseFloat(a.totalEarnings || 0))
+                        .map((item: any, index: number) => (
+                          <TableRow key={item.caregiverId}>
+                            <TableCell className="py-2">
+                              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                                #{index + 1}
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-2 font-medium">
+                              {item.Caregiver?.User?.firstName} {item.Caregiver?.User?.lastName}
+                            </TableCell>
+                            <TableCell className="py-2 text-xs text-muted-foreground">
+                              {item.Caregiver?.User?.email}
+                            </TableCell>
+                            <TableCell className="py-2 text-right font-semibold">
+                              {item.appointmentCount}
+                            </TableCell>
+                            <TableCell className="py-2 text-right font-bold text-success">
+                              MWK {parseFloat(item.totalEarnings || 0).toLocaleString()}
+                            </TableCell>
+                            <TableCell className="py-2 text-right text-xs text-muted-foreground">
+                              MWK {(parseFloat(item.totalEarnings || 0) / item.appointmentCount).toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-12 text-sm text-muted-foreground">
+                    <Award className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                    <p>No caregiver data available yet</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="appointments" className="space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle>Appointment Analytics</CardTitle>
-                <CardDescription>Detailed appointment statistics and trends</CardDescription>
+              <CardHeader className="p-4">
+                <CardTitle className="text-base">Revenue by Specialty</CardTitle>
+                <CardDescription className="text-xs">Total revenue generated per specialty (completed appointments)</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-semibold mb-2">Appointment Reports</h3>
-                  <p className="text-muted-foreground">
-                    Detailed appointment analytics and scheduling patterns
-                  </p>
-                </div>
+              <CardContent className="p-0">
+                {revenueBySpecialty && revenueBySpecialty.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="h-9">Specialty</TableHead>
+                        <TableHead className="h-9 text-right">Completed</TableHead>
+                        <TableHead className="h-9 text-right">Total Revenue</TableHead>
+                        <TableHead className="h-9 text-right">Avg Revenue</TableHead>
+                        <TableHead className="h-9 text-right">% of Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {revenueBySpecialty.map((item: any) => {
+                        const totalRev = revenueBySpecialty.reduce((sum: number, i: any) => sum + parseFloat(i.totalRevenue || 0), 0);
+                        const percentage = ((parseFloat(item.totalRevenue || 0) / totalRev) * 100).toFixed(1);
+                        return (
+                          <TableRow key={item.specialtyId}>
+                            <TableCell className="py-2 font-medium">{item.Specialty?.name || 'Unknown'}</TableCell>
+                            <TableCell className="py-2 text-right">{item.appointmentCount}</TableCell>
+                            <TableCell className="py-2 text-right font-bold text-success">
+                              MWK {parseFloat(item.totalRevenue || 0).toLocaleString()}
+                            </TableCell>
+                            <TableCell className="py-2 text-right text-xs text-muted-foreground">
+                              MWK {(parseFloat(item.totalRevenue || 0) / item.appointmentCount).toLocaleString()}
+                            </TableCell>
+                            <TableCell className="py-2 text-right text-xs">{percentage}%</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-12 text-sm text-muted-foreground">
+                    <DollarSign className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                    <p>No revenue data available</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="compliance" className="space-y-4">
+          <TabsContent value="locations" className="space-y-4">
+            <div className="grid lg:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base">Caregivers by Location</CardTitle>
+                  <CardDescription className="text-xs">Distribution of caregivers across regions</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {caregiversByLocation && caregiversByLocation.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="h-9">Region</TableHead>
+                          <TableHead className="h-9">District</TableHead>
+                          <TableHead className="h-9">Traditional Authority</TableHead>
+                          <TableHead className="h-9">Village</TableHead>
+                          <TableHead className="h-9 text-right">Caregivers</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {caregiversByLocation.map((item: any, index: number) => (
+                          <TableRow key={index}>
+                            <TableCell className="py-2 font-medium">{item.region || '-'}</TableCell>
+                            <TableCell className="py-2">{item.district || '-'}</TableCell>
+                            <TableCell className="py-2 text-xs text-muted-foreground">{item.traditionalAuthority || '-'}</TableCell>
+                            <TableCell className="py-2 text-xs text-muted-foreground">{item.village || '-'}</TableCell>
+                            <TableCell className="py-2 text-right font-semibold">{item.caregiverCount}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-12 text-sm text-muted-foreground">
+                      <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                      <p>No caregiver location data available</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base">Patients by Location</CardTitle>
+                  <CardDescription className="text-xs">Distribution of patients across regions</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {patientsByLocation && patientsByLocation.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="h-9">Region</TableHead>
+                          <TableHead className="h-9">District</TableHead>
+                          <TableHead className="h-9">Traditional Authority</TableHead>
+                          <TableHead className="h-9">Village</TableHead>
+                          <TableHead className="h-9 text-right">Patients</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {patientsByLocation.map((item: any, index: number) => (
+                          <TableRow key={index}>
+                            <TableCell className="py-2 font-medium">{item.region || '-'}</TableCell>
+                            <TableCell className="py-2">{item.district || '-'}</TableCell>
+                            <TableCell className="py-2 text-xs text-muted-foreground">{item.traditionalAuthority || '-'}</TableCell>
+                            <TableCell className="py-2 text-xs text-muted-foreground">{item.village || '-'}</TableCell>
+                            <TableCell className="py-2 text-right font-semibold">{item.patientCount}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-12 text-sm text-muted-foreground">
+                      <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                      <p>No patient location data available</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
             <Card>
-              <CardHeader>
-                <CardTitle>Compliance & Audits</CardTitle>
-                <CardDescription>System compliance monitoring and audit reports</CardDescription>
+              <CardHeader className="p-4">
+                <CardTitle className="text-base">Location Summary by Region</CardTitle>
+                <CardDescription className="text-xs">Combined view of caregivers and patients per region</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-semibold mb-2">Compliance Dashboard</h3>
-                  <p className="text-muted-foreground">
-                    Regulatory compliance tracking and audit management
-                  </p>
-                </div>
+              <CardContent className="p-0">
+                {locationSummary && locationSummary.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="h-9">Region</TableHead>
+                        <TableHead className="h-9 text-right">Caregivers</TableHead>
+                        <TableHead className="h-9 text-right">Patients</TableHead>
+                        <TableHead className="h-9 text-right">Total Users</TableHead>
+                        <TableHead className="h-9 text-right">Ratio (C:P)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {locationSummary.map((item: any) => {
+                        const ratio = item.patientCount > 0
+                          ? (item.caregiverCount / item.patientCount).toFixed(2)
+                          : 'N/A';
+                        return (
+                          <TableRow key={item.region}>
+                            <TableCell className="py-2 font-medium">{item.region || 'Unknown'}</TableCell>
+                            <TableCell className="py-2 text-right text-primary font-semibold">
+                              {item.caregiverCount}
+                            </TableCell>
+                            <TableCell className="py-2 text-right text-secondary font-semibold">
+                              {item.patientCount}
+                            </TableCell>
+                            <TableCell className="py-2 text-right font-bold">
+                              {item.caregiverCount + item.patientCount}
+                            </TableCell>
+                            <TableCell className="py-2 text-right text-xs text-muted-foreground">
+                              {ratio}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-12 text-sm text-muted-foreground">
+                    <BarChart3 className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                    <p>No location summary data available</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
+
         </Tabs>
       </div>
     </DashboardLayout>

@@ -65,7 +65,7 @@ const specialties = [
 
 const SpecialtiesSection = () => {
   return (
-    <section className="py-20 lg:py-32 bg-muted/30">
+    <section className="py-9 lg:py-14 bg-muted/30">
       <div className="container">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">

@@ -35,6 +35,7 @@ const Profile = () => {
     firstName: "",
     lastName: "",
     phone: "",
+    idNumber: "",
     dateOfBirth: "",
     address: "",
     emergencyContact: "",
@@ -101,6 +102,7 @@ const Profile = () => {
         firstName: profileData.firstName || "",
         lastName: profileData.lastName || "",
         phone: profileData.phone || "",
+        idNumber: profileData.idNumber || "",
         dateOfBirth: profileData.Patient?.dateOfBirth ? 
           new Date(profileData.Patient.dateOfBirth).toISOString().split('T')[0] : "",
         address: profileData.Patient?.address || "",
@@ -123,6 +125,7 @@ const Profile = () => {
         firstName: profileData.firstName || "",
         lastName: profileData.lastName || "",
         phone: profileData.phone || "",
+        idNumber: profileData.idNumber || "",
         dateOfBirth: profileData.Patient?.dateOfBirth ? 
           new Date(profileData.Patient.dateOfBirth).toISOString().split('T')[0] : "",
         address: profileData.Patient?.address || "",
@@ -284,6 +287,17 @@ const Profile = () => {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="idNumber">National ID Number</Label>
+                    <Input
+                      id="idNumber"
+                      value={formData.idNumber}
+                      onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label htmlFor="dateOfBirth">Date of Birth</Label>
                     <Input
                       id="dateOfBirth"
@@ -293,6 +307,7 @@ const Profile = () => {
                       disabled={!isEditing}
                     />
                   </div>
+                  <div></div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="address">Address</Label>

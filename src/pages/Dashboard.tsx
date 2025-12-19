@@ -19,6 +19,8 @@ import {
   Activity,
   Bell,
   Loader2,
+  Users,
+  Heart,
 } from "lucide-react";
 
 const Dashboard = () => {
@@ -83,16 +85,16 @@ const Dashboard = () => {
 
   const getQuickActions = () => {
     const role = user?.role || 'patient';
-    
+
     switch (role) {
       case 'system_manager':
       case 'regional_manager':
         return [
           {
             icon: Search,
-            label: "Administration",
-            description: "Manage caregivers & users",
-            href: "/dashboard/admin",
+            label: "User Management",
+            description: "Manage all users",
+            href: "/dashboard/users",
             color: "primary",
           },
           {
@@ -104,15 +106,15 @@ const Dashboard = () => {
           },
           {
             icon: Activity,
-            label: "User Management",
-            description: "Manage all users",
-            href: "/dashboard/admin",
+            label: "Specialties",
+            description: "Manage specialties",
+            href: "/dashboard/specialties",
             color: "accent",
           },
           {
             icon: Bell,
             label: "Settings",
-            description: "System configuration",
+            description: "System config",
             href: "/dashboard/settings",
             color: "success",
           },
@@ -122,28 +124,28 @@ const Dashboard = () => {
           {
             icon: Calendar,
             label: "My Schedule",
-            description: "View appointments & requests",
+            description: "View appointments",
             href: "/dashboard/schedule",
             color: "primary",
           },
           {
             icon: Search,
             label: "My Patients",
-            description: "Manage patient care",
+            description: "Manage patients",
             href: "/dashboard/patients",
             color: "secondary",
           },
           {
             icon: Video,
             label: "Start Session",
-            description: "Begin teleconference",
+            description: "Teleconference",
             href: "/dashboard/teleconference",
             color: "accent",
           },
           {
             icon: FileText,
             label: "Earnings",
-            description: "Track your income",
+            description: "Track income",
             href: "/dashboard/earnings",
             color: "success",
           },
@@ -153,21 +155,21 @@ const Dashboard = () => {
           {
             icon: Search,
             label: "My Patients",
-            description: "Monitor patient health",
+            description: "Monitor health",
             href: "/dashboard/patients",
             color: "primary",
           },
           {
             icon: Star,
             label: "Recommendations",
-            description: "Recommend caregivers",
+            description: "Recommend care",
             href: "/dashboard/recommendations",
             color: "secondary",
           },
           {
             icon: FileText,
             label: "Health Reports",
-            description: "Review care reports",
+            description: "Review reports",
             href: "/dashboard/reports",
             color: "accent",
           },
@@ -184,28 +186,28 @@ const Dashboard = () => {
           {
             icon: Search,
             label: "Find Caregiver",
-            description: "Browse verified caregivers",
+            description: "Browse caregivers",
             href: "/dashboard/caregivers",
             color: "primary",
           },
           {
             icon: Calendar,
             label: "Book Appointment",
-            description: "Schedule a new session",
+            description: "Schedule session",
             href: "/dashboard/appointments",
             color: "secondary",
           },
           {
             icon: Video,
-            label: "Start Teleconference",
-            description: "Connect via video call",
+            label: "Teleconference",
+            description: "Video call",
             href: "/dashboard/teleconference",
             color: "accent",
           },
           {
             icon: FileText,
             label: "View Reports",
-            description: "Access care reports",
+            description: "Care reports",
             href: "/dashboard/reports",
             color: "success",
           },
@@ -217,17 +219,17 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout userRole={user?.role === 'system_manager' || user?.role === 'regional_manager' ? 'admin' : (user?.role || "patient")}>
-      <div className="space-y-8">
-        {/* Welcome Section */}
+      <div className="space-y-6">
+        {/* Welcome Section - Compact */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl md:text-3xl font-bold">
               Welcome back, {user?.firstName || "User"}!
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-muted-foreground mt-1 text-sm">
               {user?.role === 'system_manager' || user?.role === 'regional_manager'
                 ? "System overview and management dashboard"
-                : user?.role === 'caregiver' 
+                : user?.role === 'caregiver'
                 ? "Manage your patients and schedule efficiently"
                 : user?.role === 'primary_physician'
                 ? "Monitor patient health and recommend care"
@@ -236,14 +238,14 @@ const Dashboard = () => {
             </p>
           </div>
           {user?.role === 'patient' && (
-            <div className="flex items-center gap-3">
-              <Button variant="outline" className="gap-2">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="gap-2 h-9">
                 <Bell className="h-4 w-4" />
-                <span className="hidden sm:inline">Notifications</span>
-                <Badge variant="destructive" className="ml-1">3</Badge>
+                <span className="hidden sm:inline text-xs">Notifications</span>
+                <Badge variant="destructive" className="ml-1 text-xs">3</Badge>
               </Button>
               <Link to="/dashboard/caregivers">
-                <Button className="gap-2 bg-gradient-primary">
+                <Button size="sm" className="gap-2 bg-gradient-primary h-9 text-xs">
                   <Search className="h-4 w-4" />
                   Find Caregiver
                 </Button>
@@ -252,43 +254,321 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action) => (
-            <Link key={action.label} to={action.href}>
-              <Card className="h-full hover:shadow-lg hover:border-primary/30 transition-all cursor-pointer group">
-                <CardContent className="p-6">
-                  <div className={`h-12 w-12 rounded-xl bg-${action.color}/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                    <action.icon className={`h-6 w-6 text-${action.color}`} />
+        {/* Role-based Statistics - Compact */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
+            <>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total Users</p>
+                      <p className="text-2xl font-bold mt-1">{adminData?.users?.length || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {adminData?.users?.filter((u: any) => u.isActive)?.length || 0} active
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Users className="h-5 w-5 text-primary" />
+                    </div>
                   </div>
-                  <h3 className="font-semibold mb-1">{action.label}</h3>
-                  <p className="text-sm text-muted-foreground">{action.description}</p>
                 </CardContent>
               </Card>
-            </Link>
-          ))}
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Caregivers</p>
+                      <p className="text-2xl font-bold mt-1">
+                        {adminData?.users?.filter((u: any) => u.Role?.name === 'caregiver')?.length || 0}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {adminData?.users?.filter((u: any) => u.Role?.name === 'caregiver' && u.isActive)?.length || 0} active
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+                      <Heart className="h-5 w-5 text-secondary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Pending Approvals</p>
+                      <p className="text-2xl font-bold mt-1">{adminData?.pendingCaregivers?.length || 0}</p>
+                      <p className="text-xs text-warning mt-1">
+                        Requires attention
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                      <Clock className="h-5 w-5 text-warning" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Patients</p>
+                      <p className="text-2xl font-bold mt-1">
+                        {adminData?.users?.filter((u: any) => u.Role?.name === 'patient')?.length || 0}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {adminData?.users?.filter((u: any) => u.Role?.name === 'patient' && u.isActive)?.length || 0} active
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                      <Activity className="h-5 w-5 text-accent" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : user?.role === 'caregiver' ? (
+            <>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total Appointments</p>
+                      <p className="text-2xl font-bold mt-1">{upcomingAppointments?.length || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Upcoming sessions
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Calendar className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Pending Requests</p>
+                      <p className="text-2xl font-bold mt-1">
+                        {upcomingAppointments?.filter((a: any) => a.status === 'pending')?.length || 0}
+                      </p>
+                      <p className="text-xs text-warning mt-1">
+                        Needs response
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                      <Clock className="h-5 w-5 text-warning" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Care Reports</p>
+                      <p className="text-2xl font-bold mt-1">{recentReports?.length || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Total submitted
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-secondary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Confirmed</p>
+                      <p className="text-2xl font-bold mt-1">
+                        {upcomingAppointments?.filter((a: any) => a.status === 'confirmed')?.length || 0}
+                      </p>
+                      <p className="text-xs text-success mt-1">
+                        Ready to go
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
+                      <Activity className="h-5 w-5 text-success" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : user?.role === 'primary_physician' ? (
+            <>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Active Patients</p>
+                      <p className="text-2xl font-bold mt-1">0</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Under care
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Users className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Recommendations</p>
+                      <p className="text-2xl font-bold mt-1">0</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Caregivers referred
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+                      <Star className="h-5 w-5 text-secondary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Health Reports</p>
+                      <p className="text-2xl font-bold mt-1">{recentReports?.length || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Reviews pending
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-accent" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Patient Status</p>
+                      <p className="text-2xl font-bold mt-1">Stable</p>
+                      <p className="text-xs text-success mt-1">
+                        Overall health
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
+                      <Activity className="h-5 w-5 text-success" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Upcoming Appointments</p>
+                      <p className="text-2xl font-bold mt-1">{upcomingAppointments?.length || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Scheduled sessions
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Calendar className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Active Caregivers</p>
+                      <p className="text-2xl font-bold mt-1">{caregiversData?.length || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Available now
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+                      <Heart className="h-5 w-5 text-secondary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Care Reports</p>
+                      <p className="text-2xl font-bold mt-1">{recentReports?.length || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Total received
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-accent" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Next Appointment</p>
+                      <p className="text-2xl font-bold mt-1">
+                        {upcomingAppointments?.[0] ? formatDate(upcomingAppointments[0].scheduledDate).split(',')[0] : 'None'}
+                      </p>
+                      <p className="text-xs text-success mt-1">
+                        {upcomingAppointments?.[0] ? 'Confirmed' : 'Book now'}
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
+                      <Clock className="h-5 w-5 text-success" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Role-based main content */}
+        <div className="grid lg:grid-cols-3 gap-4">
+          {/* Role-based main content - Compact */}
           <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between p-4">
               <div>
-                <CardTitle className="font-display">
+                <CardTitle className="font-display text-base">
                   {user?.role === 'system_manager' || user?.role === 'regional_manager'
                     ? "Recent User Activity"
-                    : user?.role === 'caregiver' 
+                    : user?.role === 'caregiver'
                     ? "Pending Requests"
                     : user?.role === 'primary_physician'
                     ? "Patient Overview"
                     : "Upcoming Appointments"
                   }
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs">
                   {user?.role === 'system_manager' || user?.role === 'regional_manager'
                     ? "Latest registrations and system activity"
-                    : user?.role === 'caregiver' 
-                    ? "New appointment requests awaiting your response"
+                    : user?.role === 'caregiver'
+                    ? "New appointment requests"
                     : user?.role === 'primary_physician'
                     ? "Patients under your care"
                     : "Your scheduled care sessions"
@@ -296,50 +576,48 @@ const Dashboard = () => {
                 </CardDescription>
               </div>
               <Link to={user?.role === 'caregiver' ? "/dashboard/schedule" : "/dashboard/appointments"}>
-                <Button variant="ghost" size="sm" className="gap-1">
-                  View All <ArrowRight className="h-4 w-4" />
+                <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs">
+                  View All <ArrowRight className="h-3 w-3" />
                 </Button>
               </Link>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {adminData?.users?.slice(0, 5).map((user: any) => (
                     <div
                       key={user.id}
-                      className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
                           {user.firstName?.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-semibold">{user.firstName} {user.lastName}</p>
-                          <p className="text-sm text-muted-foreground capitalize">{user.Role?.name?.replace('_', ' ')}</p>
+                          <p className="font-medium text-sm">{user.firstName} {user.lastName}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{user.Role?.name?.replace('_', ' ')}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <Badge
-                          variant={user.isActive ? "default" : "secondary"}
-                          className="capitalize"
-                        >
-                          {user.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
+                      <Badge
+                        variant={user.isActive ? "default" : "secondary"}
+                        className="capitalize text-xs"
+                      >
+                        {user.isActive ? "Active" : "Inactive"}
+                      </Badge>
                     </div>
                   )) || []}
                   {(!adminData?.users || adminData.users.length === 0) && (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-6 text-muted-foreground text-sm">
                       No users found
                     </div>
                   )}
                 </div>
               ) : loadingAppointments ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {upcomingAppointments.slice(0, 3).map((appointment: any) => {
                     const caregiverName = appointment.Caregiver?.User
                       ? `${appointment.Caregiver.User.firstName} ${appointment.Caregiver.User.lastName}`
@@ -349,25 +627,25 @@ const Dashboard = () => {
                     return (
                       <div
                         key={appointment.id}
-                        className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                       >
-                        <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
                             {caregiverName.charAt(0)}
                           </div>
                           <div>
-                            <p className="font-semibold">{caregiverName}</p>
-                            <p className="text-sm text-muted-foreground">{specialtyName}</p>
+                            <p className="font-medium text-sm">{caregiverName}</p>
+                            <p className="text-xs text-muted-foreground">{specialtyName}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex items-center gap-1 text-xs mb-1">
+                            <Clock className="h-3 w-3 text-muted-foreground" />
                             {formatDate(appointment.scheduledDate)}
                           </div>
                           <Badge
                             variant={appointment.status === "confirmed" ? "default" : "secondary"}
-                            className="mt-1 capitalize"
+                            className="capitalize text-xs"
                           >
                             {appointment.status}
                           </Badge>
@@ -376,7 +654,7 @@ const Dashboard = () => {
                     );
                   })}
                   {upcomingAppointments.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-6 text-muted-foreground text-sm">
                       No upcoming appointments
                     </div>
                   )}
@@ -385,47 +663,47 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Role-based sidebar */}
+          {/* Role-based sidebar - Compact */}
           <Card>
-            <CardHeader>
-              <CardTitle className="font-display">
+            <CardHeader className="p-4">
+              <CardTitle className="font-display text-base">
                 {user?.role === 'system_manager' || user?.role === 'regional_manager'
                   ? "System Status"
-                  : user?.role === 'caregiver' 
+                  : user?.role === 'caregiver'
                   ? "Today's Summary"
                   : user?.role === 'primary_physician'
                   ? "Patient Status"
                   : "Health Overview"
                 }
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs">
                 {user?.role === 'system_manager' || user?.role === 'regional_manager'
-                  ? "Overall system health and statistics"
-                  : user?.role === 'caregiver' 
-                  ? "Your daily activity summary"
+                  ? "Overall system health"
+                  : user?.role === 'caregiver'
+                  ? "Your daily summary"
                   : user?.role === 'primary_physician'
-                  ? "Overall patient health status"
-                  : "Your current health status"
+                  ? "Patient health status"
+                  : "Your health status"
                 }
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 p-4 pt-0">
               {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
-                <div className="text-center p-6 rounded-xl bg-primary/10">
-                  <Activity className="h-8 w-8 text-primary mx-auto mb-2" />
-                  <p className="font-display text-2xl font-bold text-primary">Online</p>
-                  <p className="text-sm text-muted-foreground">System Status</p>
+                <div className="text-center p-4 rounded-lg bg-primary/10">
+                  <Activity className="h-6 w-6 text-primary mx-auto mb-2" />
+                  <p className="font-display text-xl font-bold text-primary">Online</p>
+                  <p className="text-xs text-muted-foreground">System Status</p>
                 </div>
               ) : (
-                <div className="text-center p-6 rounded-xl bg-success/10">
-                  <Activity className="h-8 w-8 text-success mx-auto mb-2" />
-                  <p className="font-display text-2xl font-bold text-success">Stable</p>
-                  <p className="text-sm text-muted-foreground">Current Status</p>
+                <div className="text-center p-4 rounded-lg bg-success/10">
+                  <Activity className="h-6 w-6 text-success mx-auto mb-2" />
+                  <p className="font-display text-xl font-bold text-success">Stable</p>
+                  <p className="text-xs text-muted-foreground">Current Status</p>
                 </div>
               )}
 
-              <div className="space-y-4">
-                <h4 className="font-semibold text-sm">
+              <div className="space-y-3">
+                <h4 className="font-semibold text-xs">
                   {user?.role === 'system_manager' || user?.role === 'regional_manager'
                     ? "Recent Activity"
                     : "Recent Reports"
@@ -438,23 +716,23 @@ const Dashboard = () => {
                       className="flex items-center justify-between py-2 border-b last:border-0"
                     >
                       <div>
-                        <p className="text-sm font-medium">{caregiver.firstName} {caregiver.lastName}</p>
+                        <p className="text-xs font-medium">{caregiver.firstName} {caregiver.lastName}</p>
                         <p className="text-xs text-muted-foreground">Pending Approval</p>
                       </div>
-                      <Badge variant="outline" className="text-warning border-warning">
+                      <Badge variant="outline" className="text-warning border-warning text-xs">
                         Pending
                       </Badge>
                     </div>
                   )) || (
-                    <p className="text-sm text-muted-foreground text-center py-4">No pending approvals</p>
+                    <p className="text-xs text-muted-foreground text-center py-3">No pending approvals</p>
                   )
                 ) : loadingReports ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <div className="flex items-center justify-center py-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   </div>
                 ) : recentReports.length > 0 ? (
                   recentReports.slice(0, 3).map((report: any) => {
-                    const reportDate = new Date(report.createdAt || report.Appointment?.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const reportDate = new Date(report.createdAt || report.Appointment?.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     const statusColor = {
                       stable: "text-success border-success",
                       improving: "text-primary border-primary",
@@ -470,93 +748,93 @@ const Dashboard = () => {
                         className="flex items-center justify-between py-2 border-b last:border-0"
                       >
                         <div>
-                          <p className="text-sm font-medium">{reportDate}</p>
-                          <p className="text-xs text-muted-foreground">Care Session Report</p>
+                          <p className="text-xs font-medium">{reportDate}</p>
+                          <p className="text-xs text-muted-foreground">Care Report</p>
                         </div>
-                        <Badge variant="outline" className={`capitalize ${statusColor}`}>
+                        <Badge variant="outline" className={`capitalize text-xs ${statusColor}`}>
                           {report.patientStatus}
                         </Badge>
                       </div>
                     );
                   })
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">No reports yet</p>
+                  <p className="text-xs text-muted-foreground text-center py-3">No reports yet</p>
                 )}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Role-based bottom section */}
+        {/* Role-based bottom section - Compact */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between p-4">
             <div>
-              <CardTitle className="font-display">
-                {user?.role === 'caregiver' 
+              <CardTitle className="font-display text-base">
+                {user?.role === 'caregiver'
                   ? "Recent Patients"
                   : user?.role === 'primary_physician'
                   ? "Recommended Caregivers"
                   : "Recommended for You"
                 }
               </CardTitle>
-              <CardDescription>
-                {user?.role === 'caregiver' 
-                  ? "Patients you've recently provided care for"
+              <CardDescription className="text-xs">
+                {user?.role === 'caregiver'
+                  ? "Recently provided care"
                   : user?.role === 'primary_physician'
-                  ? "Top-rated caregivers for your patients"
-                  : "Caregivers matching your healthcare needs"
+                  ? "Top-rated caregivers"
+                  : "Matching your needs"
                 }
               </CardDescription>
             </div>
             <Link to={user?.role === 'caregiver' ? "/dashboard/patients" : "/dashboard/caregivers"}>
-              <Button variant="ghost" size="sm" className="gap-1">
-                {user?.role === 'caregiver' ? "View All" : "Browse All"} <ArrowRight className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs">
+                {user?.role === 'caregiver' ? "View All" : "Browse"} <ArrowRight className="h-3 w-3" />
               </Button>
             </Link>
           </CardHeader>
-          <CardContent>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <CardContent className="p-4 pt-0">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
-                // Show real admin stats
+                // Show real admin stats - Compact
                 <>
-                  <div className="p-4 rounded-xl border bg-primary/5">
-                    <h4 className="font-semibold text-primary">Total Users</h4>
-                    <p className="text-2xl font-bold">{adminData?.users?.length || 0}</p>
+                  <div className="p-3 rounded-lg border bg-primary/5">
+                    <h4 className="font-semibold text-primary text-xs mb-1">Total Users</h4>
+                    <p className="text-xl font-bold">{adminData?.users?.length || 0}</p>
                   </div>
-                  <div className="p-4 rounded-xl border bg-warning/5">
-                    <h4 className="font-semibold text-warning">Pending Approvals</h4>
-                    <p className="text-2xl font-bold">{adminData?.pendingCaregivers?.length || 0}</p>
+                  <div className="p-3 rounded-lg border bg-warning/5">
+                    <h4 className="font-semibold text-warning text-xs mb-1">Pending Approvals</h4>
+                    <p className="text-xl font-bold">{adminData?.pendingCaregivers?.length || 0}</p>
                   </div>
-                  <div className="p-4 rounded-xl border bg-success/5">
-                    <h4 className="font-semibold text-success">Active Caregivers</h4>
-                    <p className="text-2xl font-bold">{adminData?.users?.filter((u: any) => u.Role?.name === 'caregiver' && u.isActive)?.length || 0}</p>
+                  <div className="p-3 rounded-lg border bg-success/5">
+                    <h4 className="font-semibold text-success text-xs mb-1">Active Caregivers</h4>
+                    <p className="text-xl font-bold">{adminData?.users?.filter((u: any) => u.Role?.name === 'caregiver' && u.isActive)?.length || 0}</p>
                   </div>
                 </>
               ) : (
-                // Show real caregivers for other roles
+                // Show real caregivers - Compact
                 caregiversData?.slice(0, 3).map((caregiver: any) => (
                   <div
                     key={caregiver.id}
-                    className="p-4 rounded-xl border hover:border-primary/30 hover:shadow-md transition-all"
+                    className="p-3 rounded-lg border hover:border-primary/30 hover:shadow-md transition-all"
                   >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="h-12 w-12 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
                         {caregiver.firstName?.charAt(0) || 'C'}
                       </div>
                       <div>
-                        <p className="font-semibold">{caregiver.firstName} {caregiver.lastName}</p>
-                        <div className="flex items-center gap-1 text-sm text-accent">
+                        <p className="font-semibold text-sm">{caregiver.firstName} {caregiver.lastName}</p>
+                        <div className="flex items-center gap-1 text-xs text-accent">
                           <Star className="h-3 w-3 fill-current" />
                           <span>4.9</span>
                         </div>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="mb-3">{caregiver.Caregiver?.qualifications || 'Healthcare Professional'}</Badge>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {caregiver.Caregiver?.experience || 0} years experience • ${caregiver.Caregiver?.hourlyRate || 50}/hr
+                    <Badge variant="secondary" className="mb-2 text-xs">{caregiver.Caregiver?.qualifications || 'Healthcare Pro'}</Badge>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      {caregiver.Caregiver?.experience || 0} years exp • MWK {caregiver.Caregiver?.hourlyRate || 50}/hr
                     </p>
                     <Link to="/dashboard/caregivers">
-                      <Button variant="outline" size="sm" className="w-full">
+                      <Button variant="outline" size="sm" className="w-full h-7 text-xs">
                         View Profile
                       </Button>
                     </Link>
@@ -564,25 +842,25 @@ const Dashboard = () => {
                 )) || [1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="p-4 rounded-xl border hover:border-primary/30 hover:shadow-md transition-all"
+                    className="p-3 rounded-lg border hover:border-primary/30 hover:shadow-md transition-all"
                   >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="h-12 w-12 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
                         C{i}
                       </div>
                       <div>
-                        <p className="font-semibold">Caregiver {i}</p>
-                        <div className="flex items-center gap-1 text-sm text-accent">
+                        <p className="font-semibold text-sm">Caregiver {i}</p>
+                        <div className="flex items-center gap-1 text-xs text-accent">
                           <Star className="h-3 w-3 fill-current" />
                           <span>4.9</span>
                         </div>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="mb-3">Nursing Care</Badge>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      5+ years experience in home healthcare
+                    <Badge variant="secondary" className="mb-2 text-xs">Nursing Care</Badge>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      5+ years in home healthcare
                     </p>
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button variant="outline" size="sm" className="w-full h-7 text-xs">
                       View Profile
                     </Button>
                   </div>

@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -29,9 +28,9 @@ import {
   UserCheck,
   UserX,
   Eye,
-  Trash2,
-  CheckCircle,
-  XCircle,
+  Shield,
+  Heart,
+  Activity,
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -41,7 +40,6 @@ const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     title: string;
@@ -68,10 +66,10 @@ const UserManagement = () => {
 
   const filteredUsers = allUsers?.filter((u: any) => {
     const matchesSearch = `${u.firstName} ${u.lastName} ${u.email}`.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSpecialty = !selectedSpecialty || selectedSpecialty === 'all' || 
+    const matchesSpecialty = !selectedSpecialty || selectedSpecialty === 'all' ||
       (u.Role?.name === 'caregiver' && u.Caregiver?.Specialties?.some((s: any) => s.id.toString() === selectedSpecialty));
-    const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'active' && u.isActive) || 
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'active' && u.isActive) ||
       (statusFilter === 'inactive' && !u.isActive);
     return matchesSearch && matchesSpecialty && matchesStatus;
   }) || [];
@@ -87,66 +85,12 @@ const UserManagement = () => {
     },
   });
 
-  const deleteUserMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      await api.delete(`/admin/users/${userId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin"] });
-      toast.success("User deleted successfully");
-      setConfirmDialog(prev => ({ ...prev, open: false }));
-    },
-  });
-
   const handleToggleUser = (user: any) => {
     setConfirmDialog({
       open: true,
       title: user.isActive ? "Deactivate User" : "Activate User",
       description: `Are you sure you want to ${user.isActive ? 'deactivate' : 'activate'} ${user.firstName} ${user.lastName}?`,
       action: () => toggleUserMutation.mutate(user.id)
-    });
-  };
-
-  const handleDeleteUser = (user: any) => {
-    setConfirmDialog({
-      open: true,
-      title: "Delete User",
-      description: `Are you sure you want to permanently delete ${user.firstName} ${user.lastName}? This action cannot be undone.`,
-      action: () => deleteUserMutation.mutate(user.id)
-    });
-  };
-
-  const toggleUserSelection = (userId: string) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId) 
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
-    );
-  };
-
-  const handleBulkActivate = () => {
-    if (selectedUsers.length === 0) return;
-    setConfirmDialog({
-      open: true,
-      title: "Activate Multiple Users",
-      description: `Are you sure you want to activate ${selectedUsers.length} selected users?`,
-      action: () => {
-        selectedUsers.forEach(userId => toggleUserMutation.mutate(userId));
-        setSelectedUsers([]);
-      }
-    });
-  };
-
-  const handleBulkDeactivate = () => {
-    if (selectedUsers.length === 0) return;
-    setConfirmDialog({
-      open: true,
-      title: "Deactivate Multiple Users",
-      description: `Are you sure you want to deactivate ${selectedUsers.length} selected users?`,
-      action: () => {
-        selectedUsers.forEach(userId => toggleUserMutation.mutate(userId));
-        setSelectedUsers([]);
-      }
     });
   };
 
@@ -166,13 +110,13 @@ const UserManagement = () => {
     {
       title: "Caregivers",
       value: allUsers?.filter((u: any) => u.Role?.name === 'caregiver')?.length || 0,
-      icon: Users,
+      icon: Heart,
       color: "bg-secondary/10 text-secondary",
     },
     {
       title: "Patients",
       value: allUsers?.filter((u: any) => u.Role?.name === 'patient')?.length || 0,
-      icon: Users,
+      icon: Activity,
       color: "bg-accent/10 text-accent",
     },
   ];
@@ -190,25 +134,27 @@ const UserManagement = () => {
   return (
     <DashboardLayout userRole={mapUserRole(user?.role || 'system_manager')}>
       <div className="space-y-6">
-        <div>
-          <h1 className="font-display text-2xl md:text-3xl font-bold">User Management</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage all system users and their permissions
-          </p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="font-display text-2xl md:text-3xl font-bold">User Management</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage and monitor all system users
+            </p>
+          </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Stats Cards - Compact */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {stats.map((stat) => (
             <Card key={stat.title}>
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground">{stat.title}</p>
+                    <p className="text-xl font-bold mt-1">{stat.value}</p>
                   </div>
-                  <div className={`h-12 w-12 rounded-xl ${stat.color} flex items-center justify-center`}>
-                    <stat.icon className="h-6 w-6" />
+                  <div className={`h-10 w-10 rounded-lg ${stat.color} flex items-center justify-center`}>
+                    <stat.icon className="h-5 w-5" />
                   </div>
                 </div>
               </CardContent>
@@ -216,25 +162,25 @@ const UserManagement = () => {
           ))}
         </div>
 
-        {/* Search and Filters */}
+        {/* Search and Filters - Compact */}
         <Card>
-          <CardHeader>
-            <CardTitle>Search and Filter Users</CardTitle>
-            <CardDescription>Find users by name, email, or specialty</CardDescription>
+          <CardHeader className="p-4">
+            <CardTitle className="text-base">Search & Filters</CardTitle>
+            <CardDescription className="text-xs">Find users by name, email, specialty, or status</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-3 gap-4">
+          <CardContent className="p-4 pt-0">
+            <div className="grid md:grid-cols-3 gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search users..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-9"
                 />
               </div>
               <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="Filter by specialty" />
                 </SelectTrigger>
                 <SelectContent>
@@ -247,7 +193,7 @@ const UserManagement = () => {
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -260,343 +206,343 @@ const UserManagement = () => {
           </CardContent>
         </Card>
 
-        {/* Users List */}
-        <Tabs defaultValue="all" className="space-y-6">
+        {/* Users Tables */}
+        <Tabs defaultValue="all" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="all">All Users</TabsTrigger>
-            <TabsTrigger value="caregivers">Caregivers</TabsTrigger>
-            <TabsTrigger value="patients">Patients</TabsTrigger>
-            <TabsTrigger value="admins">Administrators</TabsTrigger>
+            <TabsTrigger value="all">All Users ({filteredUsers.length})</TabsTrigger>
+            <TabsTrigger value="caregivers">
+              Caregivers ({filteredUsers.filter((u: any) => u.Role?.name === 'caregiver').length})
+            </TabsTrigger>
+            <TabsTrigger value="patients">
+              Patients ({filteredUsers.filter((u: any) => u.Role?.name === 'patient').length})
+            </TabsTrigger>
+            <TabsTrigger value="admins">
+              Administrators ({filteredUsers.filter((u: any) => ['system_manager', 'regional_manager'].includes(u.Role?.name)).length})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
-            <div className="flex gap-2 mb-4">
-              <Button 
-                onClick={handleBulkActivate}
-                disabled={selectedUsers.length === 0 || toggleUserMutation.isPending}
-                className="gap-2"
-              >
-                <CheckCircle className="h-4 w-4" />
-                Activate Selected ({selectedUsers.length})
-              </Button>
-              <Button 
-                variant="destructive"
-                onClick={handleBulkDeactivate}
-                disabled={selectedUsers.length === 0 || toggleUserMutation.isPending}
-                className="gap-2"
-              >
-                <XCircle className="h-4 w-4" />
-                Deactivate Selected ({selectedUsers.length})
-              </Button>
-            </div>
             <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedUsers(filteredUsers.map(u => u.id));
-                          } else {
-                            setSelectedUsers([]);
-                          }
-                        }}
-                      />
-                    </TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Specialties</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user: any) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedUsers.includes(user.id)}
-                          onCheckedChange={() => toggleUserSelection(user.id)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
-                            {user.firstName?.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="font-medium">{user.firstName} {user.lastName}</p>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {user.Role?.name?.replace('_', ' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {user.Role?.name === 'caregiver' && user.Caregiver?.Specialties?.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {user.Caregiver.Specialties.slice(0, 2).map((specialty: any) => (
-                              <Badge key={specialty.id} variant="secondary" className="text-xs">
-                                {specialty.name}
-                              </Badge>
-                            ))}
-                            {user.Caregiver.Specialties.length > 2 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{user.Caregiver.Specialties.length - 2}
-                              </Badge>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={user.isActive ? "default" : "secondary"}>
-                          {user.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="gap-1"
-                            onClick={() => navigate(`/dashboard/user/${user.id}`)}
-                          >
-                            <Eye className="h-3 w-3" />
-                            View
-                          </Button>
-                          <Button 
-                            variant={user.isActive ? "destructive" : "default"} 
-                            size="sm" 
-                            className="gap-1"
-                            onClick={() => handleToggleUser(user)}
-                            disabled={toggleUserMutation.isPending}
-                          >
-                            {user.isActive ? <UserX className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
-                            {user.isActive ? 'Deactivate' : 'Activate'}
-                          </Button>
-                          <Button 
-                            variant="destructive" 
-                            size="sm" 
-                            className="gap-1"
-                            onClick={() => handleDeleteUser(user)}
-                            disabled={deleteUserMutation.isPending}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            Delete
-                          </Button>
-                        </div>
-                      </TableCell>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="h-9">User</TableHead>
+                      <TableHead className="h-9">Role</TableHead>
+                      <TableHead className="h-9">Contact</TableHead>
+                      <TableHead className="h-9">Status</TableHead>
+                      <TableHead className="h-9">Joined</TableHead>
+                      <TableHead className="h-9 text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.length > 0 ? (
+                      filteredUsers.map((user: any) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="py-2">
+                            <div className="flex items-center gap-2">
+                              <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
+                                {user.firstName?.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">{user.firstName} {user.lastName}</p>
+                                <p className="text-xs text-muted-foreground">{user.email}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {user.Role?.name?.replace('_', ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-2 text-xs text-muted-foreground">
+                            {user.phone || '-'}
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <Badge variant={user.isActive ? "default" : "secondary"} className="text-xs">
+                              {user.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-2 text-xs text-muted-foreground">
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="py-2 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 h-7 text-xs"
+                                onClick={() => navigate(`/dashboard/user/${user.id}`)}
+                              >
+                                <Eye className="h-3 w-3" />
+                                View
+                              </Button>
+                              <Button
+                                variant={user.isActive ? "outline" : "default"}
+                                size="sm"
+                                className="gap-1 h-7 text-xs"
+                                onClick={() => handleToggleUser(user)}
+                                disabled={toggleUserMutation.isPending}
+                              >
+                                {user.isActive ? <UserX className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
+                                {user.isActive ? 'Deactivate' : 'Activate'}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">
+                          No users found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="caregivers" className="space-y-4">
             <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>License</TableHead>
-                    <TableHead>Experience</TableHead>
-                    <TableHead>Specialties</TableHead>
-                    <TableHead>Rate</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers
-                    .filter((u: any) => u.Role?.name === 'caregiver')
-                    .map((user: any) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
-                              {user.firstName?.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="font-medium">{user.firstName} {user.lastName}</p>
-                              <p className="text-sm text-muted-foreground">{user.email}</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {user.Caregiver?.licenseNumber || '-'}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {user.Caregiver?.experience || 0} years
-                        </TableCell>
-                        <TableCell>
-                          {user.Caregiver?.Specialties?.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {user.Caregiver.Specialties.slice(0, 2).map((specialty: any) => (
-                                <Badge key={specialty.id} variant="secondary" className="text-xs">
-                                  {specialty.name}
-                                </Badge>
-                              ))}
-                              {user.Caregiver.Specialties.length > 2 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  +{user.Caregiver.Specialties.length - 2}
-                                </Badge>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="h-9">Caregiver</TableHead>
+                      <TableHead className="h-9">License</TableHead>
+                      <TableHead className="h-9">Experience</TableHead>
+                      <TableHead className="h-9">Specialties</TableHead>
+                      <TableHead className="h-9">Verification</TableHead>
+                      <TableHead className="h-9">Status</TableHead>
+                      <TableHead className="h-9 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.filter((u: any) => u.Role?.name === 'caregiver').length > 0 ? (
+                      filteredUsers
+                        .filter((u: any) => u.Role?.name === 'caregiver')
+                        .map((user: any) => (
+                          <TableRow key={user.id}>
+                            <TableCell className="py-2">
+                              <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
+                                  {user.firstName?.charAt(0)}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-sm">{user.firstName} {user.lastName}</p>
+                                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-2 text-xs">
+                              {user.Caregiver?.licenseNumber || '-'}
+                            </TableCell>
+                            <TableCell className="py-2 text-xs font-medium">
+                              {user.Caregiver?.experience || 0} years
+                            </TableCell>
+                            <TableCell className="py-2">
+                              {user.Caregiver?.Specialties?.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {user.Caregiver.Specialties.slice(0, 2).map((specialty: any) => (
+                                    <Badge key={specialty.id} variant="secondary" className="text-xs">
+                                      {specialty.name}
+                                    </Badge>
+                                  ))}
+                                  {user.Caregiver.Specialties.length > 2 && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      +{user.Caregiver.Specialties.length - 2}
+                                    </Badge>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">-</span>
                               )}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          ${user.Caregiver?.hourlyRate || 0}/hr
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={user.isActive ? "default" : "secondary"}>
-                            {user.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => navigate(`/dashboard/user/${user.id}`)}
-                          >
-                            View Profile
-                          </Button>
+                            </TableCell>
+                            <TableCell className="py-2">
+                              <Badge
+                                variant={user.Caregiver?.verificationStatus === 'verified' ? 'default' :
+                                        user.Caregiver?.verificationStatus === 'pending' ? 'secondary' : 'destructive'}
+                                className="text-xs capitalize"
+                              >
+                                {user.Caregiver?.verificationStatus || 'unverified'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="py-2">
+                              <Badge variant={user.isActive ? "default" : "secondary"} className="text-xs">
+                                {user.isActive ? "Active" : "Inactive"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="py-2 text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs"
+                                onClick={() => navigate(`/dashboard/user/${user.id}`)}
+                              >
+                                View Details
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">
+                          <Heart className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p>No caregivers found</p>
                         </TableCell>
                       </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="patients" className="space-y-4">
             <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers
-                    .filter((u: any) => u.Role?.name === 'patient')
-                    .map((user: any) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
-                              {user.firstName?.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="font-medium">{user.firstName} {user.lastName}</p>
-                              <p className="text-sm text-muted-foreground">{user.email}</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {user.phone || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="default">Patient</Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(user.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => navigate(`/dashboard/user/${user.id}`)}
-                          >
-                            View Profile
-                          </Button>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="h-9">Patient</TableHead>
+                      <TableHead className="h-9">Contact</TableHead>
+                      <TableHead className="h-9">Location</TableHead>
+                      <TableHead className="h-9">Status</TableHead>
+                      <TableHead className="h-9">Joined</TableHead>
+                      <TableHead className="h-9 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.filter((u: any) => u.Role?.name === 'patient').length > 0 ? (
+                      filteredUsers
+                        .filter((u: any) => u.Role?.name === 'patient')
+                        .map((user: any) => (
+                          <TableRow key={user.id}>
+                            <TableCell className="py-2">
+                              <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
+                                  {user.firstName?.charAt(0)}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-sm">{user.firstName} {user.lastName}</p>
+                                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-2 text-xs">
+                              {user.phone || '-'}
+                            </TableCell>
+                            <TableCell className="py-2 text-xs text-muted-foreground">
+                              {user.Patient?.region || user.Patient?.district || '-'}
+                            </TableCell>
+                            <TableCell className="py-2">
+                              <Badge variant="default" className="text-xs">Active</Badge>
+                            </TableCell>
+                            <TableCell className="py-2 text-xs text-muted-foreground">
+                              {new Date(user.createdAt).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="py-2 text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs"
+                                onClick={() => navigate(`/dashboard/user/${user.id}`)}
+                              >
+                                View Details
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">
+                          <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p>No patients found</p>
                         </TableCell>
                       </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="admins" className="space-y-4">
             <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers
-                    .filter((u: any) => ['system_manager', 'regional_manager'].includes(u.Role?.name))
-                    .map((user: any) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
-                              {user.firstName?.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="font-medium">{user.firstName} {user.lastName}</p>
-                              <p className="text-sm text-muted-foreground">{user.email}</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="capitalize">
-                            {user.Role?.name?.replace('_', ' ')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {user.phone || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="default">Active</Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(user.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => navigate(`/dashboard/user/${user.id}`)}
-                          >
-                            View Profile
-                          </Button>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="h-9">Administrator</TableHead>
+                      <TableHead className="h-9">Role</TableHead>
+                      <TableHead className="h-9">Contact</TableHead>
+                      <TableHead className="h-9">Status</TableHead>
+                      <TableHead className="h-9">Joined</TableHead>
+                      <TableHead className="h-9 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.filter((u: any) => ['system_manager', 'regional_manager'].includes(u.Role?.name)).length > 0 ? (
+                      filteredUsers
+                        .filter((u: any) => ['system_manager', 'regional_manager'].includes(u.Role?.name))
+                        .map((user: any) => (
+                          <TableRow key={user.id}>
+                            <TableCell className="py-2">
+                              <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
+                                  {user.firstName?.charAt(0)}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-sm">{user.firstName} {user.lastName}</p>
+                                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-2">
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {user.Role?.name?.replace('_', ' ')}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="py-2 text-xs">
+                              {user.phone || '-'}
+                            </TableCell>
+                            <TableCell className="py-2">
+                              <Badge variant="default" className="text-xs">Active</Badge>
+                            </TableCell>
+                            <TableCell className="py-2 text-xs text-muted-foreground">
+                              {new Date(user.createdAt).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="py-2 text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs"
+                                onClick={() => navigate(`/dashboard/user/${user.id}`)}
+                              >
+                                View Details
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">
+                          <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p>No administrators found</p>
                         </TableCell>
                       </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
-        
+
         <AlertDialog open={confirmDialog.open} onOpenChange={(open) => {
-          if (!toggleUserMutation.isPending && !deleteUserMutation.isPending) {
+          if (!toggleUserMutation.isPending) {
             setConfirmDialog(prev => ({ ...prev, open }));
           }
         }}>
@@ -606,14 +552,14 @@ const UserManagement = () => {
               <AlertDialogDescription>{confirmDialog.description}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={toggleUserMutation.isPending || deleteUserMutation.isPending}>
+              <AlertDialogCancel disabled={toggleUserMutation.isPending}>
                 Cancel
               </AlertDialogCancel>
-              <AlertDialogAction 
+              <AlertDialogAction
                 onClick={confirmDialog.action}
-                disabled={toggleUserMutation.isPending || deleteUserMutation.isPending}
+                disabled={toggleUserMutation.isPending}
               >
-                {toggleUserMutation.isPending || deleteUserMutation.isPending ? "Processing..." : "Confirm"}
+                {toggleUserMutation.isPending ? "Processing..." : "Confirm"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

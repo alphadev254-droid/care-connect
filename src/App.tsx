@@ -28,6 +28,8 @@ import UserManagement from "./pages/UserManagement";
 import AdminReports from "./pages/AdminReports";
 import UserDetails from "./pages/UserDetails";
 import PublicCaregivers from "./pages/PublicCaregivers";
+import SpecialtyManagement from "./pages/SpecialtyManagement";
+import AppointmentDetails from "./pages/AppointmentDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -157,6 +159,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <UserDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/specialties"
+              element={
+                <ProtectedRoute>
+                  <SpecialtyManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/appointment/:id"
+              element={
+                <ProtectedRoute>
+                  <AppointmentDetails />
                 </ProtectedRoute>
               }
             />

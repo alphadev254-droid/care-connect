@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Heart, Mail, Lock, Eye, EyeOff, User, Phone, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +21,7 @@ const Register = () => {
 
   useEffect(() => {
     fetchSpecialties();
+    fetchRegions();
   }, []);
 
   const fetchSpecialties = async () => {
@@ -30,12 +32,55 @@ const Register = () => {
       console.error('Failed to fetch specialties:', error);
     }
   };
+
+  const fetchRegions = async () => {
+    try {
+      const response = await api.get('/locations/regions');
+      setRegions(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch regions:', error);
+    }
+  };
+
+  const fetchDistricts = async (region: string) => {
+    try {
+      const response = await api.get(`/locations/districts/${encodeURIComponent(region)}`);
+      setDistricts(response.data.data || []);
+      setTraditionalAuthorities([]);
+      setVillages([]);
+    } catch (error) {
+      console.error('Failed to fetch districts:', error);
+    }
+  };
+
+  const fetchTraditionalAuthorities = async (region: string, district: string) => {
+    try {
+      const response = await api.get(`/locations/traditional-authorities/${encodeURIComponent(region)}/${encodeURIComponent(district)}`);
+      setTraditionalAuthorities(response.data.data || []);
+      setVillages([]);
+    } catch (error) {
+      console.error('Failed to fetch traditional authorities:', error);
+    }
+  };
+
+  const fetchVillages = async (region: string, district: string, ta: string) => {
+    try {
+      const response = await api.get(`/locations/villages/${encodeURIComponent(region)}/${encodeURIComponent(district)}/${encodeURIComponent(ta)}`);
+      setVillages(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch villages:', error);
+    }
+  };
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [termsContent, setTermsContent] = useState("");
   const [specialties, setSpecialties] = useState([]);
+  const [regions, setRegions] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [traditionalAuthorities, setTraditionalAuthorities] = useState([]);
+  const [villages, setVillages] = useState([]);
   const [formData, setFormData] = useState({
     userType: "patient",
     firstName: "",
@@ -46,16 +91,22 @@ const Register = () => {
     confirmPassword: "",
     agreeTerms: false,
     // Patient fields
+    idNumber: "",
     dateOfBirth: "",
     address: "",
     emergencyContact: "",
     // Caregiver fields
+    licensingInstitution: "",
     licenseNumber: "",
     experience: "",
     qualifications: "",
-    hourlyRate: "",
     supportingDocuments: null,
     specialties: [],
+    // Location fields
+    region: "",
+    district: "",
+    traditionalAuthority: "",
+    village: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,17 +141,25 @@ const Register = () => {
       formDataToSend.append('phone', formData.phone);
       formDataToSend.append('role', formData.userType);
 
+      // Add location fields
+      if (formData.region) formDataToSend.append('region', formData.region);
+      if (formData.district) formDataToSend.append('district', formData.district);
+      if (formData.traditionalAuthority) formDataToSend.append('traditionalAuthority', formData.traditionalAuthority);
+      if (formData.village) formDataToSend.append('village', formData.village);
+
       // Add role-specific fields
       if (formData.userType === 'patient') {
+        formDataToSend.append('idNumber', formData.idNumber);
         formDataToSend.append('dateOfBirth', formData.dateOfBirth);
         formDataToSend.append('address', formData.address);
         formDataToSend.append('emergencyContact', formData.emergencyContact);
       } else if (formData.userType === 'caregiver') {
+        formDataToSend.append('idNumber', formData.idNumber);
+        formDataToSend.append('licensingInstitution', formData.licensingInstitution);
         formDataToSend.append('licenseNumber', formData.licenseNumber);
         formDataToSend.append('experience', formData.experience || '0');
         formDataToSend.append('qualifications', formData.qualifications);
-        formDataToSend.append('hourlyRate', formData.hourlyRate || '50');
-        
+
         // Add specialties
         if (formData.specialties.length > 0) {
           formData.specialties.forEach(specialtyId => {
@@ -301,6 +360,28 @@ const Register = () => {
                           />
                         </div>
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="idNumber">National ID Number</Label>
+                        <Input
+                          id="idNumber"
+                          placeholder="Enter your national ID number"
+                          value={formData.idNumber}
+                          onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
+                          required
+                        />
+                      </div>
+                      {formData.userType === 'caregiver' && (
+                        <div className="space-y-2">
+                          <Label htmlFor="licensingInstitution">Licensing Institution</Label>
+                          <Input
+                            id="licensingInstitution"
+                            placeholder="e.g., Nurses and Midwives Council of Malawi"
+                            value={formData.licensingInstitution}
+                            onChange={(e) => setFormData({ ...formData, licensingInstitution: e.target.value })}
+                            required
+                          />
+                        </div>
+                      )}
                       {formData.userType === 'caregiver' && (
                         <div className="space-y-2">
                           <Label htmlFor="supportingDocuments">Supporting Documents (Max 5 files)</Label>
@@ -379,17 +460,6 @@ const Register = () => {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
-                            <Input
-                              id="hourlyRate"
-                              type="number"
-                              placeholder="50"
-                              value={formData.hourlyRate}
-                              onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
                             <Label htmlFor="qualifications">Qualifications</Label>
                             <Input
                               id="qualifications"
@@ -431,6 +501,101 @@ const Register = () => {
 
                         </>
                       )}
+                      
+                      {/* Location Fields */}
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="region">Region</Label>
+                            <Select
+                              value={formData.region}
+                              onValueChange={(value) => {
+                                setFormData({ ...formData, region: value, district: "", traditionalAuthority: "", village: "" });
+                                fetchDistricts(value);
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select region" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {regions.map((region) => (
+                                  <SelectItem key={region} value={region}>
+                                    {region}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="district">District</Label>
+                            <Select
+                              value={formData.district}
+                              onValueChange={(value) => {
+                                setFormData({ ...formData, district: value, traditionalAuthority: "", village: "" });
+                                fetchTraditionalAuthorities(formData.region, value);
+                              }}
+                              disabled={!formData.region}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select district" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {districts.map((district) => (
+                                  <SelectItem key={district} value={district}>
+                                    {district}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="traditionalAuthority">Traditional Authority</Label>
+                            <Select
+                              value={formData.traditionalAuthority}
+                              onValueChange={(value) => {
+                                setFormData({ ...formData, traditionalAuthority: value, village: "" });
+                                fetchVillages(formData.region, formData.district, value);
+                              }}
+                              disabled={!formData.district}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select TA" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {traditionalAuthorities.map((ta) => (
+                                  <SelectItem key={ta} value={ta}>
+                                    {ta}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="village">Village</Label>
+                            <Select
+                              value={formData.village}
+                              onValueChange={(value) => setFormData({ ...formData, village: value })}
+                              disabled={!formData.traditionalAuthority}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select village" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {villages.map((village) => (
+                                  <SelectItem key={village} value={village}>
+                                    {village}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <div className="space-y-4">
                     </div>

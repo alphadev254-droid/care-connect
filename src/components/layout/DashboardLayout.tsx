@@ -94,8 +94,9 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
     ],
     admin: [
       { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-      { icon: Shield, label: "Administration", href: "/dashboard/admin" },
+      // { icon: Shield, label: "Administration", href: "/dashboard/admin" },
       { icon: Users, label: "User Management", href: "/dashboard/users" },
+      { icon: Heart, label: "Specialties", href: "/dashboard/specialties" },
       { icon: FileText, label: "Reports", href: "/dashboard/reports" },
     ],
   };

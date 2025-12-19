@@ -21,7 +21,17 @@ import {
   ArrowLeft,
   Download,
   FileText,
+  Users,
+  CreditCard,
 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const UserDetails = () => {
   const { userId } = useParams();
@@ -42,6 +52,39 @@ const UserDetails = () => {
       const response = await api.get(`/admin/users/${userId}`);
       return response.data.user;
     },
+  });
+
+  // Fetch caregiver appointments
+  const { data: appointments } = useQuery({
+    queryKey: ["caregiver-appointments", userData?.Caregiver?.id],
+    queryFn: async () => {
+      if (!userData?.Caregiver?.id) return [];
+      const response = await api.get(`/admin/caregivers/${userData.Caregiver.id}/appointments`);
+      return response.data.appointments || [];
+    },
+    enabled: !!userData?.Caregiver?.id,
+  });
+
+  // Fetch caregiver patients
+  const { data: patients } = useQuery({
+    queryKey: ["caregiver-patients", userData?.Caregiver?.id],
+    queryFn: async () => {
+      if (!userData?.Caregiver?.id) return [];
+      const response = await api.get(`/admin/caregivers/${userData.Caregiver.id}/patients`);
+      return response.data.patients || [];
+    },
+    enabled: !!userData?.Caregiver?.id,
+  });
+
+  // Fetch caregiver transactions
+  const { data: transactionsData } = useQuery({
+    queryKey: ["caregiver-transactions", userData?.Caregiver?.id],
+    queryFn: async () => {
+      if (!userData?.Caregiver?.id) return { transactions: [], totalEarnings: 0 };
+      const response = await api.get(`/admin/caregivers/${userData.Caregiver.id}/transactions`);
+      return response.data;
+    },
+    enabled: !!userData?.Caregiver?.id,
   });
 
   if (isLoading) {
@@ -128,13 +171,14 @@ const UserDetails = () => {
                   {userData.Role?.name === 'caregiver' && (
                     <>
                       <TabsTrigger value="caregiver">Caregiver Info</TabsTrigger>
+                      <TabsTrigger value="appointments">Appointments</TabsTrigger>
                       <TabsTrigger value="patients">Patients</TabsTrigger>
+                      <TabsTrigger value="transactions">Transactions</TabsTrigger>
                     </>
                   )}
                   {userData.Role?.name === 'patient' && (
                     <TabsTrigger value="patient">Patient Info</TabsTrigger>
                   )}
-                  <TabsTrigger value="activity">Activity</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="general" className="space-y-4">
@@ -170,37 +214,88 @@ const UserDetails = () => {
                   <TabsContent value="caregiver" className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
+                        <label className="text-sm font-medium text-muted-foreground">ID Number</label>
+                        <p className="font-medium">{userData.idNumber || 'Not provided'}</p>
+                      </div>
+                      <div>
                         <label className="text-sm font-medium text-muted-foreground">License Number</label>
                         <p className="font-medium">{userData.Caregiver.licenseNumber}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Licensing Institution</label>
+                        <p className="font-medium">{userData.Caregiver.licensingInstitution || 'Not provided'}</p>
                       </div>
                       <div>
                         <label className="text-sm font-medium text-muted-foreground">Experience</label>
                         <p className="font-medium">{userData.Caregiver.experience} years</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-muted-foreground">Hourly Rate</label>
-                        <p className="font-medium">${userData.Caregiver.hourlyRate}</p>
-                      </div>
-                      <div>
                         <label className="text-sm font-medium text-muted-foreground">Qualifications</label>
                         <p className="font-medium">{userData.Caregiver.qualifications}</p>
                       </div>
                     </div>
-                    
-                    {/* Specialties */}
+
+                    {/* Specialties with Fees */}
                     {userData.Caregiver.Specialties && userData.Caregiver.Specialties.length > 0 && (
                       <div>
-                        <label className="text-sm font-medium text-muted-foreground mb-3 block">Specialties</label>
-                        <div className="flex flex-wrap gap-2">
+                        <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                          <Heart className="h-4 w-4" />
+                          Specialties & Fees
+                        </h3>
+                        <div className="space-y-3">
                           {userData.Caregiver.Specialties.map((specialty: any) => (
-                            <Badge key={specialty.id} variant="secondary">
-                              {specialty.name}
-                            </Badge>
+                            <div key={specialty.id} className="p-3 rounded-lg border bg-muted/30">
+                              <div className="flex items-start justify-between mb-2">
+                                <Badge variant="secondary" className="font-medium">
+                                  {specialty.name}
+                                </Badge>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <label className="text-xs text-muted-foreground">Session Fee</label>
+                                  <p className="font-semibold text-primary">
+                                    MWK {specialty.sessionFee ? Number(specialty.sessionFee).toFixed(2) : '0.00'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">Booking Fee</label>
+                                  <p className="font-semibold text-secondary">
+                                    MWK {specialty.bookingFee ? Number(specialty.bookingFee).toFixed(2) : '0.00'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
                           ))}
                         </div>
                       </div>
                     )}
-                    
+
+                    {/* Location Information */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Location Information
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Region</label>
+                          <p className="font-medium">{userData.Caregiver.region || 'Not provided'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">District</label>
+                          <p className="font-medium">{userData.Caregiver.district || 'Not provided'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Traditional Authority</label>
+                          <p className="font-medium">{userData.Caregiver.traditionalAuthority || 'Not provided'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Village</label>
+                          <p className="font-medium">{userData.Caregiver.village || 'Not provided'}</p>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Supporting Documents */}
                     {(() => {
                       const documents = parseDocuments(userData.Caregiver.supportingDocuments);
@@ -236,13 +331,221 @@ const UserDetails = () => {
                 )}
 
                 {userData.Role?.name === 'caregiver' && (
-                  <TabsContent value="patients" className="space-y-4">
-                    <div className="text-center py-8 text-muted-foreground">
-                      <User className="h-12 w-12 mx-auto mb-4" />
-                      <h3 className="font-semibold mb-2">Patient List</h3>
-                      <p>Patients assigned to this caregiver will appear here</p>
-                    </div>
-                  </TabsContent>
+                  <>
+                    <TabsContent value="appointments" className="space-y-4">
+                      <Card>
+                        <CardHeader className="p-4">
+                          <CardTitle className="text-base">All Appointments</CardTitle>
+                          <CardDescription className="text-xs">
+                            Complete appointment history for this caregiver
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          {appointments && appointments.length > 0 ? (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="h-9">Date</TableHead>
+                                  <TableHead className="h-9">Patient</TableHead>
+                                  <TableHead className="h-9">Specialty</TableHead>
+                                  <TableHead className="h-9">Status</TableHead>
+                                  <TableHead className="h-9 text-right">Cost</TableHead>
+                                  <TableHead className="h-9 text-right">Payment</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {appointments.map((apt: any) => (
+                                  <TableRow key={apt.id}>
+                                    <TableCell className="py-2">
+                                      {new Date(apt.scheduledDate).toLocaleDateString()}
+                                    </TableCell>
+                                    <TableCell className="py-2">
+                                      {apt.Patient?.User?.firstName} {apt.Patient?.User?.lastName}
+                                    </TableCell>
+                                    <TableCell className="py-2 text-xs">
+                                      {apt.Specialty?.name || 'N/A'}
+                                    </TableCell>
+                                    <TableCell className="py-2">
+                                      <Badge variant={apt.status === 'completed' ? 'default' : 'secondary'} className="text-xs capitalize">
+                                        {apt.status}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="py-2 text-right font-semibold">
+                                      MWK {parseFloat(apt.totalCost || 0).toLocaleString()}
+                                    </TableCell>
+                                    <TableCell className="py-2 text-right">
+                                      {apt.PaymentTransaction ? (
+                                        <Badge variant={apt.PaymentTransaction.status === 'completed' ? 'default' : 'secondary'} className="text-xs capitalize">
+                                          {apt.PaymentTransaction.status}
+                                        </Badge>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">Pending</span>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          ) : (
+                            <div className="text-center py-12 text-sm text-muted-foreground">
+                              <Calendar className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                              <p>No appointments found</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="patients" className="space-y-4">
+                      <Card>
+                        <CardHeader className="p-4">
+                          <CardTitle className="text-base">Patients Served</CardTitle>
+                          <CardDescription className="text-xs">
+                            Unique patients this caregiver has worked with
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          {patients && patients.length > 0 ? (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="h-9">Patient Name</TableHead>
+                                  <TableHead className="h-9">Email</TableHead>
+                                  <TableHead className="h-9">Phone</TableHead>
+                                  <TableHead className="h-9 text-right">Total Appointments</TableHead>
+                                  <TableHead className="h-9 text-right">Last Visit</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {patients.map((p: any) => (
+                                  <TableRow key={p.patientId}>
+                                    <TableCell className="py-2 font-medium">
+                                      {p.Patient?.User?.firstName} {p.Patient?.User?.lastName}
+                                    </TableCell>
+                                    <TableCell className="py-2 text-xs text-muted-foreground">
+                                      {p.Patient?.User?.email}
+                                    </TableCell>
+                                    <TableCell className="py-2 text-xs">
+                                      {p.Patient?.User?.phone || 'N/A'}
+                                    </TableCell>
+                                    <TableCell className="py-2 text-right font-semibold">
+                                      {p.appointmentCount}
+                                    </TableCell>
+                                    <TableCell className="py-2 text-right text-xs">
+                                      {new Date(p.lastAppointment).toLocaleDateString()}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          ) : (
+                            <div className="text-center py-12 text-sm text-muted-foreground">
+                              <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                              <p>No patients found</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="transactions" className="space-y-4">
+                      <div className="grid md:grid-cols-3 gap-4 mb-4">
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs text-muted-foreground">Total Transactions</p>
+                                <p className="text-xl font-bold mt-1">{transactionsData?.transactions?.length || 0}</p>
+                              </div>
+                              <CreditCard className="h-8 w-8 text-primary opacity-50" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs text-muted-foreground">Total Earnings</p>
+                                <p className="text-xl font-bold mt-1 text-success">
+                                  MWK {(transactionsData?.totalEarnings || 0).toLocaleString()}
+                                </p>
+                              </div>
+                              <DollarSign className="h-8 w-8 text-success opacity-50" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs text-muted-foreground">Completed</p>
+                                <p className="text-xl font-bold mt-1">
+                                  {transactionsData?.transactions?.filter((t: any) => t.status === 'completed').length || 0}
+                                </p>
+                              </div>
+                              <Award className="h-8 w-8 text-accent opacity-50" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      <Card>
+                        <CardHeader className="p-4">
+                          <CardTitle className="text-base">Payment Transactions</CardTitle>
+                          <CardDescription className="text-xs">
+                            All payment transactions for this caregiver's appointments
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          {transactionsData?.transactions && transactionsData.transactions.length > 0 ? (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="h-9">Date</TableHead>
+                                  <TableHead className="h-9">Transaction ID</TableHead>
+                                  <TableHead className="h-9">Patient</TableHead>
+                                  <TableHead className="h-9">Specialty</TableHead>
+                                  <TableHead className="h-9 text-right">Amount</TableHead>
+                                  <TableHead className="h-9">Status</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {transactionsData.transactions.map((txn: any) => (
+                                  <TableRow key={txn.id}>
+                                    <TableCell className="py-2 text-xs">
+                                      {new Date(txn.createdAt).toLocaleDateString()}
+                                    </TableCell>
+                                    <TableCell className="py-2 text-xs font-mono">
+                                      {txn.transactionId || 'N/A'}
+                                    </TableCell>
+                                    <TableCell className="py-2">
+                                      {txn.Appointment?.Patient?.User?.firstName} {txn.Appointment?.Patient?.User?.lastName}
+                                    </TableCell>
+                                    <TableCell className="py-2 text-xs">
+                                      {txn.Appointment?.Specialty?.name || 'N/A'}
+                                    </TableCell>
+                                    <TableCell className="py-2 text-right font-bold">
+                                      MWK {parseFloat(txn.amount || 0).toLocaleString()}
+                                    </TableCell>
+                                    <TableCell className="py-2">
+                                      <Badge variant={txn.status === 'completed' ? 'default' : 'secondary'} className="text-xs capitalize">
+                                        {txn.status}
+                                      </Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          ) : (
+                            <div className="text-center py-12 text-sm text-muted-foreground">
+                              <CreditCard className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                              <p>No transactions found</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </>
                 )}
 
                 {userData.Role?.name === 'patient' && userData.Patient && (
@@ -269,13 +572,6 @@ const UserDetails = () => {
                   </TabsContent>
                 )}
 
-                <TabsContent value="activity" className="space-y-4">
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Clock className="h-12 w-12 mx-auto mb-4" />
-                    <h3 className="font-semibold mb-2">Activity History</h3>
-                    <p>User activity tracking will be available here</p>
-                  </div>
-                </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
