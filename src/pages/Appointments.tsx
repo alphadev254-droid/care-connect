@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { RescheduleModal } from "@/components/booking/RescheduleModal";
+import CancelModal from "@/components/booking/CancelModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { mapUserRole } from "@/lib/roleMapper";
@@ -21,6 +23,8 @@ import {
   User,
   Mail,
   Home,
+  RotateCcw,
+  X,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -37,6 +41,10 @@ const Appointments = () => {
   const isCaregiver = user?.role === 'caregiver';
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showContactDialog, setShowContactDialog] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [appointmentToReschedule, setAppointmentToReschedule] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [appointmentToCancel, setAppointmentToCancel] = useState(null);
 
   const { data: appointmentsData, isLoading } = useQuery({
     queryKey: ["appointments"],
@@ -93,6 +101,64 @@ const Appointments = () => {
   const handleShowContact = (appointment: any) => {
     setSelectedAppointment(appointment);
     setShowContactDialog(true);
+  };
+
+  const handleReschedule = (appointment: any) => {
+    setAppointmentToReschedule(appointment);
+    setShowRescheduleModal(true);
+  };
+
+  const handleCancel = (appointment: any) => {
+    setAppointmentToCancel(appointment);
+    setShowCancelModal(true);
+  };
+
+  const cancelAppointmentMutation = useMutation({
+    mutationFn: async ({ appointmentId, reason }: { appointmentId: number; reason?: string }) => {
+      const response = await api.post(`/appointments/${appointmentId}/cancel`, { reason });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      setShowCancelModal(false);
+      setAppointmentToCancel(null);
+      toast.success('Appointment cancelled successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to cancel appointment');
+    }
+  });
+
+  const canCancel = (appointment: any) => {
+    const cutoffHours = 16; // 16 hours before appointment
+    const appointmentDateTime = new Date(`${appointment.TimeSlot?.date || appointment.scheduledDate} ${appointment.TimeSlot?.startTime || ''}`);
+    const currentTime = new Date();
+    const hoursUntilAppointment = (appointmentDateTime.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
+    
+    return hoursUntilAppointment >= cutoffHours && 
+           (appointment.status === 'session_waiting' || appointment.status === 'pending');
+  };
+
+  const canReschedule = (appointment: any) => {
+    const cutoffHours = parseInt(import.meta.env.VITE_RESCHEDULE_CUTOFF_HOURS) || 12;
+    const maxReschedules = parseInt(import.meta.env.VITE_MAX_RESCHEDULES_PER_APPOINTMENT) || 2;
+    
+    const hoursUntilAppointment = (new Date(appointment.scheduledDate || appointment.date) - new Date()) / (1000 * 60 * 60);
+    const rescheduleCount = appointment.rescheduleCount || 0;
+    
+    // Debug logging
+    console.log('Reschedule check for appointment:', appointment.id, {
+      hoursUntilAppointment,
+      rescheduleCount,
+      maxReschedules,
+      cutoffHours,
+      status: appointment.status,
+      canReschedule: hoursUntilAppointment >= cutoffHours && rescheduleCount < maxReschedules && appointment.status === 'session_waiting'
+    });
+    
+    return hoursUntilAppointment >= cutoffHours && 
+           rescheduleCount < maxReschedules &&
+           appointment.status === 'session_waiting';
   };
 
   const appointments = Array.isArray(appointmentsData) ? appointmentsData : [];
@@ -171,6 +237,11 @@ const Appointments = () => {
                     Session Paid
                   </Badge>
                 )}
+                {appointment.rescheduleCount > 0 && (
+                  <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                    Rescheduled {appointment.rescheduleCount}x
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -182,8 +253,21 @@ const Appointments = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => navigate(`/appointment/${appointment.id}`)}>View Details</DropdownMenuItem>
-              <DropdownMenuItem>Reschedule</DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">Cancel</DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => handleReschedule(appointment)}
+                disabled={!canReschedule(appointment)}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reschedule
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="text-destructive"
+                onClick={() => handleCancel(appointment)}
+                disabled={!canCancel(appointment)}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -243,9 +327,15 @@ const Appointments = () => {
                 Contact
               </Button>
             )}
-            <Button variant="outline" className="flex-1">
-              Reschedule
-            </Button>
+              <Button 
+                variant="outline" 
+                className="flex-1 gap-2"
+                onClick={() => handleReschedule(appointment)}
+                disabled={!canReschedule(appointment)}
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reschedule
+              </Button>
           </div>
         )}
 
@@ -571,6 +661,42 @@ const Appointments = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Reschedule Modal */}
+        <RescheduleModal
+          open={showRescheduleModal}
+          onClose={() => {
+            setShowRescheduleModal(false);
+            setAppointmentToReschedule(null);
+          }}
+          appointment={appointmentToReschedule}
+          onRescheduleSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["appointments"] });
+          }}
+        />
+
+        {/* Cancel Modal */}
+        {appointmentToCancel && (
+          <CancelModal
+            isOpen={showCancelModal}
+            onClose={() => {
+              setShowCancelModal(false);
+              setAppointmentToCancel(null);
+            }}
+            onConfirm={(reason) => {
+              cancelAppointmentMutation.mutate({
+                appointmentId: appointmentToCancel.id,
+                reason
+              });
+            }}
+            appointmentDetails={{
+              date: new Date(appointmentToCancel.scheduledDate || appointmentToCancel.TimeSlot?.date).toLocaleDateString(),
+              time: appointmentToCancel.TimeSlot?.startTime || new Date(appointmentToCancel.scheduledDate).toLocaleTimeString(),
+              caregiver: `${appointmentToCancel.Caregiver?.User?.firstName || ''} ${appointmentToCancel.Caregiver?.User?.lastName || ''}`.trim() || 'Caregiver'
+            }}
+            isLoading={cancelAppointmentMutation.isPending}
+          />
+        )}
       </div>
     </DashboardLayout>
   );

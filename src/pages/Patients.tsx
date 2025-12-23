@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
@@ -12,11 +13,11 @@ import { mapUserRole } from "@/lib/roleMapper";
 import {
   Search,
   User,
-  Calendar,
   Phone,
   Mail,
   MapPin,
-  Heart,
+  Calendar,
+  AlertCircle,
   FileText,
   Activity,
 } from "lucide-react";
@@ -24,6 +25,8 @@ import {
 const Patients = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   const { data: patientsData, isLoading } = useQuery({
     queryKey: ["caregiver-patients"],
@@ -42,97 +45,16 @@ const Patients = () => {
   );
 
   const activePatients = filteredPatients.filter((p: any) => p.status === 'active');
-  const allPatients = filteredPatients;
 
-  const PatientCard = ({ patient }: any) => (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-xl font-bold">
-              {patient.User?.firstName?.charAt(0) || 'P'}
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg">
-                {patient.User?.firstName} {patient.User?.lastName}
-              </h3>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail className="h-4 w-4" />
-                {patient.User?.email}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                <Phone className="h-4 w-4" />
-                {patient.User?.phone}
-              </div>
-            </div>
-          </div>
-          <Badge variant={patient.status === 'active' ? 'default' : 'secondary'}>
-            {patient.status || 'Active'}
-          </Badge>
-        </div>
+  const handleContactClick = (patient: any) => {
+    setSelectedPatient(patient);
+    setContactDialogOpen(true);
+  };
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>
-                Age: {patient.dateOfBirth ? 
-                  Math.floor((new Date().getTime() - new Date(patient.dateOfBirth).getTime()) / (1000 * 60 * 60 * 24 * 365)) 
-                  : 'N/A'}
-              </span>
-            </div>
-            <div className="flex items-start gap-2 text-sm">
-              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <span className="line-clamp-2">{patient.address || 'Address not provided'}</span>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <Activity className="h-4 w-4 text-muted-foreground" />
-              <span>Last Visit: {patient.lastVisit || 'No visits yet'}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Heart className="h-4 w-4 text-muted-foreground" />
-              <span>Status: Stable</span>
-            </div>
-          </div>
-        </div>
-
-        {patient.medicalHistory && (
-          <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-            <h4 className="font-medium text-sm mb-1">Medical History</h4>
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {patient.medicalHistory}
-            </p>
-          </div>
-        )}
-
-        {patient.allergies && (
-          <div className="mb-4 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-            <h4 className="font-medium text-sm mb-1 text-destructive">Allergies</h4>
-            <p className="text-sm text-destructive/80">
-              {patient.allergies}
-            </p>
-          </div>
-        )}
-
-        <div className="flex gap-2 pt-4 border-t">
-          <Button variant="outline" className="flex-1 gap-2">
-            <FileText className="h-4 w-4" />
-            View History
-          </Button>
-          <Button variant="outline" className="flex-1 gap-2">
-            <Calendar className="h-4 w-4" />
-            Schedule Visit
-          </Button>
-          <Button variant="outline" className="flex-1 gap-2">
-            <Phone className="h-4 w-4" />
-            Contact
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
+  const calculateAge = (dateOfBirth: string) => {
+    if (!dateOfBirth) return 'N/A';
+    return Math.floor((new Date().getTime() - new Date(dateOfBirth).getTime()) / (1000 * 60 * 60 * 24 * 365));
+  };
 
   if (isLoading) {
     return (
@@ -146,91 +68,355 @@ const Patients = () => {
 
   return (
     <DashboardLayout userRole={mapUserRole(user?.role || 'caregiver')}>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-2xl md:text-3xl font-bold">
-              My Patients
-            </h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl font-bold">My Patients</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Manage and monitor your patient care
             </p>
           </div>
-          <div className="flex-1 max-w-md relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-xl font-bold">{activePatients.length}</div>
+              <p className="text-xs text-muted-foreground">Active Patients</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-xl font-bold">{filteredPatients.length}</div>
+              <p className="text-xs text-muted-foreground">Total Patients</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-xl font-bold">
+                {filteredPatients.filter((p: any) => p.lastVisit === 'Today').length}
+              </div>
+              <p className="text-xs text-muted-foreground">Visits Today</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search patients..."
-              className="pl-10"
+              placeholder="Search patients by name..."
+              className="pl-9 h-9 text-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold">{activePatients.length}</div>
-              <p className="text-sm text-muted-foreground">Active Patients</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold">{allPatients.length}</div>
-              <p className="text-sm text-muted-foreground">Total Patients</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold">
-                {allPatients.filter((p: any) => p.lastVisit === 'Today').length}
-              </div>
-              <p className="text-sm text-muted-foreground">Visits Today</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Tabs defaultValue="active" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="active" className="gap-2">
-              Active Patients
-              <Badge variant="secondary">{activePatients.length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="all" className="gap-2">
-              All Patients
-              <Badge variant="secondary">{allPatients.length}</Badge>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="active" className="space-y-4">
-            {activePatients.length > 0 ? (
-              <div className="grid md:grid-cols-2 gap-4">
-                {activePatients.map((patient: any) => (
-                  <PatientCard key={patient.id} patient={patient} />
-                ))}
-              </div>
+        <Card>
+          <CardContent className="p-0">
+            {filteredPatients.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="text-xs font-semibold">Patient</TableHead>
+                    <TableHead className="text-xs font-semibold">Age</TableHead>
+                    <TableHead className="text-xs font-semibold">Location</TableHead>
+                    <TableHead className="text-xs font-semibold">Status</TableHead>
+                    <TableHead className="text-xs font-semibold">Last Visit</TableHead>
+                    <TableHead className="text-xs font-semibold text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPatients.map((patient: any) => (
+                    <TableRow key={patient.id} className="hover:bg-muted/30">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold">
+                            {patient.User?.firstName?.charAt(0) || 'P'}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">
+                              {patient.User?.firstName} {patient.User?.lastName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              ID: {patient.User?.idNumber || 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">{calculateAge(patient.dateOfBirth)} yrs</TableCell>
+                      <TableCell className="text-sm">
+                        <div className="flex items-start gap-1">
+                          <MapPin className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <span className="line-clamp-1 text-xs">{patient.village || patient.traditionalAuthority || 'N/A'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={patient.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                          {patient.status || 'Active'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {patient.lastVisit || 'No visits'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => handleContactClick(patient)}
+                          >
+                            <Phone className="h-3 w-3 mr-1" />
+                            Contact
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                          >
+                            <FileText className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             ) : (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-semibold mb-2">No active patients</h3>
-                  <p className="text-muted-foreground">
-                    Patients you're currently caring for will appear here
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="py-12 text-center">
+                <User className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-50" />
+                <h3 className="font-semibold text-sm mb-1">No patients found</h3>
+                <p className="text-xs text-muted-foreground">
+                  {searchQuery ? 'Try adjusting your search' : 'Patients will appear here once assigned'}
+                </p>
+              </div>
             )}
-          </TabsContent>
-
-          <TabsContent value="all" className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              {allPatients.map((patient: any) => (
-                <PatientCard key={patient.id} patient={patient} />
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+          </CardContent>
+        </Card>
       </div>
+
+      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Patient Contact Information</DialogTitle>
+            <DialogDescription className="text-xs">
+              Full contact details and personal information
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedPatient && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 pb-4 border-b">
+                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold">
+                  {selectedPatient.User?.firstName?.charAt(0) || 'P'}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    {selectedPatient.User?.firstName} {selectedPatient.User?.lastName}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedPatient.patientType === 'child' ? 'Child Patient' : 
+                     selectedPatient.patientType === 'elderly' ? 'Elderly Patient' : 'Adult Patient'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Age: {calculateAge(selectedPatient.dateOfBirth)} years
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                {/* Patient Information */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-sm border-b pb-2">Patient Information</h4>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Phone</p>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedPatient.User?.phone || 'Not provided'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Email</p>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedPatient.User?.email || 'Not provided'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Address</p>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedPatient.address || 'Not provided'}
+                        </p>
+                        {(selectedPatient.village || selectedPatient.traditionalAuthority || selectedPatient.district || selectedPatient.region) && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {[selectedPatient.village, selectedPatient.traditionalAuthority, selectedPatient.district, selectedPatient.region]
+                              .filter(Boolean).join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Emergency Contact</p>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedPatient.emergencyContact || 'Not provided'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Date of Birth</p>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedPatient.dateOfBirth ? 
+                            new Date(selectedPatient.dateOfBirth).toLocaleDateString() : 
+                            'Not provided'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Guardian Information (for child/elderly patients) */}
+                {(selectedPatient.patientType === 'child' || selectedPatient.patientType === 'elderly') && 
+                 (selectedPatient.guardianFirstName || selectedPatient.guardianLastName) && (
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm border-b pb-2">Guardian Information</h4>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Guardian Name</p>
+                          <p className="text-sm text-muted-foreground">
+                            {selectedPatient.guardianFirstName} {selectedPatient.guardianLastName}
+                          </p>
+                          {selectedPatient.guardianRelationship && (
+                            <p className="text-xs text-muted-foreground">
+                              Relationship: {selectedPatient.guardianRelationship}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {selectedPatient.guardianPhone && (
+                        <div className="flex items-center gap-3">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">Guardian Phone</p>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedPatient.guardianPhone}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {selectedPatient.guardianEmail && (
+                        <div className="flex items-center gap-3">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">Guardian Email</p>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedPatient.guardianEmail}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {selectedPatient.guardianIdNumber && (
+                        <div className="flex items-center gap-3">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">Guardian ID Number</p>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedPatient.guardianIdNumber}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Medical Information */}
+                {(selectedPatient.medicalHistory || selectedPatient.currentMedications || selectedPatient.allergies) && (
+                  <div className="space-y-4 col-span-2">
+                    <h4 className="font-medium text-sm border-b pb-2">Medical Information</h4>
+                    
+                    <div className="grid grid-cols-3 gap-4">
+                      {selectedPatient.medicalHistory && (
+                        <div>
+                          <p className="text-sm font-medium mb-1">Medical History</p>
+                          <p className="text-sm text-muted-foreground">
+                            {selectedPatient.medicalHistory}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {selectedPatient.currentMedications && (
+                        <div>
+                          <p className="text-sm font-medium mb-1">Current Medications</p>
+                          <p className="text-sm text-muted-foreground">
+                            {selectedPatient.currentMedications}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {selectedPatient.allergies && (
+                        <div>
+                          <p className="text-sm font-medium mb-1">Allergies</p>
+                          <p className="text-sm text-muted-foreground">
+                            {selectedPatient.allergies}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex gap-2 pt-4 border-t">
+             
+                {selectedPatient.guardianPhone && (
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => window.open(`tel:${selectedPatient.guardianPhone}`)}
+                  >
+                    <Phone className="w-4 h-4 mr-2" />
+                    Call Guardian
+                  </Button>
+                )}
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => window.open(`mailto:${selectedPatient.User?.email}`)}
+                  disabled={!selectedPatient.User?.email}
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  Email
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

@@ -48,7 +48,15 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
     setLoading(true);
     try {
       const availableSlots = await timeSlotService.getAvailableSlots({ caregiverId });
-      setSlots(availableSlots.slice(0, 20));
+      
+      // Filter out past slots on frontend as additional safety
+      const now = new Date();
+      const futureSlots = availableSlots.filter(slot => {
+        const slotDateTime = new Date(`${slot.date} ${slot.startTime}`);
+        return slotDateTime > now;
+      });
+      
+      setSlots(futureSlots.slice(0, 20));
     } catch (error) {
       toast.error('Failed to load available slots');
     } finally {
@@ -78,31 +86,26 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
       toast.info('Locking time slot...');
       await timeSlotService.lockSlot(selectedSlot.id);
       
-      // Step 2: Create appointment first
-      toast.info('Creating appointment...');
-      const appointment = await appointmentService.createAppointment({
+      // Step 2: Initiate booking payment (creates pending booking and payment)
+      toast.info('Initiating payment...');
+      const paymentResponse = await appointmentService.createAppointment({
         timeSlotId: selectedSlot.id,
         specialtyId,
         sessionType: 'in_person',
-      });
-
-      // Step 3: Initiate real payment with Paychangu
-      toast.info('Initiating payment...');
-      const paymentResponse = await api.post('/payments/initiate', {
-        appointmentId: appointment.id,
         phoneNumber: phoneNumber
       });
 
-      // Step 4: Redirect to Paychangu checkout
-      if (paymentResponse.data.checkoutUrl) {
+      // Step 3: Redirect to Paychangu checkout
+      console.log('Payment response:', paymentResponse);
+      console.log('Checkout URL:', paymentResponse.checkoutUrl);
+      
+      if (paymentResponse.checkoutUrl) {
         toast.success('Redirecting to payment...');
-        // Open payment in new window or redirect
-        window.open(paymentResponse.data.checkoutUrl, '_blank');
-        
-        // Close modal and show success message
         onClose();
-        toast.info('Complete payment in the new window to confirm your appointment.');
+        // Use location.href instead of window.open to avoid popup blockers
+        window.location.href = paymentResponse.checkoutUrl;
       } else {
+        console.error('No checkout URL in response:', paymentResponse);
         throw new Error('Payment URL not received');
       }
     } catch (error) {

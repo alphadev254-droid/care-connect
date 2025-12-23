@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { api } from "@/lib/api";
+import { Users, Calendar } from "lucide-react";
 import {
   Heart,
   Plus,
@@ -53,6 +54,9 @@ interface Specialty {
   sessionFee: number;
   bookingFee: number;
   isActive: boolean;
+  completedAppointments?: number;
+  totalIncome?: number;
+  activeCaregiversCount?: number;
 }
 
 const SpecialtyManagement = () => {
@@ -67,6 +71,13 @@ const SpecialtyManagement = () => {
     sessionFee: "",
     bookingFee: "",
   });
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-MW', {
+      style: 'currency',
+      currency: 'MWK'
+    }).format(amount);
+  };
 
   const { data: specialties, isLoading } = useQuery({
     queryKey: ["specialties", "all"],
@@ -198,32 +209,47 @@ const SpecialtyManagement = () => {
           </Button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Specialties</CardTitle>
-              <Heart className="h-4 w-4 text-muted-foreground" />
+        <div className="grid gap-3 md:grid-cols-4">
+          <Card className="p-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Total Caregivers</CardTitle>
+              <Users className="h-3 w-3 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{specialties?.length || 0}</div>
+            <CardContent className="p-0">
+              <div className="text-lg font-bold">
+                {activeSpecialties.reduce((sum, s) => sum + (s.activeCaregiversCount || 0), 0)}
+              </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active</CardTitle>
-              <CheckCircle className="h-4 w-4 text-success" />
+          <Card className="p-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Patients Booked</CardTitle>
+              <Calendar className="h-3 w-3 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{activeSpecialties.length}</div>
+            <CardContent className="p-0">
+              <div className="text-lg font-bold">
+                {activeSpecialties.reduce((sum, s) => sum + (s.completedAppointments || 0), 0)}
+              </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Inactive</CardTitle>
-              <XCircle className="h-4 w-4 text-muted-foreground" />
+          <Card className="p-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Total Income (MWK)</CardTitle>
+              <DollarSign className="h-3 w-3 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{inactiveSpecialties.length}</div>
+            <CardContent className="p-0">
+              <div className="text-lg font-bold text-green-600">
+                {activeSpecialties.reduce((sum, s) => sum + parseFloat(s.totalIncome?.toString() || '0'), 0).toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="p-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Active Specialties</CardTitle>
+              <CheckCircle className="h-3 w-3 text-success" />
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="text-lg font-bold">{activeSpecialties.length}</div>
             </CardContent>
           </Card>
         </div>
@@ -241,8 +267,11 @@ const SpecialtyManagement = () => {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead>Session Fee</TableHead>
-                  <TableHead>Booking Fee</TableHead>
+                  <TableHead>Caregivers</TableHead>
+                  <TableHead>Patients Booked</TableHead>
+                  <TableHead>Total Income (MWK)</TableHead>
+                  <TableHead>Session Fee (MWK)</TableHead>
+                  <TableHead>Booking Fee (MWK)</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -250,58 +279,79 @@ const SpecialtyManagement = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       Loading specialties...
                     </TableCell>
                   </TableRow>
                 ) : activeSpecialties.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No active specialties found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  activeSpecialties.map((specialty: Specialty) => (
-                    <TableRow key={specialty.id}>
-                      <TableCell className="font-medium">{specialty.name}</TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {specialty.description || "-"}
-                      </TableCell>
-                      <TableCell>
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="h-3 w-3" />
-                          MWK {specialty.sessionFee || 0}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="h-3 w-3" />
-                          MWK {specialty.bookingFee || 0}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="success">Active</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(specialty)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(specialty)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  activeSpecialties.map((specialty: Specialty) => {
+                    const caregiverCount = specialty.activeCaregiversCount || 0;
+                    const patientCount = specialty.completedAppointments || 0;
+                    const income = parseFloat(specialty.totalIncome?.toString() || '0');
+                    
+                    return (
+                      <TableRow key={specialty.id}>
+                        <TableCell className="font-medium">{specialty.name}</TableCell>
+                        <TableCell className="max-w-xs truncate">
+                          {specialty.description || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {caregiverCount}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {patientCount}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="flex items-center gap-1 text-green-600 font-medium">
+                            {income.toLocaleString()}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="flex items-center gap-1">
+                             {specialty.sessionFee || 0}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="flex items-center gap-1">
+                            {specialty.bookingFee || 0}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="success">Active</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(specialty)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(specialty)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

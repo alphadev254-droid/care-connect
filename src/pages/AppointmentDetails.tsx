@@ -60,243 +60,278 @@ const AppointmentDetails = () => {
 
   return (
     <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Appointment Details</h1>
-            <p className="text-muted-foreground">View complete appointment information</p>
+            <h1 className="text-xl font-bold">Appointment Details</h1>
+            <p className="text-sm text-muted-foreground">ID: #{appointment.id}</p>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Patient/Caregiver Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                {isCaregiver ? 'Patient Information' : 'Caregiver Information'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isCaregiver ? (
-                <>
-                  <div>
-                    <label className="text-sm font-medium">Name</label>
-                    <p>{appointment.Patient?.User?.firstName} {appointment.Patient?.User?.lastName}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Email</label>
-                    <p className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      {appointment.Patient?.User?.email}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Phone</label>
-                    <p className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      {appointment.Patient?.User?.phone}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Medical History</label>
-                    <p className="text-sm text-muted-foreground">
-                      {appointment.Patient?.medicalHistory || 'No medical history provided'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Current Medications</label>
-                    <p className="text-sm text-muted-foreground">
-                      {appointment.Patient?.currentMedications || 'No medications listed'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Allergies</label>
-                    <p className="text-sm text-muted-foreground">
-                      {appointment.Patient?.allergies || 'No allergies listed'}
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label className="text-sm font-medium">Name</label>
-                    <p>{appointment.Caregiver?.User?.firstName} {appointment.Caregiver?.User?.lastName}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Email</label>
-                    <p className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      {appointment.Caregiver?.User?.email}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Phone</label>
-                    <p className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      {appointment.Caregiver?.User?.phone}
-                    </p>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Appointment Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Appointment Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* Appointment Overview */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Appointment Information
+              </span>
+              <Badge className="text-xs">
+                {appointment.status === 'session_waiting' ? 'Waiting for Session' :
+                 appointment.status === 'session_attended' ? 'Session Completed' :
+                 appointment.status}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
-                <label className="text-sm font-medium">Specialty</label>
-                <p>{appointment.Specialty?.name}</p>
+                <label className="text-xs text-muted-foreground">Date</label>
+                <p className="font-medium">
+                  {new Date(appointment.scheduledDate).toLocaleDateString()}
+                </p>
               </div>
               <div>
-                <label className="text-sm font-medium">Date & Time</label>
-                <p className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  {new Date(appointment.scheduledDate).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
-                <p className="flex items-center gap-2 mt-1">
-                  <Clock className="h-4 w-4" />
+                <label className="text-xs text-muted-foreground">Time</label>
+                <p className="font-medium">
                   {appointment.TimeSlot?.startTime} - {appointment.TimeSlot?.endTime}
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium">Session Type</label>
-                <p className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground">Specialty</label>
+                <p className="font-medium">{appointment.Specialty?.name}</p>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Type</label>
+                <p className="font-medium flex items-center gap-1">
                   {appointment.sessionType === 'teleconference' ? (
-                    <Video className="h-4 w-4" />
+                    <><Video className="h-3 w-3" />Video</>
                   ) : (
-                    <MapPin className="h-4 w-4" />
+                    <><MapPin className="h-3 w-3" />In-Person</>
                   )}
-                  {appointment.sessionType === 'teleconference' ? 'Video Call' : 'In-Person Visit'}
                 </p>
               </div>
-              <div>
-                <label className="text-sm font-medium">Duration</label>
-                <p>{appointment.duration} minutes</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Status</label>
-                <Badge className="ml-2">
-                  {appointment.status === 'session_waiting' ? 'Waiting for Session' :
-                   appointment.status === 'session_attended' ? 'Session Completed' :
-                   appointment.status}
-                </Badge>
-              </div>
-              {appointment.notes && (
-                <div>
-                  <label className="text-sm font-medium">Notes</label>
-                  <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded">
-                    {appointment.notes}
-                  </p>
-                </div>
+            </div>
+          </CardContent>
+        </Card>
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Patient/Caregiver Info */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <User className="h-4 w-4" />
+                {isCaregiver ? 'Patient Information' : 'Caregiver Information'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3 text-sm">
+              {isCaregiver ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Name</label>
+                      <p className="font-medium">{appointment.Patient?.User?.firstName} {appointment.Patient?.User?.lastName}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Type</label>
+                      <p className="font-medium capitalize">{appointment.Patient?.patientType || 'Adult'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Phone</label>
+                      <p className="font-medium">{appointment.Patient?.User?.phone}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Emergency</label>
+                      <p className="font-medium">{appointment.Patient?.emergencyContact || 'N/A'}</p>
+                    </div>
+                  </div>
+                  {appointment.Patient?.allergies && (
+                    <div className="bg-red-50 p-2 rounded">
+                      <label className="text-xs font-medium text-red-700">Allergies</label>
+                      <p className="text-xs text-red-900">{appointment.Patient.allergies}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Name</label>
+                    <p className="font-medium">{appointment.Caregiver?.User?.firstName} {appointment.Caregiver?.User?.lastName}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Phone</label>
+                      <p className="font-medium">{appointment.Caregiver?.User?.phone}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Email</label>
+                      <p className="font-medium text-xs">{appointment.Caregiver?.User?.email}</p>
+                    </div>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
 
-          {/* Payment Information */}
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Payment Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Booking Fee</label>
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded">
-                    <span className="font-medium">MWK {appointment.bookingFee}</span>
-                    <Badge variant={appointment.bookingFeeStatus === 'completed' ? 'default' : 'outline'}>
-                      {appointment.bookingFeeStatus === 'completed' ? (
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                      ) : (
-                        <DollarSign className="h-3 w-3 mr-1" />
-                      )}
-                      {appointment.bookingFeeStatus === 'completed' ? 'Paid' : 'Pending'}
-                    </Badge>
-                  </div>
-                  {appointment.bookedAt && (
-                    <p className="text-xs text-muted-foreground">
-                      Paid: {new Date(appointment.bookedAt).toLocaleString()}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Session Fee</label>
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded">
-                    <span className="font-medium">MWK {appointment.sessionFee}</span>
-                    <Badge variant={appointment.sessionFeeStatus === 'completed' ? 'default' : 'outline'}>
-                      {appointment.sessionFeeStatus === 'completed' ? (
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                      ) : (
-                        <DollarSign className="h-3 w-3 mr-1" />
-                      )}
-                      {appointment.sessionFeeStatus === 'completed' ? 'Paid' : 'Pending'}
-                    </Badge>
-                  </div>
-                  {appointment.sessionPaidAt && (
-                    <p className="text-xs text-muted-foreground">
-                      Paid: {new Date(appointment.sessionPaidAt).toLocaleString()}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Total Cost</label>
-                  <div className="flex items-center justify-between p-3 bg-primary/10 rounded">
-                    <span className="font-bold text-lg">MWK {appointment.totalCost}</span>
-                    <Badge variant={appointment.paymentStatus === 'completed' ? 'default' : 'outline'}>
-                      {appointment.paymentStatus === 'completed' ? 'Fully Paid' : 'Partial'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Feedback Section (if completed) */}
-          {appointment.status === 'session_attended' && appointment.patientFeedback && (
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle>Patient Feedback</CardTitle>
+          {/* Guardian Info (if applicable) */}
+          {appointment.Patient?.patientType === 'child' && 
+           (appointment.Patient?.guardianFirstName || appointment.Patient?.guardianLastName) && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Guardian Information
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {appointment.patientRating && (
-                    <div>
-                      <label className="text-sm font-medium">Rating</label>
-                      <p>{appointment.patientRating}/5 stars</p>
-                    </div>
-                  )}
+              <CardContent className="pt-0 space-y-3 text-sm">
+                <div>
+                  <label className="text-xs text-muted-foreground">Name</label>
+                  <p className="font-medium">{appointment.Patient.guardianFirstName} {appointment.Patient.guardianLastName}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-sm font-medium">Feedback</label>
-                    <p className="text-sm bg-muted/50 p-3 rounded">{appointment.patientFeedback}</p>
+                    <label className="text-xs text-muted-foreground">Relationship</label>
+                    <p className="font-medium capitalize">{appointment.Patient.guardianRelationship || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">ID Number</label>
+                    <p className="font-medium">{appointment.Patient.guardianIdNumber || 'N/A'}</p>
                   </div>
                 </div>
+                {(appointment.Patient.guardianPhone || appointment.Patient.guardianEmail) && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {appointment.Patient.guardianPhone && (
+                      <div>
+                        <label className="text-xs text-muted-foreground">Phone</label>
+                        <p className="font-medium">{appointment.Patient.guardianPhone}</p>
+                      </div>
+                    )}
+                    {appointment.Patient.guardianEmail && (
+                      <div>
+                        <label className="text-xs text-muted-foreground">Email</label>
+                        <p className="font-medium text-xs">{appointment.Patient.guardianEmail}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
+
+          {/* Payment Information */}
+          <Card className={appointment.Patient?.patientType === 'child' ? '' : 'md:col-span-2'}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                Payment Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <table className="w-full text-sm">
+                <tbody>
+                  <tr>
+                    <td className="py-2 text-center">
+                      <div className="text-xs text-muted-foreground mb-1">Booking Fee</div>
+                      <div className="font-semibold mb-1">MWK {appointment.bookingFee}</div>
+                      <Badge variant={appointment.bookingFeeStatus === 'completed' ? 'default' : 'outline'} className="text-xs">
+                        {appointment.bookingFeeStatus === 'completed' ? 'Paid' : 'Pending'}
+                      </Badge>
+                    </td>
+                    <td className="py-2 text-center">
+                      <div className="text-xs text-muted-foreground mb-1">Session Fee</div>
+                      <div className="font-semibold mb-1">MWK {appointment.sessionFee}</div>
+                      <Badge variant={appointment.sessionFeeStatus === 'completed' ? 'default' : 'outline'} className="text-xs">
+                        {appointment.sessionFeeStatus === 'completed' ? 'Paid' : 'Pending'}
+                      </Badge>
+                    </td>
+                    <td className="py-2 text-center">
+                      <div className="text-xs text-muted-foreground mb-1">Total</div>
+                      <div className="font-bold text-lg mb-1">MWK {appointment.totalCost}</div>
+                      <Badge variant={appointment.paymentStatus === 'completed' ? 'default' : 'secondary'} className="text-xs">
+                        {appointment.paymentStatus === 'completed' ? 'Paid' : appointment.paymentStatus === 'partial' ? 'Partial' : 'Pending'}
+                      </Badge>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Reschedule History */}
+        {appointment.rescheduleHistory && appointment.rescheduleHistory.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Reschedule History ({appointment.rescheduleCount})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 text-xs text-muted-foreground">From</th>
+                    <th className="text-left py-2 text-xs text-muted-foreground">To</th>
+                    <th className="text-left py-2 text-xs text-muted-foreground">By</th>
+                    <th className="text-left py-2 text-xs text-muted-foreground">Date</th>
+                    <th className="text-left py-2 text-xs text-muted-foreground">Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {appointment.rescheduleHistory.map((reschedule: any, index: number) => (
+                    <tr key={index} className="border-b">
+                      <td className="py-2 text-red-600 font-medium">
+                        {new Date(reschedule.from.date).toLocaleDateString()}<br/>
+                        <span className="text-xs">{reschedule.from.startTime}</span>
+                      </td>
+                      <td className="py-2 text-green-600 font-medium">
+                        {new Date(reschedule.to.date).toLocaleDateString()}<br/>
+                        <span className="text-xs">{reschedule.to.startTime}</span>
+                      </td>
+                      <td className="py-2 capitalize">{reschedule.rescheduleBy}</td>
+                      <td className="py-2 text-muted-foreground">{new Date(reschedule.timestamp).toLocaleDateString()}</td>
+                      <td className="py-2 max-w-xs">
+                        {reschedule.reason ? (
+                          <span className="text-xs bg-muted/50 px-2 py-1 rounded">{reschedule.reason}</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Patient Feedback */}
+        {appointment.patientFeedback && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Patient Feedback</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 text-sm">
+              {appointment.patientRating && (
+                <div className="flex items-center gap-2 mb-2">
+                  {[...Array(5)].map((_, i) => (
+                    <span key={i} className={i < appointment.patientRating ? 'text-yellow-400' : 'text-gray-300'}>★</span>
+                  ))}
+                  <span className="text-xs text-muted-foreground">({appointment.patientRating}/5)</span>
+                </div>
+              )}
+              <p className="bg-muted/50 p-3 rounded text-sm">{appointment.patientFeedback}</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );
 };
 
-export default AppointmentDetails;
+export default AppointmentDetails; 

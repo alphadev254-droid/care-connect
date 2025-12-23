@@ -71,6 +71,7 @@ const Register = () => {
       console.error('Failed to fetch villages:', error);
     }
   };
+
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -95,6 +96,13 @@ const Register = () => {
     dateOfBirth: "",
     address: "",
     emergencyContact: "",
+    // Guardian fields for child/elderly patients
+    guardianFirstName: "",
+    guardianLastName: "",
+    guardianPhone: "",
+    guardianEmail: "",
+    guardianRelationship: "",
+    guardianIdNumber: "",
     // Caregiver fields
     licensingInstitution: "",
     licenseNumber: "",
@@ -108,6 +116,7 @@ const Register = () => {
     traditionalAuthority: "",
     village: "",
   });
+  const [showCustomRelationship, setShowCustomRelationship] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,7 +126,6 @@ const Register = () => {
       return;
     }
 
-    // Validate password confirmation
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match");
       return;
@@ -133,7 +141,6 @@ const Register = () => {
     try {
       const formDataToSend = new FormData();
       
-      // Add basic fields
       formDataToSend.append('email', formData.email);
       formDataToSend.append('password', formData.password);
       formDataToSend.append('firstName', formData.firstName);
@@ -141,18 +148,32 @@ const Register = () => {
       formDataToSend.append('phone', formData.phone);
       formDataToSend.append('role', formData.userType);
 
-      // Add location fields
       if (formData.region) formDataToSend.append('region', formData.region);
       if (formData.district) formDataToSend.append('district', formData.district);
       if (formData.traditionalAuthority) formDataToSend.append('traditionalAuthority', formData.traditionalAuthority);
       if (formData.village) formDataToSend.append('village', formData.village);
 
-      // Add role-specific fields
-      if (formData.userType === 'patient') {
+      if (formData.userType === 'patient' || formData.userType === 'child_patient' || formData.userType === 'elderly_patient') {
         formDataToSend.append('idNumber', formData.idNumber);
         formDataToSend.append('dateOfBirth', formData.dateOfBirth);
         formDataToSend.append('address', formData.address);
         formDataToSend.append('emergencyContact', formData.emergencyContact);
+        
+        if (formData.userType === 'child_patient' || formData.userType === 'elderly_patient') {
+          formDataToSend.append('guardianFirstName', formData.guardianFirstName);
+          formDataToSend.append('guardianLastName', formData.guardianLastName);
+          formDataToSend.append('guardianPhone', formData.guardianPhone);
+          formDataToSend.append('guardianEmail', formData.guardianEmail);
+          formDataToSend.append('guardianRelationship', formData.guardianRelationship);
+          formDataToSend.append('guardianIdNumber', formData.guardianIdNumber);
+          formDataToSend.append('patientType', formData.userType);
+        }
+        
+        formDataToSend.set('role', 'patient');
+      } else if (formData.userType === 'guardian') {
+        formDataToSend.append('idNumber', formData.idNumber);
+        formDataToSend.append('guardianAccountType', formData.guardianAccountType);
+        formDataToSend.set('role', 'guardian');
       } else if (formData.userType === 'caregiver') {
         formDataToSend.append('idNumber', formData.idNumber);
         formDataToSend.append('licensingInstitution', formData.licensingInstitution);
@@ -160,14 +181,12 @@ const Register = () => {
         formDataToSend.append('experience', formData.experience || '0');
         formDataToSend.append('qualifications', formData.qualifications);
 
-        // Add specialties
         if (formData.specialties.length > 0) {
           formData.specialties.forEach(specialtyId => {
             formDataToSend.append('specialties[]', specialtyId);
           });
         }
         
-        // Add supporting documents
         if (formData.supportingDocuments) {
           Array.from(formData.supportingDocuments).slice(0, 5).forEach((file: any) => {
             formDataToSend.append('supportingDocuments', file);
@@ -186,7 +205,6 @@ const Register = () => {
       }
     } catch (error: any) {
       console.error("Registration error:", error);
-      // Error toast is already shown by API interceptor
     } finally {
       setIsLoading(false);
     }
@@ -205,8 +223,18 @@ const Register = () => {
   const userTypes = [
     {
       id: "patient",
-      title: "Patient",
-      description: "I need home healthcare services",
+      title: "Patient (Adult)",
+      description: "I need home healthcare services for myself",
+    },
+    {
+      id: "child_patient",
+      title: "Child Patient",
+      description: "I'm registering for a child who needs healthcare",
+    },
+    {
+      id: "elderly_patient",
+      title: "Elderly Patient",
+      description: "I'm registering for an elderly person who needs care",
     },
     {
       id: "caregiver",
@@ -232,7 +260,6 @@ const Register = () => {
                 Join CareConnect in just a few steps
               </CardDescription>
 
-              {/* Progress Steps */}
               <div className="flex items-center justify-center gap-2 mt-6">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="flex items-center gap-2">
@@ -260,7 +287,6 @@ const Register = () => {
             </CardHeader>
             <CardContent className="pt-6">
               <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Step 1: User Type */}
                 {step === 1 && (
                   <div className="space-y-4">
                     <Label>I am a...</Label>
@@ -302,26 +328,22 @@ const Register = () => {
                   </div>
                 )}
 
-                {/* Step 2: Personal Info */}
                 {step === 2 && (
                   <div className="grid md:grid-cols-2 gap-6">
+                    {/* Left Column - Always 6 fields */}
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name</Label>
-                        <div className="relative">
-                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="firstName"
-                            placeholder="John"
-                            className="pl-10"
-                            value={formData.firstName}
-                            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                            required
-                          />
-                        </div>
+                        <Label htmlFor="firstName">{(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? 'Patient First Name' : 'First Name'}</Label>
+                        <Input
+                          id="firstName"
+                          placeholder="John"
+                          value={formData.firstName}
+                          onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                          required
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name</Label>
+                        <Label htmlFor="lastName">{(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? 'Patient Last Name' : 'Last Name'}</Label>
                         <Input
                           id="lastName"
                           placeholder="Doe"
@@ -331,93 +353,59 @@ const Register = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email Address</Label>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="email"
-                            type="email"
-                            placeholder="name@example.com"
-                            className="pl-10"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            required
-                          />
-                        </div>
+                        <Label htmlFor="email">{(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? 'Guardian Email' : 'Email Address'}</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="name@example.com"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          required
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="phone"
-                            type="tel"
-                            placeholder="+1 (555) 000-0000"
-                            className="pl-10"
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            required
-                          />
-                        </div>
+                        <Label htmlFor="phone">{(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? 'Guardian Phone' : 'Phone Number'}</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="+265 xxx xxx xxx"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          required
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="idNumber">National ID Number</Label>
+                        <Label htmlFor="idNumber">{(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? 'Patient ID Number' : 'National ID Number'}</Label>
                         <Input
                           id="idNumber"
-                          placeholder="Enter your national ID number"
+                          placeholder="National ID number"
                           value={formData.idNumber}
                           onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
                           required
                         />
                       </div>
-                      {formData.userType === 'caregiver' && (
-                        <div className="space-y-2">
-                          <Label htmlFor="licensingInstitution">Licensing Institution</Label>
-                          <Input
-                            id="licensingInstitution"
-                            placeholder="e.g., Nurses and Midwives Council of Malawi"
-                            value={formData.licensingInstitution}
-                            onChange={(e) => setFormData({ ...formData, licensingInstitution: e.target.value })}
-                            required
-                          />
-                        </div>
-                      )}
-                      {formData.userType === 'caregiver' && (
-                        <div className="space-y-2">
-                          <Label htmlFor="supportingDocuments">Supporting Documents (Max 5 files)</Label>
-                          <Input
-                            id="supportingDocuments"
-                            type="file"
-                            multiple
-                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                            onChange={(e) => setFormData({ ...formData, supportingDocuments: e.target.files })}
-                            className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Upload licenses, certificates, or other credentials (PDF, DOC, DOCX, JPG, PNG)
-                          </p>
-                        </div>
-                      )}
+                      <div className="space-y-2">
+                        <Label htmlFor="dateOfBirth">{formData.userType === 'child_patient' ? "Child's Date of Birth" : formData.userType === 'elderly_patient' ? "Elderly Person's Date of Birth" : "Date of Birth"}</Label>
+                        <Input
+                          id="dateOfBirth"
+                          type="date"
+                          value={formData.dateOfBirth}
+                          onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                          required
+                        />
+                      </div>
                     </div>
+
+                    {/* Right Column - Always 6 fields */}
                     <div className="space-y-4">
-                      {/* Role-specific fields */}
-                      {formData.userType === 'patient' && (
+                      {/* Patient Types */}
+                      {(formData.userType === 'patient' || formData.userType === 'child_patient' || formData.userType === 'elderly_patient') && (
                         <>
-                          <div className="space-y-2">
-                            <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                            <Input
-                              id="dateOfBirth"
-                              type="date"
-                              value={formData.dateOfBirth}
-                              onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                              required
-                            />
-                          </div>
                           <div className="space-y-2">
                             <Label htmlFor="address">Address</Label>
                             <Input
                               id="address"
-                              placeholder="Your home address"
+                              placeholder="Home address"
                               value={formData.address}
                               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                               required
@@ -433,11 +421,123 @@ const Register = () => {
                               required
                             />
                           </div>
+                          {(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? (
+                            <>
+                              <div className="space-y-2">
+                                <Label htmlFor="guardianFirstName">Guardian First Name</Label>
+                                <Input
+                                  id="guardianFirstName"
+                                  placeholder="Guardian's first name"
+                                  value={formData.guardianFirstName}
+                                  onChange={(e) => setFormData({ ...formData, guardianFirstName: e.target.value })}
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="guardianLastName">Guardian Last Name</Label>
+                                <Input
+                                  id="guardianLastName"
+                                  placeholder="Guardian's last name"
+                                  value={formData.guardianLastName}
+                                  onChange={(e) => setFormData({ ...formData, guardianLastName: e.target.value })}
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="guardianRelationship">Relationship</Label>
+                                {showCustomRelationship ? (
+                                  <div className="space-y-2">
+                                    <Input
+                                      id="guardianRelationship"
+                                      placeholder="Enter relationship"
+                                      value={formData.guardianRelationship}
+                                      onChange={(e) => setFormData({ ...formData, guardianRelationship: e.target.value })}
+                                      required
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setShowCustomRelationship(false);
+                                        setFormData({ ...formData, guardianRelationship: "" });
+                                      }}
+                                    >
+                                      Back to options
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Select
+                                    value={formData.guardianRelationship}
+                                    onValueChange={(value) => {
+                                      if (value === "other") {
+                                        setShowCustomRelationship(true);
+                                        setFormData({ ...formData, guardianRelationship: "" });
+                                      } else {
+                                        setFormData({ ...formData, guardianRelationship: value });
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select relationship" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {formData.userType === 'child_patient' ? (
+                                        <>
+                                          <SelectItem value="parent">Parent</SelectItem>
+                                          <SelectItem value="guardian">Legal Guardian</SelectItem>
+                                          <SelectItem value="grandparent">Grandparent</SelectItem>
+                                          <SelectItem value="aunt_uncle">Aunt/Uncle</SelectItem>
+                                          <SelectItem value="other">Other (specify)</SelectItem>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <SelectItem value="child">Adult Child</SelectItem>
+                                          <SelectItem value="spouse">Spouse</SelectItem>
+                                          <SelectItem value="sibling">Sibling</SelectItem>
+                                          <SelectItem value="caregiver">Professional Caregiver</SelectItem>
+                                          <SelectItem value="other">Other (specify)</SelectItem>
+                                        </>
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="guardianIdNumber">Guardian ID Number</Label>
+                                <Input
+                                  id="guardianIdNumber"
+                                  placeholder="Guardian's national ID"
+                                  value={formData.guardianIdNumber}
+                                  onChange={(e) => setFormData({ ...formData, guardianIdNumber: e.target.value })}
+                                  required
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="h-[68px]"></div>
+                              <div className="h-[68px]"></div>
+                              <div className="h-[68px]"></div>
+                              <div className="h-[68px]"></div>
+                            </>
+                          )}
                         </>
                       )}
 
+                      {/* Caregiver Type */}
                       {formData.userType === 'caregiver' && (
                         <>
+                          <div className="space-y-2">
+                            <Label htmlFor="licensingInstitution">Licensing Institution</Label>
+                            <Input
+                              id="licensingInstitution"
+                              placeholder="e.g., Nurses Council of Malawi"
+                              value={formData.licensingInstitution}
+                              onChange={(e) => setFormData({ ...formData, licensingInstitution: e.target.value })}
+                              required
+                            />
+                          </div>
                           <div className="space-y-2">
                             <Label htmlFor="licenseNumber">License Number</Label>
                             <Input
@@ -471,9 +571,9 @@ const Register = () => {
                           </div>
                           <div className="space-y-2">
                             <Label>Specialties</Label>
-                            <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto border rounded-md p-2">
+                            <div className="max-h-24 overflow-y-auto border rounded-md p-2">
                               {specialties.map((specialty: any) => (
-                                <div key={specialty.id} className="flex items-center space-x-2">
+                                <div key={specialty.id} className="flex items-center space-x-2 py-1">
                                   <Checkbox
                                     id={`specialty-${specialty.id}`}
                                     checked={formData.specialties.includes(specialty.id.toString())}
@@ -498,114 +598,104 @@ const Register = () => {
                               ))}
                             </div>
                           </div>
-
+                          <div className="space-y-2">
+                            <Label htmlFor="supportingDocuments">Supporting Documents</Label>
+                            <Input
+                              id="supportingDocuments"
+                              type="file"
+                              multiple
+                              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                              onChange={(e) => setFormData({ ...formData, supportingDocuments: e.target.files })}
+                            />
+                          </div>
                         </>
                       )}
-                      
-                      {/* Location Fields */}
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="region">Region</Label>
-                            <Select
-                              value={formData.region}
-                              onValueChange={(value) => {
-                                setFormData({ ...formData, region: value, district: "", traditionalAuthority: "", village: "" });
-                                fetchDistricts(value);
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select region" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {regions.map((region) => (
-                                  <SelectItem key={region} value={region}>
-                                    {region}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="district">District</Label>
-                            <Select
-                              value={formData.district}
-                              onValueChange={(value) => {
-                                setFormData({ ...formData, district: value, traditionalAuthority: "", village: "" });
-                                fetchTraditionalAuthorities(formData.region, value);
-                              }}
-                              disabled={!formData.region}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select district" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {districts.map((district) => (
-                                  <SelectItem key={district} value={district}>
-                                    {district}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="traditionalAuthority">Traditional Authority</Label>
-                            <Select
-                              value={formData.traditionalAuthority}
-                              onValueChange={(value) => {
-                                setFormData({ ...formData, traditionalAuthority: value, village: "" });
-                                fetchVillages(formData.region, formData.district, value);
-                              }}
-                              disabled={!formData.district}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select TA" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {traditionalAuthorities.map((ta) => (
-                                  <SelectItem key={ta} value={ta}>
-                                    {ta}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="village">Village</Label>
-                            <Select
-                              value={formData.village}
-                              onValueChange={(value) => setFormData({ ...formData, village: value })}
-                              disabled={!formData.traditionalAuthority}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select village" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {villages.map((village) => (
-                                  <SelectItem key={village} value={village}>
-                                    {village}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
                     </div>
                   </div>
                 )}
 
-
-                {/* Step 3: Password */}
                 {step === 3 && (
                   <div className="space-y-4">
+                    {/* Location Fields */}
+                    <div className="grid md:grid-cols-2 gap-4 pb-4 border-b">
+                      <div className="space-y-2">
+                        <Label htmlFor="region">Region</Label>
+                        <Select
+                          value={formData.region}
+                          onValueChange={(value) => {
+                            setFormData({ ...formData, region: value, district: "", traditionalAuthority: "", village: "" });
+                            fetchDistricts(value);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select region" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {regions.map((region: string) => (
+                              <SelectItem key={region} value={region}>{region}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="district">District</Label>
+                        <Select
+                          value={formData.district}
+                          onValueChange={(value) => {
+                            setFormData({ ...formData, district: value, traditionalAuthority: "", village: "" });
+                            fetchTraditionalAuthorities(formData.region, value);
+                          }}
+                          disabled={!formData.region}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select district" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {districts.map((district: string) => (
+                              <SelectItem key={district} value={district}>{district}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="traditionalAuthority">Traditional Authority</Label>
+                        <Select
+                          value={formData.traditionalAuthority}
+                          onValueChange={(value) => {
+                            setFormData({ ...formData, traditionalAuthority: value, village: "" });
+                            fetchVillages(formData.region, formData.district, value);
+                          }}
+                          disabled={!formData.district}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select TA" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {traditionalAuthorities.map((ta: string) => (
+                              <SelectItem key={ta} value={ta}>{ta}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="village">Village</Label>
+                        <Select
+                          value={formData.village}
+                          onValueChange={(value) => setFormData({ ...formData, village: value })}
+                          disabled={!formData.traditionalAuthority}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select village" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {villages.map((village: string) => (
+                              <SelectItem key={village} value={village}>{village}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="password">Password</Label>
                       <div className="relative">
@@ -675,7 +765,6 @@ const Register = () => {
                   </div>
                 )}
 
-                {/* Navigation Buttons */}
                 <div className="flex gap-4">
                   {step > 1 && (
                     <Button
@@ -722,7 +811,6 @@ const Register = () => {
       </main>
       <Footer />
       
-      {/* Terms Dialog */}
       <Dialog open={showTerms} onOpenChange={setShowTerms}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>

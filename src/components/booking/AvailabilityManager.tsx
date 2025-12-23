@@ -39,9 +39,12 @@ export const AvailabilityManager = () => {
     try {
       const response = await api.get('/caregivers/profile');
       const caregiver = response.data.caregiver;
-      setCaregiverId(caregiver.id);
-      loadAvailability(caregiver.id);
+      console.log('caregiver ',caregiver)
+      const actualCaregiverId = caregiver.id
+      setCaregiverId(actualCaregiverId);
+      loadAvailability(actualCaregiverId);
     } catch (error) {
+      console.error('Failed to fetch caregiver profile:', error);
       toast.error('Failed to load caregiver profile');
     }
   };
@@ -56,6 +59,7 @@ export const AvailabilityManager = () => {
         endTime: item.endTime,
       })));
     } catch (error) {
+      console.error('Failed to load availability:', error);
       toast.error('Failed to load availability');
     }
   };
@@ -65,7 +69,9 @@ export const AvailabilityManager = () => {
   };
 
   const removeAvailabilitySlot = (index: number) => {
-    setAvailability(availability.filter((_, i) => i !== index));
+    const updatedAvailability = availability.filter((_, i) => i !== index);
+    setAvailability(updatedAvailability);
+    // No auto-save - user must click "Save" button
   };
 
   const updateAvailabilitySlot = (index: number, field: keyof AvailabilitySlot, value: any) => {
@@ -75,16 +81,26 @@ export const AvailabilityManager = () => {
   };
 
   const saveAvailability = async () => {
-    if (!caregiverId) return;
-    
+    // if (!caregiverId || caregiverId === 0) {
+    //   toast.error('Caregiver ID not found');
+    //   return;
+    // }
+
     setLoading(true);
     try {
-      await availabilityService.setAvailability(availability);
+      const response = await availabilityService.setAvailability(availability);
       await loadAvailability(caregiverId);
       setEditing(false);
-      toast.success('Availability saved successfully');
-    } catch (error) {
-      toast.error('Failed to save availability');
+
+      if (response.deleted !== undefined && response.created !== undefined) {
+        toast.success(`Availability saved (${response.deleted} deleted, ${response.created} created)`);
+      } else {
+        toast.success('Availability saved successfully');
+      }
+    } catch (error: any) {
+      console.error('Failed to save availability:', error);
+      const errorMessage = error?.response?.data?.error || error?.response?.data?.errors?.join(', ') || 'Failed to save availability';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -104,18 +120,41 @@ export const AvailabilityManager = () => {
     })));
   };
 
-  const clearAllAvailability = async () => {
-    if (!caregiverId) return;
-    
+  const deleteIndividualSlot = async (slotId: number) => {
+    if (!caregiverId) {
+      toast.error('Caregiver ID not found');
+      return;
+    }
+
     setLoading(true);
     try {
-      await availabilityService.setAvailability([]);
+      await availabilityService.deleteSlot(slotId);
+      await loadAvailability(caregiverId);
+      toast.success('Availability slot deleted');
+    } catch (error: any) {
+      console.error('Failed to delete slot:', error);
+      toast.error(error?.response?.data?.error || 'Failed to delete availability slot');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearAllAvailability = async () => {
+    if (!caregiverId) {
+      toast.error('Caregiver ID not found');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await availabilityService.clearAll();
       await loadAvailability(caregiverId);
       setAvailability([]);
       setEditing(false);
-      toast.success('All availability cleared');
-    } catch (error) {
-      toast.error('Failed to clear availability');
+      toast.success(`All availability cleared (${response.deleted} slots deleted)`);
+    } catch (error: any) {
+      console.error('Failed to clear availability:', error);
+      toast.error(error?.response?.data?.error || 'Failed to clear availability');
     } finally {
       setLoading(false);
     }
@@ -174,8 +213,16 @@ export const AvailabilityManager = () => {
                     <Badge variant="secondary">
                       {DAYS.find(d => d.value === slot.dayOfWeek)?.label}
                     </Badge>
-                    <span className="text-sm">{slot.startTime} - {slot.endTime}</span>
+                    <span className="text-sm">{slot.startTime.slice(0,5)} - {slot.endTime.slice(0,5)}</span>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => deleteIndividualSlot(slot.id)}
+                    disabled={loading}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -233,8 +280,12 @@ export const AvailabilityManager = () => {
               Add Time Slot
             </Button>
             
-            <Button onClick={saveAvailability} disabled={loading}>
-              {loading ? 'Saving...' : 'Save Availability'}
+            <Button
+              onClick={saveAvailability}
+              disabled={loading || availability.length === 0}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {loading ? 'Saving...' : `Save Availability (${availability.length})`}
             </Button>
             
             {editing && (
@@ -252,8 +303,6 @@ export const AvailabilityManager = () => {
             </Button>
           </div>
         )}
-
-
       </CardContent>
     </Card>
   );

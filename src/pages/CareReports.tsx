@@ -48,41 +48,89 @@ const CareReports = () => {
     queryKey: ["care-reports"],
     queryFn: async () => {
       const response = await api.get("/reports");
-      return response.data.reports || [];
+      const reports = response.data.reports || [];
+
+      // Parse JSON strings for attachments and vitals
+      return reports.map(report => {
+        let attachments = [];
+        let vitals = {};
+
+        // Safely parse attachments
+        if (typeof report.attachments === 'string') {
+          try {
+            attachments = JSON.parse(report.attachments);
+          } catch (e) {
+            console.error('Failed to parse attachments:', e);
+            attachments = [];
+          }
+        } else {
+          attachments = report.attachments || [];
+        }
+
+        // Safely parse vitals
+        if (typeof report.vitals === 'string') {
+          try {
+            vitals = JSON.parse(report.vitals);
+          } catch (e) {
+            console.error('Failed to parse vitals:', e);
+            vitals = {};
+          }
+        } else {
+          vitals = report.vitals || {};
+        }
+
+        return {
+          ...report,
+          attachments,
+          vitals
+        };
+      });
     },
   });
 
   const appointments = Array.isArray(appointmentsData) ? appointmentsData : [];
   const reports = Array.isArray(reportsData) ? reportsData : [];
 
-  const completedAppointments = appointments.filter(apt => 
-    isCaregiver ? 
+  console.log('Appointments:', appointments);
+  console.log('Reports:', reports);
+
+  const completedAppointments = appointments.filter(apt =>
+    isCaregiver ?
       // Show appointments where both fees are completed (ready for reports)
-      (apt.sessionFeeStatus === 'completed' && apt.bookingFeeStatus === 'completed') ||
-      (apt.status === 'session_attended')
-    : apt.status === 'session_attended'
+      (apt?.sessionFeeStatus === 'completed' && apt?.bookingFeeStatus === 'completed') ||
+      (apt?.status === 'session_attended' || apt?.status === 'completed')
+    : (apt?.status === 'session_attended' || apt?.status === 'completed')
   );
 
   const appointmentsWithReports = completedAppointments.map(apt => ({
     ...apt,
-    hasReport: reports.some(report => report.appointmentId === apt.id),
-    report: reports.find(report => report.appointmentId === apt.id)
+    hasReport: reports.some(report => report?.appointmentId === apt?.id),
+    report: reports.find(report => report?.appointmentId === apt?.id)
   }));
+
+  console.log('Appointments with reports:', appointmentsWithReports);
 
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [reportForm, setReportForm] = useState({
-    diagnosis: '',
-    treatment: '',
-    medications: '',
+    observations: '',
+    interventions: '',
+    sessionSummary: '',
+    patientStatus: 'stable',
     recommendations: '',
     followUpDate: '',
+    medications: '',
+    activities: '',
     notes: '',
     vitals: {
       bloodPressure: '',
       heartRate: '',
       temperature: '',
-      oxygenLevel: ''
-    }
+      oxygenLevel: '',
+      respiratoryRate: '',
+      oxygenSaturation: '',
+      bloodSugar: ''
+    },
+    attachments: []
   });
 
   useEffect(() => {
@@ -92,18 +140,25 @@ const CareReports = () => {
         setSelectedAppointment(appointment);
         if (appointment.report) {
           setReportForm({
-            diagnosis: appointment.report.diagnosis || '',
-            treatment: appointment.report.treatment || '',
-            medications: appointment.report.medications || '',
+            observations: appointment.report.observations || '',
+            interventions: appointment.report.interventions || '',
+            sessionSummary: appointment.report.sessionSummary || '',
+            patientStatus: appointment.report.patientStatus || 'stable',
             recommendations: appointment.report.recommendations || '',
             followUpDate: appointment.report.followUpDate || '',
+            medications: appointment.report.medications || '',
+            activities: appointment.report.activities || '',
             notes: appointment.report.notes || '',
             vitals: appointment.report.vitals || {
               bloodPressure: '',
               heartRate: '',
               temperature: '',
-              oxygenLevel: ''
-            }
+              oxygenLevel: '',
+              respiratoryRate: '',
+              oxygenSaturation: '',
+              bloodSugar: ''
+            },
+            attachments: appointment.report.attachments || []
           });
         }
       }
@@ -112,7 +167,35 @@ const CareReports = () => {
 
   const createReportMutation = useMutation({
     mutationFn: async (reportData) => {
-      const response = await api.post('/reports', reportData);
+      const formData = new FormData();
+      
+      // Add text fields
+      formData.append('appointmentId', reportData.appointmentId);
+      formData.append('patientId', reportData.patientId);
+      formData.append('caregiverId', reportData.caregiverId);
+      formData.append('observations', reportData.observations);
+      formData.append('interventions', reportData.interventions);
+      formData.append('sessionSummary', reportData.sessionSummary);
+      formData.append('patientStatus', reportData.patientStatus);
+      formData.append('recommendations', reportData.recommendations || '');
+      formData.append('followUpDate', reportData.followUpDate || '');
+      formData.append('medications', reportData.medications || '');
+      formData.append('activities', reportData.activities || '');
+      formData.append('notes', reportData.notes || '');
+      formData.append('vitals', JSON.stringify(reportData.vitals));
+      
+      // Add file attachments
+      if (reportData.attachments && reportData.attachments.length > 0) {
+        reportData.attachments.forEach((file) => {
+          formData.append('attachments', file);
+        });
+      }
+      
+      const response = await api.post('/reports', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       return response.data;
     },
     onSuccess: () => {
@@ -123,7 +206,8 @@ const CareReports = () => {
       api.patch(`/appointments/${selectedAppointment.id}/status`, { status: 'session_attended' });
       navigate('/dashboard/reports');
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Report creation error:', error);
       toast.error('Failed to create report');
     }
   });
@@ -144,6 +228,16 @@ const CareReports = () => {
       <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!user) {
+    return (
+      <DashboardLayout userRole={mapUserRole('patient')}>
+        <div className="text-center p-8">
+          <p className="text-muted-foreground">Please log in to view reports</p>
         </div>
       </DashboardLayout>
     );
@@ -226,59 +320,58 @@ const CareReports = () => {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="diagnosis">Diagnosis</Label>
+                      <Label htmlFor="observations">Observations *</Label>
                       <Textarea
-                        id="diagnosis"
-                        placeholder="Enter diagnosis..."
-                        value={reportForm.diagnosis}
-                        onChange={(e) => setReportForm({...reportForm, diagnosis: e.target.value})}
+                        id="observations"
+                        placeholder="Enter observations..."
+                        value={reportForm.observations}
+                        onChange={(e) => setReportForm({...reportForm, observations: e.target.value})}
+                        required
                       />
                     </div>
+
                     <div>
-                      <Label htmlFor="treatment">Treatment Provided</Label>
+                      <Label htmlFor="interventions">Interventions *</Label>
                       <Textarea
-                        id="treatment"
-                        placeholder="Describe treatment..."
-                        value={reportForm.treatment}
-                        onChange={(e) => setReportForm({...reportForm, treatment: e.target.value})}
+                        id="interventions"
+                        placeholder="Enter interventions performed..."
+                        value={reportForm.interventions}
+                        onChange={(e) => setReportForm({...reportForm, interventions: e.target.value})}
+                        required
                       />
                     </div>
+
                     <div>
-                      <Label htmlFor="medications">Medications Prescribed</Label>
+                      <Label htmlFor="sessionSummary">Session Summary *</Label>
                       <Textarea
-                        id="medications"
-                        placeholder="List medications..."
-                        value={reportForm.medications}
-                        onChange={(e) => setReportForm({...reportForm, medications: e.target.value})}
+                        id="sessionSummary"
+                        placeholder="Enter session summary..."
+                        value={reportForm.sessionSummary}
+                        onChange={(e) => setReportForm({...reportForm, sessionSummary: e.target.value})}
+                        required
                       />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="patientStatus">Patient Status *</Label>
+                      <select
+                        id="patientStatus"
+                        className="w-full p-2 border rounded-md"
+                        value={reportForm.patientStatus}
+                        onChange={(e) => setReportForm({...reportForm, patientStatus: e.target.value})}
+                        required
+                      >
+                        <option value="stable">Stable</option>
+                        <option value="improving">Improving</option>
+                        <option value="deteriorating">Deteriorating</option>
+                        <option value="critical">Critical</option>
+                        <option value="cured">Cured</option>
+                        <option value="deceased">Deceased</option>
+                      </select>
                     </div>
                   </div>
+
                   <div className="space-y-4">
-                    <div>
-                      <Label>Vitals</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input
-                          placeholder="Blood Pressure"
-                          value={reportForm.vitals.bloodPressure}
-                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, bloodPressure: e.target.value}})}
-                        />
-                        <Input
-                          placeholder="Heart Rate"
-                          value={reportForm.vitals.heartRate}
-                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, heartRate: e.target.value}})}
-                        />
-                        <Input
-                          placeholder="Temperature"
-                          value={reportForm.vitals.temperature}
-                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, temperature: e.target.value}})}
-                        />
-                        <Input
-                          placeholder="Oxygen Level"
-                          value={reportForm.vitals.oxygenLevel}
-                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, oxygenLevel: e.target.value}})}
-                        />
-                      </div>
-                    </div>
                     <div>
                       <Label htmlFor="recommendations">Recommendations</Label>
                       <Textarea
@@ -288,6 +381,7 @@ const CareReports = () => {
                         onChange={(e) => setReportForm({...reportForm, recommendations: e.target.value})}
                       />
                     </div>
+
                     <div>
                       <Label htmlFor="followUpDate">Follow-up Date</Label>
                       <Input
@@ -297,6 +391,27 @@ const CareReports = () => {
                         onChange={(e) => setReportForm({...reportForm, followUpDate: e.target.value})}
                       />
                     </div>
+
+                    <div>
+                      <Label htmlFor="medications">Medications</Label>
+                      <Textarea
+                        id="medications"
+                        placeholder="Medications prescribed or administered..."
+                        value={reportForm.medications}
+                        onChange={(e) => setReportForm({...reportForm, medications: e.target.value})}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="activities">Activities</Label>
+                      <Textarea
+                        id="activities"
+                        placeholder="Activities performed with patient (exercises, therapy, etc.)..."
+                        value={reportForm.activities}
+                        onChange={(e) => setReportForm({...reportForm, activities: e.target.value})}
+                      />
+                    </div>
+
                     <div>
                       <Label htmlFor="notes">Additional Notes</Label>
                       <Textarea
@@ -306,242 +421,535 @@ const CareReports = () => {
                         onChange={(e) => setReportForm({...reportForm, notes: e.target.value})}
                       />
                     </div>
+
                     <div>
-                      <Label htmlFor="attachments">Attachments</Label>
-                      <Input id="attachments" type="file" multiple />
-                    </div>
-                  </div>
-                  <div className="md:col-span-2 flex gap-2">
-                    <Button onClick={handleSubmitReport} disabled={createReportMutation.isPending}>
-                      <Save className="h-4 w-4 mr-2" />
-                      Save Report & Complete Session
-                    </Button>
-                  </div>
-                </div>
-              ) : selectedAppointment.hasReport ? (
-                <div className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="font-semibold mb-2">Diagnosis</h3>
-                      <p className="text-muted-foreground bg-muted/50 p-3 rounded">{selectedAppointment.report.diagnosis || 'Not provided'}</p>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-2">Treatment</h3>
-                      <p className="text-muted-foreground bg-muted/50 p-3 rounded">{selectedAppointment.report.treatment || 'Not provided'}</p>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-2">Medications</h3>
-                      <p className="text-muted-foreground bg-muted/50 p-3 rounded">{selectedAppointment.report.medications || 'None prescribed'}</p>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-2">Recommendations</h3>
-                      <p className="text-muted-foreground bg-muted/50 p-3 rounded">{selectedAppointment.report.recommendations || 'None provided'}</p>
-                    </div>
-                  </div>
-                  {selectedAppointment.report.vitals && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Vitals</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {selectedAppointment.report.vitals.bloodPressure && (
-                          <div className="bg-muted/50 p-3 rounded text-center">
-                            <p className="text-sm text-muted-foreground">Blood Pressure</p>
-                            <p className="font-semibold">{selectedAppointment.report.vitals.bloodPressure}</p>
-                          </div>
-                        )}
-                        {selectedAppointment.report.vitals.heartRate && (
-                          <div className="bg-muted/50 p-3 rounded text-center">
-                            <p className="text-sm text-muted-foreground">Heart Rate</p>
-                            <p className="font-semibold">{selectedAppointment.report.vitals.heartRate}</p>
-                          </div>
-                        )}
-                        {selectedAppointment.report.vitals.temperature && (
-                          <div className="bg-muted/50 p-3 rounded text-center">
-                            <p className="text-sm text-muted-foreground">Temperature</p>
-                            <p className="font-semibold">{selectedAppointment.report.vitals.temperature}</p>
-                          </div>
-                        )}
-                        {selectedAppointment.report.vitals.oxygenLevel && (
-                          <div className="bg-muted/50 p-3 rounded text-center">
-                            <p className="text-sm text-muted-foreground">Oxygen Level</p>
-                            <p className="font-semibold">{selectedAppointment.report.vitals.oxygenLevel}</p>
-                          </div>
-                        )}
+                      <Label>Vital Signs</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          placeholder="Blood Pressure (e.g., 120/80)"
+                          value={reportForm.vitals.bloodPressure}
+                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, bloodPressure: e.target.value}})}
+                        />
+                        <Input
+                          placeholder="Heart Rate (bpm)"
+                          value={reportForm.vitals.heartRate}
+                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, heartRate: e.target.value}})}
+                        />
+                        <Input
+                          placeholder="Temperature (°C)"
+                          value={reportForm.vitals.temperature}
+                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, temperature: e.target.value}})}
+                        />
+                        <Input
+                          placeholder="Respiratory Rate"
+                          value={reportForm.vitals.respiratoryRate}
+                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, respiratoryRate: e.target.value}})}
+                        />
+                        <Input
+                          placeholder="Oxygen Saturation (%)"
+                          value={reportForm.vitals.oxygenSaturation}
+                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, oxygenSaturation: e.target.value}})}
+                        />
+                        <Input
+                          placeholder="Blood Sugar (mg/dL)"
+                          value={reportForm.vitals.bloodSugar}
+                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, bloodSugar: e.target.value}})}
+                        />
                       </div>
                     </div>
-                  )}
-                  <div>
-                    <h3 className="font-semibold mb-2">Additional Notes</h3>
-                    <p className="text-muted-foreground bg-muted/50 p-3 rounded">{selectedAppointment.report.notes || 'No additional notes'}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline">
-                      <Download className="h-4 w-4 mr-2" />
-                      Download Report
-                    </Button>
+
+                    <div>
+                      <Label htmlFor="attachments">File Attachments</Label>
+                      <Input
+                        id="attachments"
+                        type="file"
+                        multiple
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          setReportForm({...reportForm, attachments: files});
+                        }}
+                      />
+                      {reportForm.attachments.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-sm text-muted-foreground">
+                            {reportForm.attachments.length} file(s) selected
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-semibold mb-2">Report not available</h3>
-                  <p className="text-muted-foreground">
-                    The caregiver hasn't uploaded a report for this session yet
-                  </p>
+                <div className="space-y-4">
+                  {selectedAppointment.report ? (
+                    <Tabs defaultValue="overview" className="w-full">
+                      <TabsList className="grid w-full grid-cols-5 h-9">
+                        <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
+                        <TabsTrigger value="vitals" className="text-xs">Vitals</TabsTrigger>
+                        <TabsTrigger value="treatment" className="text-xs">Treatment</TabsTrigger>
+                        <TabsTrigger value="recommendations" className="text-xs">Notes</TabsTrigger>
+                        <TabsTrigger value="attachments" className="text-xs">
+                          Files
+                          {selectedAppointment.report.attachments?.length > 0 && (
+                            <Badge variant="secondary" className="ml-1 text-xs px-1 py-0 h-4">
+                              {selectedAppointment.report.attachments.length}
+                            </Badge>
+                          )}
+                        </TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="overview" className="space-y-3 mt-4">
+                        <div className="grid md:grid-cols-3 gap-3">
+                          <div className="border rounded-lg p-3 bg-white">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Status</Label>
+                            <div className="mt-1.5">
+                              <Badge
+                                variant={
+                                  selectedAppointment.report.patientStatus === 'stable' ||
+                                  selectedAppointment.report.patientStatus === 'improving' ||
+                                  selectedAppointment.report.patientStatus === 'cured' ? 'default' : 'destructive'
+                                }
+                                className="text-xs font-medium"
+                              >
+                                {selectedAppointment.report.patientStatus?.toUpperCase()}
+                              </Badge>
+                            </div>
+                          </div>
+                          {selectedAppointment.report.followUpDate && (
+                            <div className="border rounded-lg p-3 bg-white">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Follow-up</Label>
+                              <p className="text-sm font-medium mt-1.5">
+                                {new Date(selectedAppointment.report.followUpDate).toLocaleDateString()}
+                              </p>
+                            </div>
+                          )}
+                          <div className="border rounded-lg p-3 bg-white">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Report Date</Label>
+                            <p className="text-sm font-medium mt-1.5">
+                              {new Date(selectedAppointment.report.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="border rounded-lg p-3 bg-white">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Observations</Label>
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                            {selectedAppointment.report.observations || 'No observations recorded'}
+                          </p>
+                        </div>
+
+                        <div className="border rounded-lg p-3 bg-white">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Interventions</Label>
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                            {selectedAppointment.report.interventions || 'No interventions recorded'}
+                          </p>
+                        </div>
+
+                        <div className="border rounded-lg p-3 bg-white">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Summary</Label>
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                            {selectedAppointment.report.sessionSummary || 'No summary recorded'}
+                          </p>
+                        </div>
+
+                        {selectedAppointment.report.notes && (
+                          <div className="border rounded-lg p-3 bg-white">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Additional Notes</Label>
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                              {selectedAppointment.report.notes}
+                            </p>
+                          </div>
+                        )}
+                      </TabsContent>
+
+                      <TabsContent value="vitals" className="space-y-3 mt-4">
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {selectedAppointment?.report?.vitals?.bloodPressure && (
+                            <div className="border rounded-lg p-3 bg-white">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Blood Pressure</Label>
+                              <p className="text-lg font-semibold mt-1">{selectedAppointment.report.vitals.bloodPressure}</p>
+                              <p className="text-xs text-muted-foreground">mmHg</p>
+                            </div>
+                          )}
+                          {selectedAppointment.report.vitals?.heartRate && (
+                            <div className="border rounded-lg p-3 bg-white">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Heart Rate</Label>
+                              <p className="text-lg font-semibold mt-1">{selectedAppointment.report.vitals.heartRate}</p>
+                              <p className="text-xs text-muted-foreground">bpm</p>
+                            </div>
+                          )}
+                          {selectedAppointment.report.vitals?.temperature && (
+                            <div className="border rounded-lg p-3 bg-white">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Temperature</Label>
+                              <p className="text-lg font-semibold mt-1">{selectedAppointment.report.vitals.temperature}</p>
+                              <p className="text-xs text-muted-foreground">°C</p>
+                            </div>
+                          )}
+                          {selectedAppointment.report.vitals?.respiratoryRate && (
+                            <div className="border rounded-lg p-3 bg-white">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Respiratory Rate</Label>
+                              <p className="text-lg font-semibold mt-1">{selectedAppointment.report.vitals.respiratoryRate}</p>
+                              <p className="text-xs text-muted-foreground">breaths/min</p>
+                            </div>
+                          )}
+                          {selectedAppointment.report.vitals?.oxygenSaturation && (
+                            <div className="border rounded-lg p-3 bg-white">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Oxygen Saturation</Label>
+                              <p className="text-lg font-semibold mt-1">{selectedAppointment.report.vitals.oxygenSaturation}%</p>
+                              <p className="text-xs text-muted-foreground">SpO2</p>
+                            </div>
+                          )}
+                          {selectedAppointment.report.vitals?.bloodSugar && (
+                            <div className="border rounded-lg p-3 bg-white">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Blood Sugar</Label>
+                              <p className="text-lg font-semibold mt-1">{selectedAppointment.report.vitals.bloodSugar}</p>
+                              <p className="text-xs text-muted-foreground">mg/dL</p>
+                            </div>
+                          )}
+                        </div>
+                        {(!selectedAppointment?.report?.vitals || Object.keys(selectedAppointment?.report?.vitals || {}).length === 0) && (
+                          <div className="text-center p-6 text-muted-foreground border rounded-lg bg-gray-50">
+                            <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No vital signs recorded</p>
+                          </div>
+                        )}
+                      </TabsContent>
+
+                      <TabsContent value="treatment" className="space-y-3 mt-4">
+                        {selectedAppointment.report.medications && (
+                          <div className="border rounded-lg p-3 bg-white">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Medications</Label>
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                              {selectedAppointment.report.medications}
+                            </p>
+                          </div>
+                        )}
+
+                        {selectedAppointment.report.activities && (
+                          <div className="border rounded-lg p-3 bg-white">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Activities Performed</Label>
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                              {selectedAppointment.report.activities}
+                            </p>
+                          </div>
+                        )}
+
+                        {!selectedAppointment.report.medications && !selectedAppointment.report.activities && (
+                          <div className="text-center p-6 text-muted-foreground border rounded-lg bg-gray-50">
+                            <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No treatment information recorded</p>
+                          </div>
+                        )}
+                      </TabsContent>
+
+                      <TabsContent value="recommendations" className="space-y-3 mt-4">
+                        {selectedAppointment.report.recommendations ? (
+                          <div className="border rounded-lg p-3 bg-white">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Recommendations</Label>
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                              {selectedAppointment.report.recommendations}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-center p-6 text-muted-foreground border rounded-lg bg-gray-50">
+                            <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No recommendations provided</p>
+                          </div>
+                        )}
+                      </TabsContent>
+
+                      <TabsContent value="attachments" className="space-y-3 mt-4">
+                        {selectedAppointment.report.attachments && selectedAppointment.report.attachments.length > 0 ? (
+                          <div className="grid gap-2">
+                            {selectedAppointment.report.attachments.map((attachment, index) => (
+                              <div key={index} className="border rounded-lg p-3 bg-white hover:bg-gray-50 transition-colors">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="p-2 bg-primary/10 rounded">
+                                      <FileText className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-medium text-sm truncate">{attachment.filename || attachment.name || `Document ${index + 1}`}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {attachment.size ? `${(attachment.size / 1024).toFixed(2)} KB` : 'File'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-xs ml-2"
+                                    onClick={() => {
+                                      const url = attachment.url || attachment.path;
+                                      if (url) {
+                                        window.open(url, '_blank');
+                                      }
+                                    }}
+                                  >
+                                    <Download className="h-3 w-3 mr-1" />
+                                    Download
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center p-6 text-muted-foreground border rounded-lg bg-gray-50">
+                            <Upload className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No documents attached</p>
+                          </div>
+                        )}
+                      </TabsContent>
+                    </Tabs>
+                  ) : (
+                    <p className="text-muted-foreground">No report available for this session.</p>
+                  )}
+                </div>
+              )}
+
+              {isCaregiver && !selectedAppointment.hasReport && (
+                <div className="flex justify-end gap-2">
+                  <Button
+                    onClick={handleSubmitReport}
+                    disabled={createReportMutation.isPending || !reportForm.observations || !reportForm.interventions || !reportForm.sessionSummary}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {createReportMutation.isPending ? 'Saving...' : 'Save Report & Complete Session'}
+                  </Button>
                 </div>
               )}
             </CardContent>
           </Card>
         ) : (
-          <Tabs defaultValue="all" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="all">All Sessions</TabsTrigger>
-              <TabsTrigger value="with-reports">With Reports</TabsTrigger>
-              <TabsTrigger value="without-reports">{isCaregiver ? 'Pending Reports' : 'Without Reports'}</TabsTrigger>
+          <Tabs defaultValue="pending" className="w-full">
+            <TabsList className="h-9">
+              <TabsTrigger value="pending" className="text-xs">
+                {isCaregiver ? 'Sessions Ready for Reports' : 'Sessions without Reports'}
+                <Badge variant="secondary" className="ml-2 text-xs px-1 py-0 h-4">
+                  {appointmentsWithReports.filter(apt => !apt.hasReport).length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="completed" className="text-xs">
+                Sessions with Reports
+                <Badge variant="secondary" className="ml-2 text-xs px-1 py-0 h-4">
+                  {appointmentsWithReports.filter(apt => apt.hasReport).length}
+                </Badge>
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="all" className="space-y-4">
-              <div className="grid gap-4">
-                {appointmentsWithReports.map((appointment) => (
-                  <Card key={appointment.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 bg-primary/10 rounded-lg">
-                            <User className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold">
-                              {isCaregiver ? 
-                                `${appointment.Patient?.User?.firstName} ${appointment.Patient?.User?.lastName}` :
-                                `${appointment.Caregiver?.User?.firstName} ${appointment.Caregiver?.User?.lastName}`
-                              }
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {appointment.Specialty?.name} • {new Date(appointment.scheduledDate).toLocaleDateString()}
-                            </p>
-                            <div className="flex items-center gap-4 mt-2 text-sm">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-4 w-4" />
-                                <span>{new Date(appointment.scheduledDate).toLocaleDateString()}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-4 w-4" />
-                                <span>{appointment.TimeSlot?.startTime} - {appointment.TimeSlot?.endTime}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={appointment.hasReport ? 'default' : 'outline'}>
-                            {appointment.hasReport ? (
-                              <><CheckCircle className="h-3 w-3 mr-1" />Report Available</>
-                            ) : (
-                              <><AlertCircle className="h-3 w-3 mr-1" />{isCaregiver ? 'Report Pending' : 'No Report'}</>
-                            )}
-                          </Badge>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => setSelectedAppointment(appointment)}
-                          >
-                            {appointment.hasReport ? (
-                              <><Eye className="h-4 w-4 mr-2" />View Report</>
-                            ) : isCaregiver ? (
-                              <><Plus className="h-4 w-4 mr-2" />Create Report</>
-                            ) : (
-                              <><Eye className="h-4 w-4 mr-2" />View Session</>
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+            <TabsContent value="pending" className="mt-4">
+              <Card>
+                <CardContent className="p-0">
+                  {appointmentsWithReports.filter(apt => !apt.hasReport).length === 0 ? (
+                    <div className="py-12 text-center">
+                      <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+                      <h3 className="font-semibold text-sm mb-1">No sessions pending reports</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Sessions ready for reports will appear here
+                      </p>
+                    </div>
+                  ) : (
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left text-xs font-semibold p-3">Session</th>
+                          <th className="text-left text-xs font-semibold p-3">Patient</th>
+                          <th className="text-left text-xs font-semibold p-3">Specialty</th>
+                          <th className="text-left text-xs font-semibold p-3">Payment Status</th>
+                          <th className="text-left text-xs font-semibold p-3">Duration</th>
+                          <th className="text-right text-xs font-semibold p-3">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {appointmentsWithReports
+                          .filter(apt => !apt.hasReport)
+                          .map((appointment) => (
+                            <tr key={appointment.id} className="border-b hover:bg-muted/30 transition-colors">
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                                  <div>
+                                    <p className="text-sm font-medium">
+                                      {new Date(appointment.scheduledDate).toLocaleDateString()}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {appointment.scheduledTime || 'N/A'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold">
+                                    {appointment.Patient?.User?.firstName?.charAt(0) || 'P'}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium">
+                                      {appointment.Patient?.User?.firstName} {appointment.Patient?.User?.lastName}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      ID: #{appointment.id}
+                                    </p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <p className="text-sm">{appointment.Specialty?.name || 'General Care'}</p>
+                                <p className="text-xs text-muted-foreground capitalize">
+                                  {appointment.sessionType || 'In-person'}
+                                </p>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex flex-col gap-1">
+                                  <Badge
+                                    variant={appointment.bookingFeeStatus === 'completed' ? 'default' : 'outline'}
+                                    className="text-xs w-fit"
+                                  >
+                                    {appointment.bookingFeeStatus === 'completed' ? '✓' : '○'} Booking
+                                  </Badge>
+                                  <Badge
+                                    variant={appointment.sessionFeeStatus === 'completed' ? 'default' : 'outline'}
+                                    className="text-xs w-fit"
+                                  >
+                                    {appointment.sessionFeeStatus === 'completed' ? '✓' : '○'} Session
+                                  </Badge>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <p className="text-sm">{appointment.duration || 180} min</p>
+                                <p className="text-xs text-muted-foreground">3 hours</p>
+                              </td>
+                              <td className="p-3 text-right">
+                                {isCaregiver ? (
+                                  <Button
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={() => setSelectedAppointment(appointment)}
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    Create Report
+                                  </Button>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs">
+                                    Pending
+                                  </Badge>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
-            <TabsContent value="with-reports" className="space-y-4">
-              <div className="grid gap-4">
-                {appointmentsWithReports.filter(apt => apt.hasReport).map((appointment) => (
-                  <Card key={appointment.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 bg-green-100 rounded-lg">
-                            <CheckCircle className="h-6 w-6 text-green-600" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold">
-                              {isCaregiver ? 
-                                `${appointment.Patient?.User?.firstName} ${appointment.Patient?.User?.lastName}` :
-                                `${appointment.Caregiver?.User?.firstName} ${appointment.Caregiver?.User?.lastName}`
-                              }
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {appointment.Specialty?.name} • {new Date(appointment.scheduledDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => setSelectedAppointment(appointment)}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Report
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="without-reports" className="space-y-4">
-              <div className="grid gap-4">
-                {appointmentsWithReports.filter(apt => !apt.hasReport).map((appointment) => (
-                  <Card key={appointment.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 bg-orange-100 rounded-lg">
-                            <AlertCircle className="h-6 w-6 text-orange-600" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold">
-                              {isCaregiver ? 
-                                `${appointment.Patient?.User?.firstName} ${appointment.Patient?.User?.lastName}` :
-                                `${appointment.Caregiver?.User?.firstName} ${appointment.Caregiver?.User?.lastName}`
-                              }
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {appointment.Specialty?.name} • {new Date(appointment.scheduledDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {isCaregiver && (
-                            <Button 
-                              variant="default" 
-                              size="sm"
-                              onClick={() => setSelectedAppointment(appointment)}
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Create Report
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+            <TabsContent value="completed" className="mt-4">
+              <Card>
+                <CardContent className="p-0">
+                  {appointmentsWithReports.filter(apt => apt.hasReport).length === 0 ? (
+                    <div className="py-12 text-center">
+                      <CheckCircle className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+                      <h3 className="font-semibold text-sm mb-1">No completed reports yet</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Completed session reports will appear here
+                      </p>
+                    </div>
+                  ) : (
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left text-xs font-semibold p-3">Session</th>
+                          <th className="text-left text-xs font-semibold p-3">Patient</th>
+                          <th className="text-left text-xs font-semibold p-3">Specialty</th>
+                          <th className="text-left text-xs font-semibold p-3">Report Status</th>
+                          <th className="text-left text-xs font-semibold p-3">Created</th>
+                          <th className="text-right text-xs font-semibold p-3">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {appointmentsWithReports
+                          .filter(apt => apt.hasReport)
+                          .map((appointment) => (
+                            <tr key={appointment.id} className="border-b hover:bg-muted/30 transition-colors">
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                                  <div>
+                                    <p className="text-sm font-medium">
+                                      {new Date(appointment.scheduledDate).toLocaleDateString()}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {appointment.scheduledTime || 'N/A'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="h-7 w-7 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-xs font-semibold">
+                                    {appointment.Patient?.User?.firstName?.charAt(0) || 'P'}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium">
+                                      {appointment.Patient?.User?.firstName} {appointment.Patient?.User?.lastName}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      ID: #{appointment.id}
+                                    </p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <p className="text-sm">{appointment.Specialty?.name || 'General Care'}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {appointment.duration || 180} min session
+                                </p>
+                              </td>
+                              <td className="p-3">
+                                <Badge variant="default" className="text-xs bg-green-600">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Completed
+                                </Badge>
+                                {appointment.report?.attachments?.length > 0 && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {appointment.report.attachments.length} attachment(s)
+                                  </p>
+                                )}
+                              </td>
+                              <td className="p-3">
+                                <p className="text-sm">
+                                  {appointment.report?.createdAt
+                                    ? new Date(appointment.report.createdAt).toLocaleDateString()
+                                    : 'N/A'
+                                  }
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {appointment.report?.createdAt
+                                    ? new Date(appointment.report.createdAt).toLocaleTimeString()
+                                    : ''
+                                  }
+                                </p>
+                              </td>
+                              <td className="p-3 text-right">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs"
+                                  onClick={() => setSelectedAppointment(appointment)}
+                                >
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  View Report
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         )}

@@ -21,6 +21,7 @@ export interface CreateAppointmentData {
   specialtyId: number;
   sessionType: 'in_person' | 'teleconference';
   notes?: string;
+  phoneNumber?: string;
 }
 
 export const appointmentService = {
@@ -35,8 +36,8 @@ export const appointmentService = {
   },
 
   createAppointment: async (data: CreateAppointmentData) => {
-    const response = await api.post('/appointments', data);
-    return response.data.appointment;
+    const response = await api.post('/payments/initiate-booking', data);
+    return response.data;
   },
 
   updateAppointmentStatus: async (id: number, status: string) => {
@@ -47,5 +48,32 @@ export const appointmentService = {
   confirmPayment: async (appointmentId: number) => {
     const response = await api.post('/appointments/confirm-payment', { appointmentId });
     return response.data.appointment;
+  },
+
+  rescheduleAppointment: async (id: number, newTimeSlotId: number, reason?: string) => {
+    const response = await api.post(`/appointments/${id}/reschedule`, {
+      newTimeSlotId,
+      reason
+    });
+    return response.data;
+  },
+
+  cancelAppointment: async (id: number, reason?: string) => {
+    const response = await api.post(`/appointments/${id}/cancel`, {
+      reason
+    });
+    return response.data;
+  },
+
+  canCancelAppointment: (appointmentDate: string, appointmentTime: string): { canCancel: boolean; hoursLeft: number } => {
+    const appointmentDateTime = new Date(`${appointmentDate} ${appointmentTime}`);
+    const currentTime = new Date();
+    const timeDifference = appointmentDateTime.getTime() - currentTime.getTime();
+    const hoursLeft = Math.floor(timeDifference / (1000 * 60 * 60));
+    
+    return {
+      canCancel: hoursLeft >= 16,
+      hoursLeft
+    };
   },
 };
