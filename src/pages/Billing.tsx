@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { appointmentService } from "@/services/appointmentService";
 import { paymentService } from "@/services/paymentService";
@@ -21,6 +22,8 @@ import {
   DollarSign,
   User,
   ArrowUpRight,
+  Eye,
+  MapPin,
 } from "lucide-react";
 
 const Billing = () => {
@@ -148,112 +151,6 @@ const Billing = () => {
           </Card>
         </div>
 
-        {/* Unpaid Appointments */}
-        <Card>
-          <div className="p-4 border-b">
-            <h2 className="font-semibold">Unpaid Appointments</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Appointments requiring payment
-            </p>
-          </div>
-          <CardContent className="p-0">
-            {loadingAppointments ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : appointments.filter((apt: any) => apt.status !== 'cancelled').length === 0 ? (
-              <div className="text-center py-12">
-                <CheckCircle className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
-                <h3 className="font-semibold text-sm mb-1">All caught up!</h3>
-                <p className="text-xs text-muted-foreground">No unpaid appointments</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="text-xs font-semibold">Date & Time</TableHead>
-                    <TableHead className="text-xs font-semibold">Caregiver</TableHead>
-                    <TableHead className="text-xs font-semibold">Service</TableHead>
-                    <TableHead className="text-xs font-semibold">Amount</TableHead>
-                    <TableHead className="text-xs font-semibold text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {appointments
-                    .filter((apt: any) => apt.status !== 'cancelled')
-                    .map((appointment: any) => {
-                      const caregiverName = appointment.Caregiver?.User
-                        ? `${appointment.Caregiver.User.firstName} ${appointment.Caregiver.User.lastName}`
-                        : "Caregiver";
-                      const specialtyName = appointment.Specialty?.name || "General Care";
-
-                      return (
-                        <TableRow key={appointment.id} className="hover:bg-muted/30">
-                          <TableCell className="text-xs">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3 text-muted-foreground" />
-                              <div>
-                                <p className="text-sm font-medium">
-                                  {new Date(appointment.scheduledDate).toLocaleDateString()}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(appointment.scheduledDate).toLocaleTimeString()}
-                                </p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold">
-                                {caregiverName.charAt(0)}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium">{caregiverName}</p>
-                                <p className="text-xs text-muted-foreground">ID: #{appointment.id}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <p className="text-sm">{specialtyName}</p>
-                            <p className="text-xs text-muted-foreground capitalize">
-                              {appointment.sessionType || 'In-person'}
-                            </p>
-                          </TableCell>
-                          <TableCell>
-                            <p className="font-semibold text-sm">
-                              MWK {appointment.totalCost?.toLocaleString() || '0'}
-                            </p>
-                            <p className="text-xs text-muted-foreground">Total cost</p>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              onClick={() => handlePayment(appointment.id)}
-                              disabled={initiatingPayment === appointment.id}
-                              size="sm"
-                              className="h-7 text-xs"
-                            >
-                              {initiatingPayment === appointment.id ? (
-                                <>
-                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                  Processing...
-                                </>
-                              ) : (
-                                <>
-                                  <CreditCard className="h-3 w-3 mr-1" />
-                                  Pay Now
-                                </>
-                              )}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Payment History */}
         <Card>
           <div className="p-4 border-b">
@@ -280,9 +177,12 @@ const Billing = () => {
                     <TableHead className="text-xs font-semibold">Date & Time</TableHead>
                     <TableHead className="text-xs font-semibold">Transaction ID</TableHead>
                     <TableHead className="text-xs font-semibold">Appointment</TableHead>
+                    <TableHead className="text-xs font-semibold">Service</TableHead>
+                    <TableHead className="text-xs font-semibold">Payment Type</TableHead>
                     <TableHead className="text-xs font-semibold">Method</TableHead>
                     <TableHead className="text-xs font-semibold">Status</TableHead>
                     <TableHead className="text-xs font-semibold text-right">Amount</TableHead>
+                    <TableHead className="text-xs font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -302,14 +202,25 @@ const Billing = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="text-sm font-mono">{payment.transactionId || `TXN-${payment.id}`}</p>
+                        <p className="text-sm font-mono">{payment.stripePaymentIntentId || `TXN-${payment.id}`}</p>
                         <p className="text-xs text-muted-foreground">{payment.currency || 'MWK'}</p>
                       </TableCell>
                       <TableCell>
                         <p className="text-sm">Appointment #{payment.appointmentId}</p>
                         <p className="text-xs text-muted-foreground">
-                          {payment.paymentType === 'booking_fee' ? 'Booking Fee' : 'Session Fee'}
+                          {payment.Appointment?.scheduledDate ? new Date(payment.Appointment.scheduledDate).toLocaleDateString() : 'N/A'}
                         </p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm">{payment.Appointment?.Specialty?.name || 'General Care'}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {payment.Appointment?.sessionType || 'in_person'}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {payment.paymentType === 'booking_fee' ? 'Booking Fee' : 'Session Fee'}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <p className="text-sm capitalize">{payment.paymentMethod}</p>
@@ -335,6 +246,69 @@ const Billing = () => {
                         <p className="font-semibold text-sm">
                           MWK {parseFloat(payment.amount).toLocaleString()}
                         </p>
+                        <p className="text-xs text-muted-foreground">
+                          {payment.paidAt ? `Paid: ${new Date(payment.paidAt).toLocaleDateString()}` : 'Unpaid'}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                              <DialogTitle>Payment Details</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <h4 className="font-medium mb-2">Payment Information</h4>
+                                  <div className="space-y-1 text-sm">
+                                    <p><strong>Transaction ID:</strong> {payment.stripePaymentIntentId || `TXN-${payment.id}`}</p>
+                                    <p><strong>Amount:</strong> MWK {parseFloat(payment.amount).toLocaleString()}</p>
+                                    <p><strong>Currency:</strong> {payment.currency || 'MWK'}</p>
+                                    <p><strong>Payment Type:</strong> {payment.paymentType === 'booking_fee' ? 'Booking Fee' : 'Session Fee'}</p>
+                                    <p><strong>Method:</strong> {payment.paymentMethod}</p>
+                                    <p><strong>Status:</strong> {payment.status}</p>
+                                    <p><strong>Created:</strong> {new Date(payment.createdAt).toLocaleString()}</p>
+                                    {payment.paidAt && <p><strong>Paid At:</strong> {new Date(payment.paidAt).toLocaleString()}</p>}
+                                  </div>
+                                </div>
+                                <div>
+                                  <h4 className="font-medium mb-2">Appointment Details</h4>
+                                  <div className="space-y-1 text-sm">
+                                    <p><strong>Appointment ID:</strong> #{payment.appointmentId}</p>
+                                    <p><strong>Service:</strong> {payment.Appointment?.Specialty?.name || 'General Care'}</p>
+                                    <p><strong>Session Type:</strong> {payment.Appointment?.sessionType || 'in_person'}</p>
+                                    <p><strong>Duration:</strong> {payment.Appointment?.duration || 180} minutes</p>
+                                    <p><strong>Scheduled Date:</strong> {payment.Appointment?.scheduledDate ? new Date(payment.Appointment.scheduledDate).toLocaleString() : 'N/A'}</p>
+                                    <p><strong>Total Cost:</strong> MWK {payment.Appointment?.totalCost || 'N/A'}</p>
+                                    <p><strong>Booking Fee:</strong> MWK {payment.Appointment?.bookingFee || 'N/A'}</p>
+                                    <p><strong>Session Fee:</strong> MWK {payment.Appointment?.sessionFee || 'N/A'}</p>
+                                  </div>
+                                </div>
+                              </div>
+                              {payment.Appointment?.rescheduleHistory && payment.Appointment.rescheduleHistory.length > 0 && (
+                                <div>
+                                  <h4 className="font-medium mb-2">Reschedule History</h4>
+                                  <div className="space-y-2">
+                                    {payment.Appointment.rescheduleHistory.map((reschedule: any, index: number) => (
+                                      <div key={index} className="p-2 bg-muted rounded text-sm">
+                                        <p><strong>From:</strong> {reschedule.from.date} {reschedule.from.startTime}-{reschedule.from.endTime}</p>
+                                        <p><strong>To:</strong> {reschedule.to.date} {reschedule.to.startTime}-{reschedule.to.endTime}</p>
+                                        <p><strong>By:</strong> {reschedule.rescheduleBy}</p>
+                                        {reschedule.reason && <p><strong>Reason:</strong> {reschedule.reason}</p>}
+                                        <p><strong>Date:</strong> {new Date(reschedule.timestamp).toLocaleString()}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -21,6 +21,9 @@ import {
   Loader2,
   Users,
   Heart,
+  DollarSign,
+  TrendingUp,
+  Wallet,
 } from "lucide-react";
 
 const Dashboard = () => {
@@ -52,6 +55,16 @@ const Dashboard = () => {
     enabled: user?.role !== 'system_manager' && user?.role !== 'regional_manager'
   });
 
+  // Fetch caregiver's patients
+  const { data: patientsData } = useQuery({
+    queryKey: ["caregiver-patients"],
+    queryFn: async () => {
+      const response = await api.get("/caregivers/my-patients");
+      return response.data.patients || [];
+    },
+    enabled: user?.role === 'caregiver'
+  });
+
   // Fetch appointments
   const { data: appointmentsData, isLoading: loadingAppointments } = useQuery({
     queryKey: ["appointments"],
@@ -64,8 +77,31 @@ const Dashboard = () => {
     queryFn: () => reportService.getReports({ limit: 5 }),
   });
 
+  // Fetch earnings/transaction data for financial metrics
+  const { data: earningsData } = useQuery({
+    queryKey: ["earnings-dashboard", user?.role],
+    queryFn: async () => {
+      try {
+        const isAdmin = user?.role === 'system_manager' || user?.role === 'regional_manager';
+        const endpoint = isAdmin
+          ? '/earnings/admin?period=this-month&limit=1000'
+          : user?.role === 'caregiver'
+          ? '/earnings/caregiver?period=this-month&limit=1000'
+          : '/earnings/payments/history?period=this-month&limit=1000';
+
+        const response = await api.get(endpoint);
+        return response.data.transactions || response.data.payments || [];
+      } catch (error) {
+        console.error("Failed to fetch earnings data:", error);
+        return [];
+      }
+    },
+    enabled: user?.role === 'caregiver' || user?.role === 'system_manager' || user?.role === 'regional_manager'
+  });
+
   const upcomingAppointments = appointmentsData?.appointments || [];
   const recentReports = reportsData?.reports || [];
+  const transactions = earningsData || [];
 
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -262,14 +298,19 @@ const Dashboard = () => {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-muted-foreground">Total Users</p>
-                      <p className="text-2xl font-bold mt-1">{adminData?.users?.length || 0}</p>
+                      <p className="text-xs text-muted-foreground">Total Collections</p>
+                      <p className="text-2xl font-bold mt-1">
+                        MWK {transactions
+                          .filter((t: any) => t.status === 'completed')
+                          .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0)
+                          .toLocaleString()}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {adminData?.users?.filter((u: any) => u.isActive)?.length || 0} active
+                        {transactions.filter((t: any) => t.status === 'completed').length} transactions
                       </p>
                     </div>
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-primary" />
+                      <DollarSign className="h-5 w-5 text-primary" />
                     </div>
                   </div>
                 </CardContent>
@@ -279,103 +320,15 @@ const Dashboard = () => {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-muted-foreground">Caregivers</p>
+                      <p className="text-xs text-muted-foreground">Tax Collected</p>
                       <p className="text-2xl font-bold mt-1">
-                        {adminData?.users?.filter((u: any) => u.Role?.name === 'caregiver')?.length || 0}
+                        MWK {transactions
+                          .filter((t: any) => t.status === 'completed')
+                          .reduce((sum: number, t: any) => sum + Number(t.taxAmount || 0), 0)
+                          .toLocaleString()}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {adminData?.users?.filter((u: any) => u.Role?.name === 'caregiver' && u.isActive)?.length || 0} active
-                      </p>
-                    </div>
-                    <div className="h-10 w-10 rounded-lg bg-secondary/10 flex items-center justify-center">
-                      <Heart className="h-5 w-5 text-secondary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Pending Approvals</p>
-                      <p className="text-2xl font-bold mt-1">{adminData?.pendingCaregivers?.length || 0}</p>
-                      <p className="text-xs text-warning mt-1">
-                        Requires attention
-                      </p>
-                    </div>
-                    <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                      <Clock className="h-5 w-5 text-warning" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Patients</p>
-                      <p className="text-2xl font-bold mt-1">
-                        {adminData?.users?.filter((u: any) => u.Role?.name === 'patient')?.length || 0}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {adminData?.users?.filter((u: any) => u.Role?.name === 'patient' && u.isActive)?.length || 0} active
-                      </p>
-                    </div>
-                    <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                      <Activity className="h-5 w-5 text-accent" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </>
-          ) : user?.role === 'caregiver' ? (
-            <>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Total Appointments</p>
-                      <p className="text-2xl font-bold mt-1">{upcomingAppointments?.length || 0}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Upcoming sessions
-                      </p>
-                    </div>
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Calendar className="h-5 w-5 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Pending Requests</p>
-                      <p className="text-2xl font-bold mt-1">
-                        {upcomingAppointments?.filter((a: any) => a.status === 'pending')?.length || 0}
-                      </p>
-                      <p className="text-xs text-warning mt-1">
-                        Needs response
-                      </p>
-                    </div>
-                    <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                      <Clock className="h-5 w-5 text-warning" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Care Reports</p>
-                      <p className="text-2xl font-bold mt-1">{recentReports?.length || 0}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Total submitted
+                        VAT @ 16.5%
                       </p>
                     </div>
                     <div className="h-10 w-10 rounded-lg bg-secondary/10 flex items-center justify-center">
@@ -389,16 +342,130 @@ const Dashboard = () => {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-muted-foreground">Confirmed</p>
+                      <p className="text-xs text-muted-foreground">Platform Commission</p>
                       <p className="text-2xl font-bold mt-1">
-                        {upcomingAppointments?.filter((a: any) => a.status === 'confirmed')?.length || 0}
+                        MWK {transactions
+                          .filter((t: any) => t.status === 'completed')
+                          .reduce((sum: number, t: any) => sum + Number(t.platformCommissionAmount || 0), 0)
+                          .toLocaleString()}
                       </p>
                       <p className="text-xs text-success mt-1">
-                        Ready to go
+                        Platform revenue
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-success" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Caregiver Earnings</p>
+                      <p className="text-2xl font-bold mt-1">
+                        MWK {transactions
+                          .filter((t: any) => t.status === 'completed')
+                          .reduce((sum: number, t: any) => sum + Number(t.caregiverEarnings || 0), 0)
+                          .toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Total payable
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                      <Wallet className="h-5 w-5 text-accent" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : user?.role === 'caregiver' ? (
+            <>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Net Earnings</p>
+                      <p className="text-2xl font-bold mt-1">
+                        MWK {transactions
+                          .filter((t: any) => t.status === 'completed' && t.paymentType === 'session_fee')
+                          .reduce((sum: number, t: any) => sum + Number(t.caregiverEarnings || 0), 0)
+                          .toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        After commission
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Wallet className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Commission Deducted</p>
+                      <p className="text-2xl font-bold mt-1">
+                        MWK {transactions
+                          .filter((t: any) => t.status === 'completed' && t.paymentType === 'session_fee')
+                          .reduce((sum: number, t: any) => sum + Number(t.platformCommissionAmount || 0), 0)
+                          .toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Platform fee @ 20%
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-secondary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Sessions Completed</p>
+                      <p className="text-2xl font-bold mt-1">
+                        {transactions.filter((t: any) => t.status === 'completed' && t.paymentType === 'session_fee').length}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Total sessions
                       </p>
                     </div>
                     <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
                       <Activity className="h-5 w-5 text-success" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Avg Earnings/Session</p>
+                      <p className="text-2xl font-bold mt-1">
+                        MWK {(() => {
+                          const sessionTxs = transactions.filter((t: any) => t.status === 'completed' && t.paymentType === 'session_fee');
+                          const totalEarnings = sessionTxs.reduce((sum: number, t: any) => sum + Number(t.caregiverEarnings || 0), 0);
+                          const avgEarnings = sessionTxs.length > 0 ? Math.round(totalEarnings / sessionTxs.length) : 0;
+                          return avgEarnings.toLocaleString();
+                        })()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Per completed session
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                      <DollarSign className="h-5 w-5 text-accent" />
                     </div>
                   </div>
                 </CardContent>

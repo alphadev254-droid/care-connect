@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { ExportButton } from "@/components/shared/ExportButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { mapUserRole } from "@/lib/roleMapper";
@@ -31,7 +32,7 @@ const Patients = () => {
   const { data: patientsData, isLoading } = useQuery({
     queryKey: ["caregiver-patients"],
     queryFn: async () => {
-      const response = await api.get("/patients/caregiver");
+      const response = await api.get("/caregivers/my-patients");
       return response.data.patients || [];
     },
   });
@@ -111,6 +112,54 @@ const Patients = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <ExportButton
+            data={filteredPatients}
+            columns={[
+              {
+                header: "Patient Name",
+                accessor: (row: any) => `${row.User?.firstName} ${row.User?.lastName}`,
+              },
+              {
+                header: "ID Number",
+                accessor: (row: any) => row.User?.idNumber || 'N/A',
+              },
+              {
+                header: "Age",
+                accessor: (row: any) => calculateAge(row.dateOfBirth),
+                format: (value: any) => `${value} years`,
+              },
+              {
+                header: "Phone",
+                accessor: (row: any) => row.User?.phone || 'Not provided',
+              },
+              {
+                header: "Email",
+                accessor: (row: any) => row.User?.email || 'Not provided',
+              },
+              {
+                header: "Location",
+                accessor: (row: any) => row.village || row.traditionalAuthority || 'N/A',
+              },
+              {
+                header: "District",
+                accessor: (row: any) => row.district || 'N/A',
+              },
+              {
+                header: "Region",
+                accessor: (row: any) => row.region || 'N/A',
+              },
+              {
+                header: "Emergency Contact",
+                accessor: (row: any) => row.emergencyContact || 'Not provided',
+              },
+              {
+                header: "Status",
+                accessor: (row: any) => row.status || 'Active',
+              },
+            ]}
+            filename="patients-list"
+            title="Patients List"
+          />
         </div>
 
         <Card>
@@ -120,10 +169,11 @@ const Patients = () => {
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="text-xs font-semibold">Patient</TableHead>
+                    <TableHead className="text-xs font-semibold">Type</TableHead>
                     <TableHead className="text-xs font-semibold">Age</TableHead>
+                    <TableHead className="text-xs font-semibold">Contact</TableHead>
+                    <TableHead className="text-xs font-semibold">Guardian</TableHead>
                     <TableHead className="text-xs font-semibold">Location</TableHead>
-                    <TableHead className="text-xs font-semibold">Status</TableHead>
-                    <TableHead className="text-xs font-semibold">Last Visit</TableHead>
                     <TableHead className="text-xs font-semibold text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -140,45 +190,70 @@ const Patients = () => {
                               {patient.User?.firstName} {patient.User?.lastName}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              ID: {patient.User?.idNumber || 'N/A'}
+                              {patient.User?.email}
                             </p>
                           </div>
                         </div>
                       </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {patient.patientType || 'Adult'}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-sm">{calculateAge(patient.dateOfBirth)} yrs</TableCell>
+                      <TableCell className="text-sm">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1">
+                            <Phone className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs">{patient.User?.phone || 'N/A'}</span>
+                          </div>
+                          {patient.emergencyContact && (
+                            <div className="flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3 text-orange-500" />
+                              <span className="text-xs text-orange-600">{patient.emergencyContact}</span>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {(patient.patientType === 'child' || patient.patientType === 'elderly') && 
+                         (patient.guardianFirstName || patient.guardianLastName) ? (
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium">
+                              {patient.guardianFirstName} {patient.guardianLastName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {patient.guardianRelationship}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">N/A</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-sm">
                         <div className="flex items-start gap-1">
                           <MapPin className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
-                          <span className="line-clamp-1 text-xs">{patient.village || patient.traditionalAuthority || 'N/A'}</span>
+                          <div className="text-xs">
+                            <p>{patient.address || 'N/A'}</p>
+                            {(patient.village || patient.traditionalAuthority || patient.district) && (
+                              <p className="text-muted-foreground">
+                                {[patient.village, patient.traditionalAuthority, patient.district]
+                                  .filter(Boolean).join(', ')}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={patient.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-                          {patient.status || 'Active'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {patient.lastVisit || 'No visits'}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs"
-                            onClick={() => handleContactClick(patient)}
-                          >
-                            <Phone className="h-3 w-3 mr-1" />
-                            Contact
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs"
-                          >
-                            <FileText className="h-3 w-3" />
-                          </Button>
-                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => handleContactClick(patient)}
+                        >
+                          <Phone className="h-3 w-3 mr-1" />
+                          Contact
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

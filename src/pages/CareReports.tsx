@@ -1,14 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { ExportButton } from "@/components/shared/ExportButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { mapUserRole } from "@/lib/roleMapper";
@@ -26,6 +29,10 @@ import {
   User,
   Save,
   ArrowLeft,
+  Search,
+  Filter,
+  X,
+  MapPin,
 } from "lucide-react";
 
 const CareReports = () => {
@@ -36,11 +43,39 @@ const CareReports = () => {
   const appointmentId = searchParams.get('appointment');
   const isCaregiver = user?.role === 'caregiver';
 
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [locationFilters, setLocationFilters] = useState({
+    region: '',
+    district: '',
+    traditionalAuthority: '',
+    village: ''
+  });
+  const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(100);
+  const [appliedFilters, setAppliedFilters] = useState({
+    searchTerm: '',
+    region: '',
+    district: '',
+    traditionalAuthority: '',
+    village: ''
+  });
+
   const { data: appointmentsData, isLoading: appointmentsLoading } = useQuery({
-    queryKey: ["appointments-reports"],
+    queryKey: ["appointments-reports", appliedFilters, currentPage, pageSize],
     queryFn: async () => {
-      const response = await api.get("/appointments");
-      return response.data.appointments || [];
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString(),
+        ...(appliedFilters.searchTerm && { search: appliedFilters.searchTerm }),
+        ...(appliedFilters.region && { region: appliedFilters.region }),
+        ...(appliedFilters.district && { district: appliedFilters.district }),
+        ...(appliedFilters.traditionalAuthority && { traditionalAuthority: appliedFilters.traditionalAuthority }),
+        ...(appliedFilters.village && { village: appliedFilters.village })
+      });
+      const response = await api.get(`/appointments?${params}`);
+      return response.data;
     },
   });
 
@@ -88,7 +123,51 @@ const CareReports = () => {
     },
   });
 
-  const appointments = Array.isArray(appointmentsData) ? appointmentsData : [];
+  // Fetch regions
+  const { data: regionsData } = useQuery({
+    queryKey: ["regions"],
+    queryFn: async () => {
+      const response = await api.get("/locations/regions");
+      return response.data.data || [];
+    },
+  });
+
+  // Fetch districts based on selected region
+  const { data: districtsData } = useQuery({
+    queryKey: ["districts", locationFilters.region],
+    queryFn: async () => {
+      if (!locationFilters.region) return [];
+      const response = await api.get(`/locations/districts/${locationFilters.region}`);
+      return response.data.data || [];
+    },
+    enabled: !!locationFilters.region,
+  });
+
+  // Fetch traditional authorities based on selected region and district
+  const { data: traditionalAuthoritiesData } = useQuery({
+    queryKey: ["traditional-authorities", locationFilters.region, locationFilters.district],
+    queryFn: async () => {
+      if (!locationFilters.region || !locationFilters.district) return [];
+      const response = await api.get(`/locations/traditional-authorities/${locationFilters.region}/${locationFilters.district}`);
+      return response.data.data || [];
+    },
+    enabled: !!locationFilters.region && !!locationFilters.district,
+  });
+
+  // Fetch villages based on selected region, district, and traditional authority
+  const { data: villagesData } = useQuery({
+    queryKey: ["villages", locationFilters.region, locationFilters.district, locationFilters.traditionalAuthority],
+    queryFn: async () => {
+      if (!locationFilters.region || !locationFilters.district || !locationFilters.traditionalAuthority) return [];
+      const response = await api.get(`/locations/villages/${locationFilters.region}/${locationFilters.district}/${locationFilters.traditionalAuthority}`);
+      return response.data.data || [];
+    },
+    enabled: !!locationFilters.region && !!locationFilters.district && !!locationFilters.traditionalAuthority,
+  });
+
+  const appointments = Array.isArray(appointmentsData?.appointments) ? appointmentsData.appointments : [];
+  const totalCount = appointmentsData?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / pageSize);
   const reports = Array.isArray(reportsData) ? reportsData : [];
 
   console.log('Appointments:', appointments);
@@ -107,6 +186,90 @@ const CareReports = () => {
     hasReport: reports.some(report => report?.appointmentId === apt?.id),
     report: reports.find(report => report?.appointmentId === apt?.id)
   }));
+
+  // Remove frontend filtering since we're using backend filtering
+  const filteredAppointments = appointmentsWithReports;
+
+  // Location options for dropdowns
+  const locationOptions = {
+    regions: regionsData || [],
+    districts: districtsData || [],
+    traditionalAuthorities: traditionalAuthoritiesData || [],
+    villages: villagesData || []
+  };
+
+  // Clear filters function
+  const clearFilters = () => {
+    setSearchTerm('');
+    setLocationFilters({
+      region: '',
+      district: '',
+      traditionalAuthority: '',
+      village: ''
+    });
+    setAppliedFilters({
+      searchTerm: '',
+      region: '',
+      district: '',
+      traditionalAuthority: '',
+      village: ''
+    });
+    setCurrentPage(1);
+  };
+
+  // Apply filters function
+  const applyFilters = () => {
+    setAppliedFilters({
+      searchTerm,
+      region: locationFilters.region,
+      district: locationFilters.district,
+      traditionalAuthority: locationFilters.traditionalAuthority,
+      village: locationFilters.village
+    });
+    setCurrentPage(1);
+  };
+
+  // Enhanced export columns with comprehensive data
+  const getEnhancedExportColumns = (includeReportData = false) => {
+    // Simple table columns for main list views
+    if (!includeReportData) {
+      return [
+        { header: "Session Date", accessor: (row: Record<string, any>) => new Date(row.scheduledDate).toLocaleDateString() },
+        { header: "Session Time", accessor: (row: Record<string, any>) => row.scheduledTime || 'N/A' },
+        { header: "Patient Name", accessor: (row: Record<string, any>) => `${row.Patient?.User?.firstName || ''} ${row.Patient?.User?.lastName || ''}` },
+        { header: "Caregiver Name", accessor: (row: Record<string, any>) => `${row.Caregiver?.User?.firstName || ''} ${row.Caregiver?.User?.lastName || ''}` },
+        { header: "Specialty", accessor: (row: Record<string, any>) => row.Specialty?.name || 'General Care' },
+        { header: "Duration", accessor: (row: Record<string, any>) => `${row.duration || 180} min` },
+        { header: "Status", accessor: (row: Record<string, any>) => row.status || 'pending' },
+      ];
+    }
+
+    // Detailed session export for individual session view
+    return [
+      { header: "Session ID", accessor: (row: Record<string, any>) => row.id },
+      { header: "Session Date", accessor: (row: Record<string, any>) => new Date(row.scheduledDate).toLocaleDateString() },
+      { header: "Session Time", accessor: (row: Record<string, any>) => row.scheduledTime || 'N/A' },
+      { header: "Patient Name", accessor: (row: Record<string, any>) => `${row.Patient?.User?.firstName || ''} ${row.Patient?.User?.lastName || ''}` },
+      { header: "Patient Email", accessor: (row: Record<string, any>) => row.Patient?.User?.email || 'N/A' },
+      { header: "Patient Phone", accessor: (row: Record<string, any>) => row.Patient?.User?.phone || 'N/A' },
+      { header: "Patient Region", accessor: (row: Record<string, any>) => row.Patient?.region || 'N/A' },
+      { header: "Patient District", accessor: (row: Record<string, any>) => row.Patient?.district || 'N/A' },
+      { header: "Patient Village", accessor: (row: Record<string, any>) => row.Patient?.village || 'N/A' },
+      { header: "Caregiver Name", accessor: (row: Record<string, any>) => `${row.Caregiver?.User?.firstName || ''} ${row.Caregiver?.User?.lastName || ''}` },
+      { header: "Caregiver Email", accessor: (row: Record<string, any>) => row.Caregiver?.User?.email || 'N/A' },
+      { header: "Specialty", accessor: (row: Record<string, any>) => row.Specialty?.name || 'General Care' },
+      { header: "Duration", accessor: (row: Record<string, any>) => `${row.duration || 180} min` },
+      { header: "Patient Status", accessor: (row: Record<string, any>) => row.report?.patientStatus || 'N/A' },
+      { header: "Observations", accessor: (row: Record<string, any>) => row.report?.observations || 'N/A' },
+      { header: "Interventions", accessor: (row: Record<string, any>) => row.report?.interventions || 'N/A' },
+      { header: "Session Summary", accessor: (row: Record<string, any>) => row.report?.sessionSummary || 'N/A' },
+      { header: "Recommendations", accessor: (row: Record<string, any>) => row.report?.recommendations || 'N/A' },
+      { header: "Blood Pressure", accessor: (row: Record<string, any>) => row.report?.vitals?.bloodPressure || 'N/A' },
+      { header: "Heart Rate", accessor: (row: Record<string, any>) => row.report?.vitals?.heartRate || 'N/A' },
+      { header: "Temperature", accessor: (row: Record<string, any>) => row.report?.vitals?.temperature || 'N/A' },
+      { header: "Report Created", accessor: (row: Record<string, any>) => row.report?.createdAt ? new Date(row.report.createdAt).toLocaleDateString() : 'N/A' },
+    ];
+  };
 
   console.log('Appointments with reports:', appointmentsWithReports);
 
@@ -166,7 +329,7 @@ const CareReports = () => {
   }, [appointmentId, appointmentsWithReports]);
 
   const createReportMutation = useMutation({
-    mutationFn: async (reportData) => {
+    mutationFn: async (reportData: any) => {
       const formData = new FormData();
       
       // Add text fields
@@ -247,83 +410,332 @@ const CareReports = () => {
     <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
       <div className="space-y-6">
         <div>
-          <h1 className="font-display text-2xl md:text-3xl font-bold">
+          <h1 className="font-display text-xl md:text-2xl font-bold">
             {isCaregiver ? 'Session Reports' : 'My Care Reports'}
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {isCaregiver ? 'Create and manage session reports' : 'View your healthcare reports'}
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        {/* Search and Filter Section */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-4">
+              {/* Search Bar */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={isCaregiver ? "Search by patient name or email..." : "Search by caregiver name or email..."}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
+                    className="pl-10"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  onClick={applyFilters}
+                  className="h-10 text-xs"
+                >
+                  Search
+                </Button>
+                {isCaregiver && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="flex items-center gap-2"
+                  >
+                    <Filter className="h-4 w-4" />
+                    Filters
+                    {(locationFilters.region || locationFilters.district || locationFilters.traditionalAuthority || locationFilters.village) && (
+                      <Badge variant="secondary" className="ml-1 text-xs px-1 py-0 h-4">
+                        Active
+                      </Badge>
+                    )}
+                  </Button>
+                )}
+                {(searchTerm || locationFilters.region || locationFilters.district || locationFilters.traditionalAuthority || locationFilters.village) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="flex items-center gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Clear
+                  </Button>
+                )}
+              </div>
+
+              {/* Location Filters - Only for Caregivers */}
+              {isCaregiver && showFilters && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-muted/30 rounded-lg">
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">
+                      <MapPin className="h-3 w-3 inline mr-1" />
+                      Patient Region
+                    </Label>
+                    <Select
+                      value={locationFilters.region || 'all'}
+                      onValueChange={(value) => {
+                        setLocationFilters({
+                          region: value === 'all' ? '' : value,
+                          district: '',
+                          traditionalAuthority: '',
+                          village: ''
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="All regions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All regions</SelectItem>
+                        {locationOptions.regions.map((region) => (
+                          <SelectItem key={region} value={region}>
+                            {region}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">
+                      Patient District
+                    </Label>
+                    <Select
+                      value={locationFilters.district || 'all'}
+                      onValueChange={(value) => {
+                        setLocationFilters({
+                          ...locationFilters,
+                          district: value === 'all' ? '' : value,
+                          traditionalAuthority: '',
+                          village: ''
+                        });
+                      }}
+                      disabled={!locationFilters.region}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="All districts" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All districts</SelectItem>
+                        {locationOptions.districts.map((district) => (
+                          <SelectItem key={district} value={district}>
+                            {district}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">
+                      Patient Traditional Authority
+                    </Label>
+                    <Select
+                      value={locationFilters.traditionalAuthority || 'all'}
+                      onValueChange={(value) => {
+                        setLocationFilters({
+                          ...locationFilters,
+                          traditionalAuthority: value === 'all' ? '' : value,
+                          village: ''
+                        });
+                      }}
+                      disabled={!locationFilters.district}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="All TAs" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All TAs</SelectItem>
+                        {locationOptions.traditionalAuthorities.map((ta) => (
+                          <SelectItem key={ta} value={ta}>
+                            {ta}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">
+                      Patient Village
+                    </Label>
+                    <Select
+                      value={locationFilters.village || 'all'}
+                      onValueChange={(value) => {
+                        setLocationFilters({
+                          ...locationFilters,
+                          village: value === 'all' ? '' : value
+                        });
+                      }}
+                      disabled={!locationFilters.traditionalAuthority}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="All villages" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All villages</SelectItem>
+                        {locationOptions.villages.map((village) => (
+                          <SelectItem key={village} value={village}>
+                            {village}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {/* Apply Filters Button - Only for Caregivers */}
+              {isCaregiver && showFilters && (
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="h-8 text-xs"
+                  >
+                    Clear All
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={applyFilters}
+                    className="h-8 text-xs"
+                  >
+                    Apply Filters
+                  </Button>
+                </div>
+              )}
+
+              {/* Results Summary */}
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>
+                  Showing {appointments.length} of {totalCount} sessions
+                  {(appliedFilters.searchTerm || appliedFilters.region || appliedFilters.district || appliedFilters.traditionalAuthority || appliedFilters.village) && (
+                    <span className="ml-1">(filtered)</span>
+                  )}
+                </span>
+                {totalPages > 1 && (
+                  <span>Page {currentPage} of {totalPages}</span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid md:grid-cols-3 gap-4">
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <FileText className="h-6 w-6 text-primary" />
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <FileText className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{appointmentsWithReports.filter(apt => apt.hasReport).length}</p>
-                  <p className="text-sm text-muted-foreground">Sessions with Reports</p>
+                  <p className="text-xl font-bold">{appointmentsWithReports.filter(apt => apt.hasReport).length}</p>
+                  <p className="text-xs text-muted-foreground">Sessions with Reports</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-orange-100 rounded-lg">
-                  <AlertCircle className="h-6 w-6 text-orange-600" />
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-orange-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{appointmentsWithReports.filter(apt => !apt.hasReport).length}</p>
-                  <p className="text-sm text-muted-foreground">{isCaregiver ? 'Pending Reports' : 'Sessions without Reports'}</p>
+                  <p className="text-xl font-bold">{appointmentsWithReports.filter(apt => !apt.hasReport).length}</p>
+                  <p className="text-xs text-muted-foreground">{isCaregiver ? 'Pending Reports' : 'Sessions without Reports'}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{completedAppointments.length}</p>
-                  <p className="text-sm text-muted-foreground">Total Sessions</p>
+                  <p className="text-xl font-bold">{totalCount}</p>
+                  <p className="text-xs text-muted-foreground">Total Sessions</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="h-8 text-xs"
+            >
+              Previous
+            </Button>
+            <span className="text-xs text-muted-foreground px-2">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="h-8 text-xs"
+            >
+              Next
+            </Button>
+          </div>
+        )}
+
         {selectedAppointment ? (
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Session Report</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-base">Session Report</CardTitle>
+                  <CardDescription className="text-xs">
                     {isCaregiver ? 'Create report for' : 'Report for'} {selectedAppointment.Patient?.User?.firstName} {selectedAppointment.Patient?.User?.lastName} - {new Date(selectedAppointment.scheduledDate).toLocaleDateString()}
                   </CardDescription>
                 </div>
-                <Button variant="outline" onClick={() => setSelectedAppointment(null)}>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Sessions
-                </Button>
+                <div className="flex items-center gap-2">
+                  {selectedAppointment.hasReport && (
+                    <ExportButton
+                      data={[selectedAppointment]}
+                      columns={getEnhancedExportColumns(true)}
+                      filename={`session-report-${selectedAppointment.id}-${new Date().toISOString().split('T')[0]}`}
+                      title={`Session Report - ${selectedAppointment.Patient?.User?.firstName} ${selectedAppointment.Patient?.User?.lastName}`}
+                    />
+                  )}
+                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setSelectedAppointment(null)}>
+                    <ArrowLeft className="h-3 w-3 mr-1" />
+                    Back to Sessions
+                  </Button>
+                </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 p-4">
               {isCaregiver && !selectedAppointment.hasReport ? (
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
                     <div>
-                      <Label htmlFor="observations">Observations *</Label>
+                      <Label htmlFor="observations" className="text-xs">Observations *</Label>
                       <Textarea
                         id="observations"
                         placeholder="Enter observations..."
+                        className="text-sm min-h-[80px]"
                         value={reportForm.observations}
                         onChange={(e) => setReportForm({...reportForm, observations: e.target.value})}
                         required
@@ -331,10 +743,11 @@ const CareReports = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="interventions">Interventions *</Label>
+                      <Label htmlFor="interventions" className="text-xs">Interventions *</Label>
                       <Textarea
                         id="interventions"
                         placeholder="Enter interventions performed..."
+                        className="text-sm min-h-[80px]"
                         value={reportForm.interventions}
                         onChange={(e) => setReportForm({...reportForm, interventions: e.target.value})}
                         required
@@ -342,10 +755,11 @@ const CareReports = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="sessionSummary">Session Summary *</Label>
+                      <Label htmlFor="sessionSummary" className="text-xs">Session Summary *</Label>
                       <Textarea
                         id="sessionSummary"
                         placeholder="Enter session summary..."
+                        className="text-sm min-h-[80px]"
                         value={reportForm.sessionSummary}
                         onChange={(e) => setReportForm({...reportForm, sessionSummary: e.target.value})}
                         required
@@ -353,10 +767,10 @@ const CareReports = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="patientStatus">Patient Status *</Label>
+                      <Label htmlFor="patientStatus" className="text-xs">Patient Status *</Label>
                       <select
                         id="patientStatus"
-                        className="w-full p-2 border rounded-md"
+                        className="w-full p-2 border rounded-md text-sm"
                         value={reportForm.patientStatus}
                         onChange={(e) => setReportForm({...reportForm, patientStatus: e.target.value})}
                         required
@@ -371,87 +785,98 @@ const CareReports = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div>
-                      <Label htmlFor="recommendations">Recommendations</Label>
+                      <Label htmlFor="recommendations" className="text-xs">Recommendations</Label>
                       <Textarea
                         id="recommendations"
                         placeholder="Enter recommendations..."
+                        className="text-sm min-h-[60px]"
                         value={reportForm.recommendations}
                         onChange={(e) => setReportForm({...reportForm, recommendations: e.target.value})}
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="followUpDate">Follow-up Date</Label>
+                      <Label htmlFor="followUpDate" className="text-xs">Follow-up Date</Label>
                       <Input
                         id="followUpDate"
                         type="date"
+                        className="text-sm"
                         value={reportForm.followUpDate}
                         onChange={(e) => setReportForm({...reportForm, followUpDate: e.target.value})}
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="medications">Medications</Label>
+                      <Label htmlFor="medications" className="text-xs">Medications</Label>
                       <Textarea
                         id="medications"
                         placeholder="Medications prescribed or administered..."
+                        className="text-sm min-h-[60px]"
                         value={reportForm.medications}
                         onChange={(e) => setReportForm({...reportForm, medications: e.target.value})}
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="activities">Activities</Label>
+                      <Label htmlFor="activities" className="text-xs">Activities</Label>
                       <Textarea
                         id="activities"
                         placeholder="Activities performed with patient (exercises, therapy, etc.)..."
+                        className="text-sm min-h-[60px]"
                         value={reportForm.activities}
                         onChange={(e) => setReportForm({...reportForm, activities: e.target.value})}
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="notes">Additional Notes</Label>
+                      <Label htmlFor="notes" className="text-xs">Additional Notes</Label>
                       <Textarea
                         id="notes"
                         placeholder="Additional notes..."
+                        className="text-sm min-h-[60px]"
                         value={reportForm.notes}
                         onChange={(e) => setReportForm({...reportForm, notes: e.target.value})}
                       />
                     </div>
 
                     <div>
-                      <Label>Vital Signs</Label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <Label className="text-xs">Vital Signs</Label>
+                      <div className="grid grid-cols-2 gap-2 mt-1.5">
                         <Input
                           placeholder="Blood Pressure (e.g., 120/80)"
+                          className="text-sm h-9"
                           value={reportForm.vitals.bloodPressure}
                           onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, bloodPressure: e.target.value}})}
                         />
                         <Input
                           placeholder="Heart Rate (bpm)"
+                          className="text-sm h-9"
                           value={reportForm.vitals.heartRate}
                           onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, heartRate: e.target.value}})}
                         />
                         <Input
                           placeholder="Temperature (°C)"
+                          className="text-sm h-9"
                           value={reportForm.vitals.temperature}
                           onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, temperature: e.target.value}})}
                         />
                         <Input
                           placeholder="Respiratory Rate"
+                          className="text-sm h-9"
                           value={reportForm.vitals.respiratoryRate}
                           onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, respiratoryRate: e.target.value}})}
                         />
                         <Input
                           placeholder="Oxygen Saturation (%)"
+                          className="text-sm h-9"
                           value={reportForm.vitals.oxygenSaturation}
                           onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, oxygenSaturation: e.target.value}})}
                         />
                         <Input
                           placeholder="Blood Sugar (mg/dL)"
+                          className="text-sm h-9"
                           value={reportForm.vitals.bloodSugar}
                           onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, bloodSugar: e.target.value}})}
                         />
@@ -459,11 +884,12 @@ const CareReports = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="attachments">File Attachments</Label>
+                      <Label htmlFor="attachments" className="text-xs">File Attachments</Label>
                       <Input
                         id="attachments"
                         type="file"
                         multiple
+                        className="text-sm h-9"
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                         onChange={(e) => {
                           const files = Array.from(e.target.files || []);
@@ -471,8 +897,8 @@ const CareReports = () => {
                         }}
                       />
                       {reportForm.attachments.length > 0 && (
-                        <div className="mt-2">
-                          <p className="text-sm text-muted-foreground">
+                        <div className="mt-1.5">
+                          <p className="text-xs text-muted-foreground">
                             {reportForm.attachments.length} file(s) selected
                           </p>
                         </div>
@@ -487,7 +913,6 @@ const CareReports = () => {
                       <TabsList className="grid w-full grid-cols-5 h-9">
                         <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
                         <TabsTrigger value="vitals" className="text-xs">Vitals</TabsTrigger>
-                        <TabsTrigger value="treatment" className="text-xs">Treatment</TabsTrigger>
                         <TabsTrigger value="recommendations" className="text-xs">Notes</TabsTrigger>
                         <TabsTrigger value="attachments" className="text-xs">
                           Files
@@ -616,32 +1041,6 @@ const CareReports = () => {
                         )}
                       </TabsContent>
 
-                      <TabsContent value="treatment" className="space-y-3 mt-4">
-                        {selectedAppointment.report.medications && (
-                          <div className="border rounded-lg p-3 bg-white">
-                            <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Medications</Label>
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                              {selectedAppointment.report.medications}
-                            </p>
-                          </div>
-                        )}
-
-                        {selectedAppointment.report.activities && (
-                          <div className="border rounded-lg p-3 bg-white">
-                            <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Activities Performed</Label>
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                              {selectedAppointment.report.activities}
-                            </p>
-                          </div>
-                        )}
-
-                        {!selectedAppointment.report.medications && !selectedAppointment.report.activities && (
-                          <div className="text-center p-6 text-muted-foreground border rounded-lg bg-gray-50">
-                            <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">No treatment information recorded</p>
-                          </div>
-                        )}
-                      </TabsContent>
 
                       <TabsContent value="recommendations" className="space-y-3 mt-4">
                         {selectedAppointment.report.recommendations ? (
@@ -709,12 +1108,13 @@ const CareReports = () => {
               )}
 
               {isCaregiver && !selectedAppointment.hasReport && (
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-2 pt-2">
                   <Button
                     onClick={handleSubmitReport}
+                    className="h-9 text-xs"
                     disabled={createReportMutation.isPending || !reportForm.observations || !reportForm.interventions || !reportForm.sessionSummary}
                   >
-                    <Save className="h-4 w-4 mr-2" />
+                    <Save className="h-3 w-3 mr-1" />
                     {createReportMutation.isPending ? 'Saving...' : 'Save Report & Complete Session'}
                   </Button>
                 </div>
@@ -727,21 +1127,41 @@ const CareReports = () => {
               <TabsTrigger value="pending" className="text-xs">
                 {isCaregiver ? 'Sessions Ready for Reports' : 'Sessions without Reports'}
                 <Badge variant="secondary" className="ml-2 text-xs px-1 py-0 h-4">
-                  {appointmentsWithReports.filter(apt => !apt.hasReport).length}
+                  {filteredAppointments.filter(apt => !apt.hasReport).length}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="completed" className="text-xs">
                 Sessions with Reports
                 <Badge variant="secondary" className="ml-2 text-xs px-1 py-0 h-4">
-                  {appointmentsWithReports.filter(apt => apt.hasReport).length}
+                  {filteredAppointments.filter(apt => apt.hasReport).length}
                 </Badge>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="pending" className="mt-4">
               <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-base">
+                        {isCaregiver ? 'Sessions Ready for Reports' : 'Sessions without Reports'}
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        {filteredAppointments.filter(apt => !apt.hasReport).length} session(s) pending reports
+                      </CardDescription>
+                    </div>
+                    {appointmentsWithReports.filter(apt => !apt.hasReport).length > 0 && (
+                      <ExportButton
+                        data={appointmentsWithReports.filter(apt => !apt.hasReport)}
+                        columns={getEnhancedExportColumns(false)}
+                        filename={`sessions-pending-reports-${new Date().toISOString().split('T')[0]}`}
+                        title="Sessions Pending Reports"
+                      />
+                    )}
+                  </div>
+                </CardHeader>
                 <CardContent className="p-0">
-                  {appointmentsWithReports.filter(apt => !apt.hasReport).length === 0 ? (
+                  {filteredAppointments.filter(apt => !apt.hasReport).length === 0 ? (
                     <div className="py-12 text-center">
                       <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
                       <h3 className="font-semibold text-sm mb-1">No sessions pending reports</h3>
@@ -750,23 +1170,24 @@ const CareReports = () => {
                       </p>
                     </div>
                   ) : (
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b bg-muted/50">
-                          <th className="text-left text-xs font-semibold p-3">Session</th>
-                          <th className="text-left text-xs font-semibold p-3">Patient</th>
-                          <th className="text-left text-xs font-semibold p-3">Specialty</th>
-                          <th className="text-left text-xs font-semibold p-3">Payment Status</th>
-                          <th className="text-left text-xs font-semibold p-3">Duration</th>
-                          <th className="text-right text-xs font-semibold p-3">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="text-xs font-semibold">Session</TableHead>
+                          <TableHead className="text-xs font-semibold">Patient</TableHead>
+                          <TableHead className="text-xs font-semibold">Caregiver</TableHead>
+                          <TableHead className="text-xs font-semibold">Specialty</TableHead>
+                          <TableHead className="text-xs font-semibold">Payment Status</TableHead>
+                          <TableHead className="text-xs font-semibold">Duration</TableHead>
+                          <TableHead className="text-xs font-semibold text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                         {appointmentsWithReports
                           .filter(apt => !apt.hasReport)
                           .map((appointment) => (
-                            <tr key={appointment.id} className="border-b hover:bg-muted/30 transition-colors">
-                              <td className="p-3">
+                            <TableRow key={appointment.id} className="hover:bg-muted/30">
+                              <TableCell className="p-3">
                                 <div className="flex items-center gap-2">
                                   <Calendar className="h-3 w-3 text-muted-foreground" />
                                   <div>
@@ -778,8 +1199,8 @@ const CareReports = () => {
                                     </p>
                                   </div>
                                 </div>
-                              </td>
-                              <td className="p-3">
+                              </TableCell>
+                              <TableCell className="p-3">
                                 <div className="flex items-center gap-2">
                                   <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold">
                                     {appointment.Patient?.User?.firstName?.charAt(0) || 'P'}
@@ -793,14 +1214,29 @@ const CareReports = () => {
                                     </p>
                                   </div>
                                 </div>
-                              </td>
-                              <td className="p-3">
+                              </TableCell>
+                              <TableCell className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="h-7 w-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs font-semibold">
+                                    {appointment.Caregiver?.User?.firstName?.charAt(0) || 'C'}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium">
+                                      {appointment.Caregiver?.User?.firstName} {appointment.Caregiver?.User?.lastName}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {appointment.Caregiver?.User?.email || 'No email'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="p-3">
                                 <p className="text-sm">{appointment.Specialty?.name || 'General Care'}</p>
                                 <p className="text-xs text-muted-foreground capitalize">
                                   {appointment.sessionType || 'In-person'}
                                 </p>
-                              </td>
-                              <td className="p-3">
+                              </TableCell>
+                              <TableCell className="p-3">
                                 <div className="flex flex-col gap-1">
                                   <Badge
                                     variant={appointment.bookingFeeStatus === 'completed' ? 'default' : 'outline'}
@@ -815,12 +1251,12 @@ const CareReports = () => {
                                     {appointment.sessionFeeStatus === 'completed' ? '✓' : '○'} Session
                                   </Badge>
                                 </div>
-                              </td>
-                              <td className="p-3">
+                              </TableCell>
+                              <TableCell className="p-3">
                                 <p className="text-sm">{appointment.duration || 180} min</p>
                                 <p className="text-xs text-muted-foreground">3 hours</p>
-                              </td>
-                              <td className="p-3 text-right">
+                              </TableCell>
+                              <TableCell className="p-3 text-right">
                                 {isCaregiver ? (
                                   <Button
                                     size="sm"
@@ -835,11 +1271,11 @@ const CareReports = () => {
                                     Pending
                                   </Badge>
                                 )}
-                              </td>
-                            </tr>
+                              </TableCell>
+                            </TableRow>
                           ))}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   )}
                 </CardContent>
               </Card>
@@ -847,8 +1283,26 @@ const CareReports = () => {
 
             <TabsContent value="completed" className="mt-4">
               <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-base">Sessions with Reports</CardTitle>
+                      <CardDescription className="text-xs">
+                        {filteredAppointments.filter(apt => apt.hasReport).length} completed report(s)
+                      </CardDescription>
+                    </div>
+                    {filteredAppointments.filter(apt => apt.hasReport).length > 0 && (
+                      <ExportButton
+                        data={filteredAppointments.filter(apt => apt.hasReport)}
+                        columns={getEnhancedExportColumns(true)}
+                        filename={`sessions-with-reports-${new Date().toISOString().split('T')[0]}`}
+                        title="Sessions with Completed Reports"
+                      />
+                    )}
+                  </div>
+                </CardHeader>
                 <CardContent className="p-0">
-                  {appointmentsWithReports.filter(apt => apt.hasReport).length === 0 ? (
+                  {filteredAppointments.filter(apt => apt.hasReport).length === 0 ? (
                     <div className="py-12 text-center">
                       <CheckCircle className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
                       <h3 className="font-semibold text-sm mb-1">No completed reports yet</h3>
@@ -857,23 +1311,24 @@ const CareReports = () => {
                       </p>
                     </div>
                   ) : (
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b bg-muted/50">
-                          <th className="text-left text-xs font-semibold p-3">Session</th>
-                          <th className="text-left text-xs font-semibold p-3">Patient</th>
-                          <th className="text-left text-xs font-semibold p-3">Specialty</th>
-                          <th className="text-left text-xs font-semibold p-3">Report Status</th>
-                          <th className="text-left text-xs font-semibold p-3">Created</th>
-                          <th className="text-right text-xs font-semibold p-3">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {appointmentsWithReports
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="text-xs font-semibold">Session</TableHead>
+                          <TableHead className="text-xs font-semibold">Patient</TableHead>
+                          <TableHead className="text-xs font-semibold">Caregiver</TableHead>
+                          <TableHead className="text-xs font-semibold">Specialty</TableHead>
+                          <TableHead className="text-xs font-semibold">Report Status</TableHead>
+                          <TableHead className="text-xs font-semibold">Created</TableHead>
+                          <TableHead className="text-xs font-semibold text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredAppointments
                           .filter(apt => apt.hasReport)
                           .map((appointment) => (
-                            <tr key={appointment.id} className="border-b hover:bg-muted/30 transition-colors">
-                              <td className="p-3">
+                            <TableRow key={appointment.id} className="hover:bg-muted/30">
+                              <TableCell className="p-3">
                                 <div className="flex items-center gap-2">
                                   <Calendar className="h-3 w-3 text-muted-foreground" />
                                   <div>
@@ -885,8 +1340,8 @@ const CareReports = () => {
                                     </p>
                                   </div>
                                 </div>
-                              </td>
-                              <td className="p-3">
+                              </TableCell>
+                              <TableCell className="p-3">
                                 <div className="flex items-center gap-2">
                                   <div className="h-7 w-7 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-xs font-semibold">
                                     {appointment.Patient?.User?.firstName?.charAt(0) || 'P'}
@@ -900,14 +1355,29 @@ const CareReports = () => {
                                     </p>
                                   </div>
                                 </div>
-                              </td>
-                              <td className="p-3">
+                              </TableCell>
+                              <TableCell className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="h-7 w-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs font-semibold">
+                                    {appointment.report?.Appointment?.Caregiver?.User?.firstName?.charAt(0) || appointment.Caregiver?.User?.firstName?.charAt(0) || 'C'}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium">
+                                      {appointment.report?.Appointment?.Caregiver?.User?.firstName || appointment.Caregiver?.User?.firstName} {appointment.report?.Appointment?.Caregiver?.User?.lastName || appointment.Caregiver?.User?.lastName}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {appointment.report?.Appointment?.Caregiver?.User?.email || appointment.Caregiver?.User?.email || 'No email'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="p-3">
                                 <p className="text-sm">{appointment.Specialty?.name || 'General Care'}</p>
                                 <p className="text-xs text-muted-foreground">
                                   {appointment.duration || 180} min session
                                 </p>
-                              </td>
-                              <td className="p-3">
+                              </TableCell>
+                              <TableCell className="p-3">
                                 <Badge variant="default" className="text-xs bg-green-600">
                                   <CheckCircle className="h-3 w-3 mr-1" />
                                   Completed
@@ -917,8 +1387,8 @@ const CareReports = () => {
                                     {appointment.report.attachments.length} attachment(s)
                                   </p>
                                 )}
-                              </td>
-                              <td className="p-3">
+                              </TableCell>
+                              <TableCell className="p-3">
                                 <p className="text-sm">
                                   {appointment.report?.createdAt
                                     ? new Date(appointment.report.createdAt).toLocaleDateString()
@@ -931,8 +1401,8 @@ const CareReports = () => {
                                     : ''
                                   }
                                 </p>
-                              </td>
-                              <td className="p-3 text-right">
+                              </TableCell>
+                              <TableCell className="p-3 text-right">
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -942,11 +1412,11 @@ const CareReports = () => {
                                   <Eye className="h-3 w-3 mr-1" />
                                   View Report
                                 </Button>
-                              </td>
-                            </tr>
+                              </TableCell>
+                            </TableRow>
                           ))}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   )}
                 </CardContent>
               </Card>

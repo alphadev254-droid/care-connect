@@ -109,6 +109,8 @@ const Register = () => {
     experience: "",
     qualifications: "",
     supportingDocuments: null,
+    profilePicture: null,
+    idDocuments: null,
     specialties: [],
     // Location fields
     region: "",
@@ -190,6 +192,16 @@ const Register = () => {
         if (formData.supportingDocuments) {
           Array.from(formData.supportingDocuments).slice(0, 5).forEach((file: any) => {
             formDataToSend.append('supportingDocuments', file);
+          });
+        }
+        
+        if (formData.profilePicture) {
+          formDataToSend.append('profilePicture', formData.profilePicture);
+        }
+        
+        if (formData.idDocuments) {
+          Array.from(formData.idDocuments).slice(0, 3).forEach((file: any) => {
+            formDataToSend.append('idDocuments', file);
           });
         }
       }
@@ -394,6 +406,21 @@ const Register = () => {
                           required
                         />
                       </div>
+                      {formData.userType === 'caregiver' && (
+                        <div className="space-y-2">
+                          <Label htmlFor="profilePicture">Profile Picture</Label>
+                          <Input
+                            id="profilePicture"
+                            type="file"
+                            accept=".jpg,.jpeg,.png"
+                            onChange={(e) => setFormData({ ...formData, profilePicture: e.target.files?.[0] || null })}
+                          />
+                          {formData.profilePicture && (
+                            <p className="text-xs text-muted-foreground font-medium">Selected: {formData.profilePicture.name}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground">Upload a professional photo (JPG, PNG)</p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Right Column - Always 6 fields */}
@@ -599,6 +626,25 @@ const Register = () => {
                             </div>
                           </div>
                           <div className="space-y-2">
+                            <Label htmlFor="idDocuments">ID Documents</Label>
+                            <Input
+                              id="idDocuments"
+                              type="file"
+                              multiple
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={(e) => setFormData({ ...formData, idDocuments: e.target.files })}
+                            />
+                            {formData.idDocuments && formData.idDocuments.length > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                <p className="font-medium">Selected files ({formData.idDocuments.length}/3):</p>
+                                {Array.from(formData.idDocuments).slice(0, 3).map((file, index) => (
+                                  <p key={index} className="truncate">• {file.name}</p>
+                                ))}
+                              </div>
+                            )}
+                            <p className="text-xs text-muted-foreground">Upload ID documents (max 3 files: PDF, JPG, PNG)</p>
+                          </div>
+                          <div className="space-y-2">
                             <Label htmlFor="supportingDocuments">Supporting Documents</Label>
                             <Input
                               id="supportingDocuments"
@@ -607,6 +653,15 @@ const Register = () => {
                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                               onChange={(e) => setFormData({ ...formData, supportingDocuments: e.target.files })}
                             />
+                            {formData.supportingDocuments && formData.supportingDocuments.length > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                <p className="font-medium">Selected files ({formData.supportingDocuments.length}/5):</p>
+                                {Array.from(formData.supportingDocuments).slice(0, 5).map((file, index) => (
+                                  <p key={index} className="truncate">• {file.name}</p>
+                                ))}
+                              </div>
+                            )}
+                            <p className="text-xs text-muted-foreground">Upload certificates, licenses (max 5 files)</p>
                           </div>
                         </>
                       )}

@@ -12,24 +12,7 @@ export interface PaymentTransaction {
   Appointment?: any;
 }
 
-export interface InitiatePaymentData {
-  appointmentId: number;
-}
-
-export interface PaymentInitiationResponse {
-  message: string;
-  checkoutUrl: string;
-  tx_ref: string;
-  transaction: PaymentTransaction;
-}
-
 export const paymentService = {
-  // Initiate payment for appointment
-  initiatePayment: async (data: InitiatePaymentData): Promise<PaymentInitiationResponse> => {
-    const response = await api.post('/payments/initiate', data);
-    return response.data;
-  },
-
   // Verify payment status
   verifyPayment: async (tx_ref: string) => {
     const response = await api.get(`/payments/verify/${tx_ref}`);

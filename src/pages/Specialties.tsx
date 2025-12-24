@@ -24,8 +24,8 @@ const Specialties = () => {
     {
       icon: Stethoscope,
       title: "General Care",
-      description: "Comprehensive healthcare services for routine check-ups, health monitoring, and general medical care.",
-      services: ["Health assessments", "Vital signs monitoring", "Medication management", "Wound care"],
+      description: "Comprehensive supportive care services for health monitoring, assistance with daily activities, and general wellness support. Medical diagnosis and treatment must be provided by your physician.",
+      services: ["Health monitoring", "Vital signs tracking", "Medication reminders", "Wound care assistance"],
       caregivers: 45,
       rating: 4.9,
       color: "from-blue-500 to-blue-600"
@@ -33,7 +33,7 @@ const Specialties = () => {
     {
       icon: Users,
       title: "Elderly Care",
-      description: "Specialized care for seniors focusing on comfort, dignity, and maintaining independence at home.",
+      description: "Specialized supportive care for seniors focusing on comfort, dignity, and maintaining independence at home. Works alongside your physician's medical care plan.",
       services: ["Daily living assistance", "Mobility support", "Companionship", "Safety monitoring"],
       caregivers: 32,
       rating: 4.8,
@@ -69,8 +69,8 @@ const Specialties = () => {
     {
       icon: Heart,
       title: "Nursing Care",
-      description: "Professional nursing services including medical procedures and clinical care management.",
-      services: ["Medical procedures", "IV therapy", "Post-surgery care", "Chronic disease management"],
+      description: "Professional nursing support services including care assistance and health monitoring. All medical procedures and treatments must be prescribed and supervised by your physician.",
+      services: ["Care assistance", "Health monitoring", "Post-care support", "Medication reminders"],
       caregivers: 38,
       rating: 4.9,
       color: "from-red-500 to-red-600"
@@ -116,8 +116,10 @@ const Specialties = () => {
                 Healthcare <span className="text-primary">Specialties</span>
               </h1>
               <p className="text-lg text-muted-foreground mb-6">
-                Our network of verified healthcare professionals covers a wide range of medical specialties, 
-                ensuring you receive expert care tailored to your specific health needs.
+                Our network of verified healthcare professionals provides supportive care services 
+                to assist with daily health needs. Our caregivers focus on support, monitoring, 
+                and assistance - not medical treatment. All patients must have a physician for 
+                medical diagnosis and treatment.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link to="/register">

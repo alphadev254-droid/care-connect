@@ -21,15 +21,17 @@ const HeroSection = () => {
               Trusted by 10,000+ Families
             </Badge>
 
-            <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
+            <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold leading-tight">
               Welcome to <span className="text-gradient">CareConnect</span> - Quality Home Care,{" "}
               <span className="text-gradient">Right at Your Doorstep</span>
             </h1>
 
-            <p className="text-lg text-muted-foreground max-w-xl">
-              Connect with verified, compassionate caregivers who provide personalized 
-              healthcare services in the comfort of your home. From nursing care to 
-              physiotherapy, we've got you covered.
+            <p className="text-base text-muted-foreground max-w-xl">
+              Connect with trained, compassionate caregivers who provide personalized 
+              home based care services in the comfort of your home. From nursing care to 
+              physiotherapy, we've got you covered. Please note that we are not a hospital 
+              but a platform to connect homebased caregivers and patients who need homebased 
+              care services.
             </p>
 
             <div className="flex flex-wrap gap-4">
@@ -83,7 +85,7 @@ const HeroSection = () => {
                   <img 
                     src="landing2.png" 
                     alt="CareConnect Healthcare" 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-fit"
                   />
                 </div>
               </div>

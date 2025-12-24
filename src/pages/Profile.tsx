@@ -24,7 +24,9 @@ import {
   X,
   Lock,
   Eye,
-  EyeOff
+  EyeOff,
+  FileText,
+  Users
 } from "lucide-react";
 
 const Profile = () => {
@@ -35,13 +37,12 @@ const Profile = () => {
     firstName: "",
     lastName: "",
     phone: "",
-    idNumber: "",
     dateOfBirth: "",
     address: "",
-    emergencyContact: "",
-    medicalHistory: "",
-    allergies: ""
+    emergencyContact: ""
   });
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -52,7 +53,6 @@ const Profile = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Fetch user profile
   const { data: profileData, isLoading } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
@@ -61,24 +61,27 @@ const Profile = () => {
     },
   });
 
-  // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await api.put("/users/profile", data);
+    mutationFn: async (data: FormData) => {
+      const response = await api.put("/users/profile", data, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
       return response.data;
     },
     onSuccess: () => {
       toast.success("Profile updated successfully!");
       setIsEditing(false);
+      setProfileImage(null);
+      setImagePreview(null);
       queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
-    onError: (error: any) => {
+    onError: () => {
       toast.error("Failed to update profile");
-      console.error("Profile update error:", error);
     },
   });
 
-  // Change password mutation
   const changePasswordMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await api.put("/users/change-password", data);
@@ -89,49 +92,66 @@ const Profile = () => {
       setPasswordDialogOpen(false);
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
     },
-    onError: (error: any) => {
+    onError: () => {
       toast.error("Failed to change password");
-      console.error("Password change error:", error);
     },
   });
 
-  // Initialize form data when profile loads
   useEffect(() => {
     if (profileData) {
       setFormData({
         firstName: profileData.firstName || "",
         lastName: profileData.lastName || "",
         phone: profileData.phone || "",
-        idNumber: profileData.idNumber || "",
         dateOfBirth: profileData.Patient?.dateOfBirth ? 
           new Date(profileData.Patient.dateOfBirth).toISOString().split('T')[0] : "",
         address: profileData.Patient?.address || "",
-        emergencyContact: profileData.Patient?.emergencyContact || "",
-        medicalHistory: profileData.Patient?.medicalHistory || "",
-        allergies: profileData.Patient?.allergies || ""
+        emergencyContact: profileData.Patient?.emergencyContact || ""
       });
     }
   }, [profileData]);
 
   const handleSave = () => {
-    updateProfileMutation.mutate(formData);
+    const formDataToSend = new FormData();
+    
+    // Add text fields
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value) formDataToSend.append(key, value);
+    });
+    
+    // Add profile image if selected
+    if (profileImage) {
+      formDataToSend.append('profileImage', profileImage);
+    }
+    
+    updateProfileMutation.mutate(formDataToSend);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfileImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    // Reset form data
+    setProfileImage(null);
+    setImagePreview(null);
     if (profileData) {
       setFormData({
         firstName: profileData.firstName || "",
         lastName: profileData.lastName || "",
         phone: profileData.phone || "",
-        idNumber: profileData.idNumber || "",
         dateOfBirth: profileData.Patient?.dateOfBirth ? 
           new Date(profileData.Patient.dateOfBirth).toISOString().split('T')[0] : "",
         address: profileData.Patient?.address || "",
-        emergencyContact: profileData.Patient?.emergencyContact || "",
-        medicalHistory: profileData.Patient?.medicalHistory || "",
-        allergies: profileData.Patient?.allergies || ""
+        emergencyContact: profileData.Patient?.emergencyContact || ""
       });
     }
   };
@@ -164,41 +184,25 @@ const Profile = () => {
   return (
     <DashboardLayout userRole={user?.role || 'patient'}>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-2xl md:text-3xl font-bold">
-              My Profile
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Manage your personal information and medical details
-            </p>
+            <h1 className="font-display text-2xl md:text-3xl font-bold">My Profile</h1>
+            <p className="text-muted-foreground mt-1">Manage your personal information</p>
           </div>
           <div className="flex gap-2">
             {isEditing ? (
               <>
-                <Button
-                  variant="outline"
-                  onClick={handleCancel}
-                  className="gap-2"
-                >
+                <Button variant="outline" onClick={handleCancel} className="gap-2">
                   <X className="h-4 w-4" />
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={updateProfileMutation.isPending}
-                  className="gap-2 bg-gradient-primary"
-                >
+                <Button onClick={handleSave} disabled={updateProfileMutation.isPending} className="gap-2 bg-gradient-primary">
                   <Save className="h-4 w-4" />
                   {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </>
             ) : (
-              <Button
-                onClick={() => setIsEditing(true)}
-                className="gap-2 bg-gradient-primary"
-              >
+              <Button onClick={() => setIsEditing(true)} className="gap-2 bg-gradient-primary">
                 <Edit className="h-4 w-4" />
                 Edit Profile
               </Button>
@@ -207,11 +211,42 @@ const Profile = () => {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Profile Summary */}
           <Card className="lg:col-span-1">
             <CardHeader className="text-center pb-4">
-              <div className="h-24 w-24 rounded-full bg-gradient-primary flex items-center justify-center mx-auto mb-4 text-primary-foreground font-bold text-2xl">
-                {profileData?.firstName?.charAt(0)}{profileData?.lastName?.charAt(0)}
+              <div className="relative">
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="h-24 w-24 rounded-full object-cover mx-auto mb-4 border-2 border-primary/20"
+                  />
+                ) : profileData?.Caregiver?.profileImage ? (
+                  <img
+                    src={profileData.Caregiver.profileImage}
+                    alt={`${profileData.firstName} ${profileData.lastName}`}
+                    className="h-24 w-24 rounded-full object-cover mx-auto mb-4 border-2 border-primary/20"
+                  />
+                ) : (
+                  <div className="h-24 w-24 rounded-full bg-gradient-primary flex items-center justify-center mx-auto mb-4 text-primary-foreground font-bold text-2xl">
+                    {profileData?.firstName?.charAt(0)}{profileData?.lastName?.charAt(0)}
+                  </div>
+                )}
+                {isEditing && profileData?.role === 'caregiver' && (
+                  <div className="absolute bottom-0 right-1/2 transform translate-x-1/2">
+                    <Label htmlFor="profileImageInput" className="cursor-pointer">
+                      <div className="bg-primary text-primary-foreground rounded-full p-2 hover:bg-primary/90">
+                        <Edit className="h-4 w-4" />
+                      </div>
+                    </Label>
+                    <Input
+                      id="profileImageInput"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </div>
+                )}
               </div>
               <CardTitle className="font-display text-xl">
                 {profileData?.firstName} {profileData?.lastName}
@@ -229,25 +264,22 @@ const Profile = () => {
                 <Phone className="h-4 w-4 text-muted-foreground" />
                 <span>{profileData?.phone || "Not provided"}</span>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  {profileData?.Patient?.dateOfBirth ? 
-                    new Date(profileData.Patient.dateOfBirth).toLocaleDateString() : 
-                    "Not provided"
-                  }
-                </span>
-              </div>
-              <div className="flex items-start gap-3 text-sm">
-                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <span>{profileData?.Patient?.address || "Not provided"}</span>
-              </div>
+              {profileData?.Patient?.dateOfBirth && (
+                <div className="flex items-center gap-3 text-sm">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>{new Date(profileData.Patient.dateOfBirth).toLocaleDateString()}</span>
+                </div>
+              )}
+              {profileData?.Patient?.address && (
+                <div className="flex items-start gap-3 text-sm">
+                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <span>{profileData.Patient.address}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Profile Details */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Basic Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="font-display flex items-center gap-2">
@@ -256,226 +288,305 @@ const Profile = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">First Name</Label>
-                    <Input
-                      id="firstName"
-                      value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      disabled={!isEditing}
-                    />
+                    {isEditing ? (
+                      <Input
+                        id="firstName"
+                        value={formData.firstName}
+                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      />
+                    ) : (
+                      <p className="text-sm font-medium">{profileData?.firstName || "Not provided"}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      disabled={!isEditing}
-                    />
+                    {isEditing ? (
+                      <Input
+                        id="lastName"
+                        value={formData.lastName}
+                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      />
+                    ) : (
+                      <p className="text-sm font-medium">{profileData?.lastName || "Not provided"}</p>
+                    )}
                   </div>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      disabled={!isEditing}
-                    />
+                    {isEditing ? (
+                      <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      />
+                    ) : (
+                      <p className="text-sm font-medium">{profileData?.phone || "Not provided"}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="idNumber">National ID Number</Label>
-                    <Input
-                      id="idNumber"
-                      value={formData.idNumber}
-                      onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
-                      disabled={!isEditing}
-                    />
+                    <Label htmlFor="idNumber">ID Number</Label>
+                    <p className="text-sm font-medium">{profileData?.idNumber || "Not provided"}</p>
                   </div>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                    <Input
-                      id="dateOfBirth"
-                      type="date"
-                      value={formData.dateOfBirth}
-                      onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                      disabled={!isEditing}
-                    />
-                  </div>
-                  <div></div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Textarea
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    disabled={!isEditing}
-                    rows={2}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="emergencyContact">Emergency Contact</Label>
-                  <Input
-                    id="emergencyContact"
-                    value={formData.emergencyContact}
-                    onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
-                    disabled={!isEditing}
-                  />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Medical Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-display flex items-center gap-2">
-                  <Heart className="h-5 w-5" />
-                  Medical Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="medicalHistory">Medical History</Label>
-                  <Textarea
-                    id="medicalHistory"
-                    value={formData.medicalHistory}
-                    onChange={(e) => setFormData({ ...formData, medicalHistory: e.target.value })}
-                    disabled={!isEditing}
-                    rows={3}
-                    placeholder="Any relevant medical history, conditions, or treatments..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="allergies">Allergies</Label>
-                  <Textarea
-                    id="allergies"
-                    value={formData.allergies}
-                    onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-                    disabled={!isEditing}
-                    rows={2}
-                    placeholder="Any known allergies to medications, foods, or other substances..."
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            {profileData?.role === 'patient' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-display flex items-center gap-2">
+                    <Heart className="h-5 w-5" />
+                    Patient Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                      {isEditing ? (
+                        <Input
+                          id="dateOfBirth"
+                          type="date"
+                          value={formData.dateOfBirth}
+                          onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                        />
+                      ) : (
+                        <p className="text-sm font-medium">
+                          {profileData?.Patient?.dateOfBirth ? 
+                            new Date(profileData.Patient.dateOfBirth).toLocaleDateString() : 
+                            "Not provided"
+                          }
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="emergencyContact">Emergency Contact</Label>
+                      {isEditing ? (
+                        <Input
+                          id="emergencyContact"
+                          value={formData.emergencyContact}
+                          onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
+                        />
+                      ) : (
+                        <p className="text-sm font-medium">{profileData?.Patient?.emergencyContact || "Not provided"}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    {isEditing ? (
+                      <Textarea
+                        id="address"
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        rows={2}
+                      />
+                    ) : (
+                      <p className="text-sm font-medium">{profileData?.Patient?.address || "Not provided"}</p>
+                    )}
+                  </div>
+                  
+                  {(profileData?.Patient?.patientType === 'child' || profileData?.Patient?.patientType === 'elderly') && (
+                    <div className="border-t pt-4 mt-4">
+                      <h4 className="font-medium mb-3 flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Guardian Information
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Guardian Name</Label>
+                          <p className="text-sm font-medium">
+                            {profileData?.Patient?.guardianFirstName} {profileData?.Patient?.guardianLastName}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Relationship</Label>
+                          <p className="text-sm font-medium">{profileData?.Patient?.guardianRelationship || "Not provided"}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Guardian Phone</Label>
+                          <p className="text-sm font-medium">{profileData?.Patient?.guardianPhone || "Not provided"}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Guardian Email</Label>
+                          <p className="text-sm font-medium">{profileData?.Patient?.guardianEmail || "Not provided"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Account Security */}
+            {profileData?.role === 'caregiver' && profileData?.Caregiver && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-display flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Professional Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>License Number</Label>
+                      <p className="text-sm font-medium">{profileData.Caregiver.licenseNumber}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Experience</Label>
+                      <p className="text-sm font-medium">{profileData.Caregiver.experience} years</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Licensing Institution</Label>
+                      <p className="text-sm font-medium">{profileData.Caregiver.licensingInstitution}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Verification Status</Label>
+                      <Badge variant={profileData.Caregiver.verificationStatus === 'approved' ? 'default' : 'secondary'}>
+                        {profileData.Caregiver.verificationStatus}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Qualifications</Label>
+                    <p className="text-sm font-medium">{profileData.Caregiver.qualifications}</p>
+                  </div>
+                  
+                  {(Array.isArray(profileData.Caregiver.idDocuments) || Array.isArray(profileData.Caregiver.supportingDocuments)) && (
+                    <div className="border-t pt-4 mt-4">
+                      <h4 className="font-medium mb-3 flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Uploaded Documents
+                      </h4>
+                      <div className="space-y-3">
+                        {Array.isArray(profileData.Caregiver.idDocuments) && profileData.Caregiver.idDocuments.length > 0 && (
+                          <div>
+                            <Label className="text-sm font-medium">ID Documents ({profileData.Caregiver.idDocuments.length})</Label>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {profileData.Caregiver.idDocuments.map((doc: any, index: number) => (
+                                <p key={index}>• {doc.filename}</p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {Array.isArray(profileData.Caregiver.supportingDocuments) && profileData.Caregiver.supportingDocuments.length > 0 && (
+                          <div>
+                            <Label className="text-sm font-medium">Supporting Documents ({profileData.Caregiver.supportingDocuments.length})</Label>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {profileData.Caregiver.supportingDocuments.map((doc: any, index: number) => (
+                                <p key={index}>• {doc.filename}</p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle className="font-display flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Account Security
+                  <Lock className="h-5 w-5" />
+                  Security
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Password</p>
-                    <p className="text-sm text-muted-foreground">
-                      Last updated: {new Date(profileData?.updatedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <Lock className="h-4 w-4" />
-                        Change Password
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Change Password</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="currentPassword">Current Password</Label>
-                          <div className="relative">
-                            <Input
-                              id="currentPassword"
-                              type={showCurrentPassword ? "text" : "password"}
-                              value={passwordData.currentPassword}
-                              onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                              className="pr-10"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                            >
-                              {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="newPassword">New Password</Label>
-                          <div className="relative">
-                            <Input
-                              id="newPassword"
-                              type={showNewPassword ? "text" : "password"}
-                              value={passwordData.newPassword}
-                              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                              className="pr-10"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                              onClick={() => setShowNewPassword(!showNewPassword)}
-                            >
-                              {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                          <div className="relative">
-                            <Input
-                              id="confirmPassword"
-                              type={showConfirmPassword ? "text" : "password"}
-                              value={passwordData.confirmPassword}
-                              onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                              className="pr-10"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            >
-                              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 pt-4">
+                <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Lock className="h-4 w-4" />
+                      Change Password
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Change Password</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="currentPassword">Current Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="currentPassword"
+                            type={showCurrentPassword ? "text" : "password"}
+                            value={passwordData.currentPassword}
+                            onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                          />
                           <Button
-                            variant="outline"
-                            onClick={() => setPasswordDialogOpen(false)}
-                            className="flex-1"
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                           >
-                            Cancel
-                          </Button>
-                          <Button
-                            onClick={handlePasswordChange}
-                            disabled={changePasswordMutation.isPending}
-                            className="flex-1 bg-gradient-primary"
-                          >
-                            {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
+                            {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </Button>
                         </div>
                       </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword">New Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="newPassword"
+                            type={showNewPassword ? "text" : "password"}
+                            value={passwordData.newPassword}
+                            onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                          >
+                            {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="confirmPassword"
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={passwordData.confirmPassword}
+                            onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          >
+                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 pt-4">
+                        <Button
+                          variant="outline"
+                          onClick={() => setPasswordDialogOpen(false)}
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handlePasswordChange}
+                          disabled={changePasswordMutation.isPending}
+                          className="flex-1 bg-gradient-primary"
+                        >
+                          {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
           </div>

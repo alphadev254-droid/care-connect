@@ -21,7 +21,7 @@ const About = () => {
     {
       icon: Heart,
       title: "Compassionate Care",
-      description: "We believe healthcare should be delivered with empathy, understanding, and genuine care for every patient's wellbeing."
+      description: "We believe supportive healthcare should be delivered with empathy, understanding, and genuine care for every patient's wellbeing."
     },
     {
       icon: Shield,
@@ -31,12 +31,12 @@ const About = () => {
     {
       icon: Users,
       title: "Accessibility",
-      description: "Quality healthcare should be accessible to everyone, regardless of location, mobility, or economic circumstances."
+      description: "Quality supportive healthcare should be accessible to everyone, regardless of location, mobility, or economic circumstances."
     },
     {
       icon: Award,
       title: "Excellence",
-      description: "We maintain the highest standards of medical care through continuous training and quality assurance programs."
+      description: "We maintain the highest standards of supportive care through continuous training and quality assurance programs."
     }
   ];
 
@@ -116,7 +116,9 @@ const About = () => {
                 </h1>
                 <p className="text-lg text-muted-foreground mb-6">
                   We're revolutionizing healthcare delivery in Malawi by connecting patients 
-                  with qualified caregivers for professional, compassionate care in the comfort of home.
+                  with qualified caregivers for supportive, compassionate care in the comfort of home. 
+                  Our caregivers provide assistance and monitoring services that complement your 
+                  physician's medical care.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link to="/register">
@@ -137,8 +139,9 @@ const About = () => {
                     <Heart className="h-24 w-24 text-primary mx-auto mb-6" />
                     <h3 className="font-display text-2xl font-bold mb-4">Our Mission</h3>
                     <p className="text-muted-foreground">
-                      To make quality healthcare accessible, affordable, and convenient for every 
-                      person in Malawi through innovative home-based care solutions.
+                      To make quality supportive healthcare accessible, affordable, and convenient for every 
+                      person in Malawi through innovative home-based care solutions that complement 
+                      physician-provided medical care.
                     </p>
                   </CardContent>
                 </Card>
@@ -173,7 +176,7 @@ const About = () => {
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                 These principles guide everything we do and shape how we deliver 
-                healthcare services to our community.
+                supportive healthcare services to our community in partnership with physicians.
               </p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">

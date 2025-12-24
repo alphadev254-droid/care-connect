@@ -35,12 +35,33 @@ const Caregivers = () => {
   const [selectedVillage, setSelectedVillage] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [bookingModal, setBookingModal] = useState({ open: false, caregiver: null });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [appliedFilters, setAppliedFilters] = useState({
+    search: '',
+    specialty: 'all',
+    region: 'all',
+    district: 'all',
+    traditionalAuthority: 'all',
+    village: 'all'
+  });
+  
+  const pageSize = 70;
 
-  const { data: caregiversData, isLoading } = useQuery({
-    queryKey: ["caregivers"],
+  const { data: caregiversData, isLoading, isFetching } = useQuery({
+    queryKey: ["caregivers", appliedFilters, currentPage],
     queryFn: async () => {
-      const response = await api.get("/public/caregivers");
-      return response.data.caregivers || [];
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString(),
+        ...(appliedFilters.search && { search: appliedFilters.search }),
+        ...(appliedFilters.specialty !== 'all' && { specialtyId: appliedFilters.specialty }),
+        ...(appliedFilters.region !== 'all' && { region: appliedFilters.region }),
+        ...(appliedFilters.district !== 'all' && { district: appliedFilters.district }),
+        ...(appliedFilters.traditionalAuthority !== 'all' && { traditionalAuthority: appliedFilters.traditionalAuthority }),
+        ...(appliedFilters.village !== 'all' && { village: appliedFilters.village })
+      });
+      const response = await api.get(`/public/caregivers?${params}`);
+      return response.data || {};
     },
   });
 
@@ -52,48 +73,89 @@ const Caregivers = () => {
     },
   });
 
-  const caregivers = Array.isArray(caregiversData) ? caregiversData : [];
-  const specialties = Array.isArray(specialtiesData) ? specialtiesData : [];
-
-  // Extract unique location values from caregivers
-  const regions = ['all', ...new Set(caregivers.map((c: any) => c.Caregiver?.region).filter(Boolean))];
-  const districts = ['all', ...new Set(caregivers
-    .filter((c: any) => selectedRegion === 'all' || c.Caregiver?.region === selectedRegion)
-    .map((c: any) => c.Caregiver?.district).filter(Boolean))];
-  const tas = ['all', ...new Set(caregivers
-    .filter((c: any) =>
-      (selectedRegion === 'all' || c.Caregiver?.region === selectedRegion) &&
-      (selectedDistrict === 'all' || c.Caregiver?.district === selectedDistrict)
-    )
-    .map((c: any) => c.Caregiver?.traditionalAuthority).filter(Boolean))];
-  const villages = ['all', ...new Set(caregivers
-    .filter((c: any) =>
-      (selectedRegion === 'all' || c.Caregiver?.region === selectedRegion) &&
-      (selectedDistrict === 'all' || c.Caregiver?.district === selectedDistrict) &&
-      (selectedTA === 'all' || c.Caregiver?.traditionalAuthority === selectedTA)
-    )
-    .map((c: any) => c.Caregiver?.village).filter(Boolean))];
-
-  const filteredCaregivers = caregivers.filter((caregiver: any) => {
-    const name = `${caregiver.firstName || ''} ${caregiver.lastName || ''}`.trim();
-    const caregiverData = caregiver.Caregiver || {};
-
-    const matchesSearch =
-      name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      caregiverData.qualifications?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      caregiverData.region?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      caregiverData.district?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesSpecialty = selectedSpecialty === 'all' ||
-      caregiverData.Specialties?.some((s: any) => s.id.toString() === selectedSpecialty);
-
-    const matchesRegion = selectedRegion === 'all' || caregiverData.region === selectedRegion;
-    const matchesDistrict = selectedDistrict === 'all' || caregiverData.district === selectedDistrict;
-    const matchesTA = selectedTA === 'all' || caregiverData.traditionalAuthority === selectedTA;
-    const matchesVillage = selectedVillage === 'all' || caregiverData.village === selectedVillage;
-
-    return matchesSearch && matchesSpecialty && matchesRegion && matchesDistrict && matchesTA && matchesVillage;
+  // Fetch location data from API endpoints
+  const { data: regions } = useQuery({
+    queryKey: ["regions-list"],
+    queryFn: async () => {
+      const response = await api.get('/locations/regions');
+      return response.data.data || [];
+    }
   });
+
+  const { data: districts } = useQuery({
+    queryKey: ["districts-list", selectedRegion],
+    queryFn: async () => {
+      if (selectedRegion === 'all') return [];
+      const response = await api.get(`/locations/districts/${selectedRegion}`);
+      return response.data.data || [];
+    },
+    enabled: selectedRegion !== 'all'
+  });
+
+  const { data: traditionalAuthorities } = useQuery({
+    queryKey: ["ta-list", selectedRegion, selectedDistrict],
+    queryFn: async () => {
+      if (selectedDistrict === 'all') return [];
+      const response = await api.get(`/locations/traditional-authorities/${selectedRegion}/${selectedDistrict}`);
+      return response.data.data || [];
+    },
+    enabled: selectedDistrict !== 'all'
+  });
+
+  const { data: villages } = useQuery({
+    queryKey: ["villages-list", selectedRegion, selectedDistrict, selectedTA],
+    queryFn: async () => {
+      if (selectedTA === 'all') return [];
+      const response = await api.get(`/locations/villages/${selectedRegion}/${selectedDistrict}/${selectedTA}`);
+      return response.data.data || [];
+    },
+    enabled: selectedTA !== 'all'
+  });
+
+  // Reset dependent filters when parent changes
+  const handleRegionChange = (value: string) => {
+    setSelectedRegion(value);
+    setSelectedDistrict('all');
+    setSelectedTA('all');
+    setSelectedVillage('all');
+  };
+
+  const handleDistrictChange = (value: string) => {
+    setSelectedDistrict(value);
+    setSelectedTA('all');
+    setSelectedVillage('all');
+  };
+
+  const handleTAChange = (value: string) => {
+    setSelectedTA(value);
+    setSelectedVillage('all');
+  };
+
+  const caregivers = Array.isArray(caregiversData?.caregivers) ? caregiversData.caregivers : [];
+  const specialties = Array.isArray(specialtiesData) ? specialtiesData : [];
+  const totalPages = caregiversData?.pagination?.totalPages || 1;
+  const hasMore = currentPage < totalPages;
+
+  const applyFilters = () => {
+    setAppliedFilters({
+      search: searchQuery,
+      specialty: selectedSpecialty,
+      region: selectedRegion,
+      district: selectedDistrict,
+      traditionalAuthority: selectedTA,
+      village: selectedVillage
+    });
+    setCurrentPage(1);
+  };
+
+  const loadMore = () => {
+    if (hasMore && !isFetching) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  // For real-time frontend filtering (keeping existing functionality)
+  const filteredCaregivers = caregivers;
 
   const clearFilters = () => {
     setSelectedSpecialty("all");
@@ -102,6 +164,15 @@ const Caregivers = () => {
     setSelectedTA("all");
     setSelectedVillage("all");
     setSearchQuery("");
+    setAppliedFilters({
+      search: '',
+      specialty: 'all',
+      region: 'all',
+      district: 'all',
+      traditionalAuthority: 'all',
+      village: 'all'
+    });
+    setCurrentPage(1);
   };
 
   if (isLoading) {
@@ -129,14 +200,27 @@ const Caregivers = () => {
 
         {/* Search and Filters - Compact */}
         <div className="flex flex-col lg:flex-row gap-3">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, specialty, or location..."
-              className="pl-10 h-9"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div className="flex gap-2 flex-1">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, specialty, or location..."
+                className="pl-10 h-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && applyFilters()}
+              />
+            </div>
+            <Button
+              variant="default"
+              size="sm"
+              className="gap-2 h-9 px-4"
+              onClick={applyFilters}
+              disabled={isFetching}
+            >
+              <Search className="h-4 w-4" />
+              Search
+            </Button>
           </div>
           <Button
             variant="outline"
@@ -173,14 +257,15 @@ const Caregivers = () => {
 
               <div>
                 <Label className="text-xs font-semibold mb-2 block">Region</Label>
-                <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+                <Select value={selectedRegion} onValueChange={handleRegionChange}>
                   <SelectTrigger className="h-9 text-xs">
                     <SelectValue placeholder="All Regions" />
                   </SelectTrigger>
                   <SelectContent>
-                    {regions.map((region: string) => (
+                    <SelectItem value="all">All Regions</SelectItem>
+                    {regions?.map((region: string) => (
                       <SelectItem key={region} value={region}>
-                        {region === 'all' ? 'All Regions' : region}
+                        {region}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -189,14 +274,15 @@ const Caregivers = () => {
 
               <div>
                 <Label className="text-xs font-semibold mb-2 block">District</Label>
-                <Select value={selectedDistrict} onValueChange={setSelectedDistrict}>
+                <Select value={selectedDistrict} onValueChange={handleDistrictChange}>
                   <SelectTrigger className="h-9 text-xs">
                     <SelectValue placeholder="All Districts" />
                   </SelectTrigger>
                   <SelectContent>
-                    {districts.map((district: string) => (
+                    <SelectItem value="all">All Districts</SelectItem>
+                    {districts?.map((district: string) => (
                       <SelectItem key={district} value={district}>
-                        {district === 'all' ? 'All Districts' : district}
+                        {district}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -205,14 +291,15 @@ const Caregivers = () => {
 
               <div>
                 <Label className="text-xs font-semibold mb-2 block">Traditional Authority</Label>
-                <Select value={selectedTA} onValueChange={setSelectedTA}>
+                <Select value={selectedTA} onValueChange={handleTAChange}>
                   <SelectTrigger className="h-9 text-xs">
                     <SelectValue placeholder="All TAs" />
                   </SelectTrigger>
                   <SelectContent>
-                    {tas.map((ta: string) => (
+                    <SelectItem value="all">All TAs</SelectItem>
+                    {traditionalAuthorities?.map((ta: string) => (
                       <SelectItem key={ta} value={ta}>
-                        {ta === 'all' ? 'All TAs' : ta}
+                        {ta}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -226,24 +313,36 @@ const Caregivers = () => {
                     <SelectValue placeholder="All Villages" />
                   </SelectTrigger>
                   <SelectContent>
-                    {villages.map((village: string) => (
+                    <SelectItem value="all">All Villages</SelectItem>
+                    {villages?.map((village: string) => (
                       <SelectItem key={village} value={village}>
-                        {village === 'all' ? 'All Villages' : village}
+                        {village}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2 h-9"
-                onClick={clearFilters}
-              >
-                <X className="h-4 w-4" />
-                Clear Filters
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="flex-1 h-9 text-xs"
+                  onClick={applyFilters}
+                  disabled={isFetching}
+                >
+                  Apply Filters
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-2 h-9 text-xs"
+                  onClick={clearFilters}
+                >
+                  <X className="h-4 w-4" />
+                  Clear
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -252,7 +351,14 @@ const Caregivers = () => {
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm text-muted-foreground">
                 {filteredCaregivers.length} caregiver{filteredCaregivers.length !== 1 ? 's' : ''} found
+                {currentPage > 1 && ` (Page ${currentPage})`}
               </p>
+              {isFetching && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  Loading...
+                </div>
+              )}
             </div>
 
             <div className="grid sm:grid-cols-2 gap-3">
@@ -353,7 +459,7 @@ const Caregivers = () => {
                 );
               })}
 
-              {filteredCaregivers.length === 0 && (
+              {filteredCaregivers.length === 0 && !isLoading && (
                 <div className="col-span-2 text-center py-12">
                   <Heart className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
                   <h3 className="font-semibold mb-1">No caregivers found</h3>
@@ -366,6 +472,27 @@ const Caregivers = () => {
                 </div>
               )}
             </div>
+            
+            {/* Load More Button */}
+            {hasMore && filteredCaregivers.length > 0 && (
+              <div className="flex justify-center mt-6">
+                <Button
+                  variant="outline"
+                  onClick={loadMore}
+                  disabled={isFetching}
+                  className="gap-2"
+                >
+                  {isFetching ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                      Loading...
+                    </>
+                  ) : (
+                    'Load More Caregivers'
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

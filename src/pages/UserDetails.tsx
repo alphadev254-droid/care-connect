@@ -128,9 +128,17 @@ const UserDetails = () => {
           {/* Profile Overview */}
           <Card className="lg:col-span-1">
             <CardHeader className="text-center">
-              <div className="h-24 w-24 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-2xl font-bold mx-auto mb-4">
-                {userData.firstName?.charAt(0)}{userData.lastName?.charAt(0)}
-              </div>
+              {userData.Caregiver?.profileImage ? (
+                <img
+                  src={userData.Caregiver.profileImage}
+                  alt={`${userData.firstName} ${userData.lastName}`}
+                  className="h-24 w-24 rounded-full object-cover mx-auto mb-4 border-2 border-primary/20"
+                />
+              ) : (
+                <div className="h-24 w-24 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-2xl font-bold mx-auto mb-4">
+                  {userData.firstName?.charAt(0)}{userData.lastName?.charAt(0)}
+                </div>
+              )}
               <CardTitle>{userData.firstName} {userData.lastName}</CardTitle>
               <div className="flex items-center justify-center gap-2">
                 <Badge variant="outline" className="capitalize">
@@ -320,6 +328,38 @@ const UserDetails = () => {
                                 >
                                   <Download className="h-4 w-4" />
                                   Download
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* ID Documents */}
+                    {(() => {
+                      const idDocuments = parseDocuments(userData.Caregiver.idDocuments);
+                      return idDocuments.length > 0 && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground mb-3 block">ID Documents</label>
+                          <div className="grid gap-3">
+                            {idDocuments.map((doc: any, index: number) => (
+                              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <CreditCard className="h-5 w-5 text-muted-foreground" />
+                                  <div>
+                                    <p className="font-medium text-sm">{doc.filename}</p>
+                                    <p className="text-xs text-muted-foreground">{doc.format?.toUpperCase()}</p>
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => window.open(doc.url, '_blank')}
+                                  className="gap-2"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  View
                                 </Button>
                               </div>
                             ))}

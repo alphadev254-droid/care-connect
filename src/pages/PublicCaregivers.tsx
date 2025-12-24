@@ -3,7 +3,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Search, Clock, DollarSign, LogIn, MapPin, Award, User } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Heart, Search, Clock, DollarSign, LogIn, MapPin, Award, User, Filter, ChevronDown, Calendar, Shield, X } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { BookingModal } from "@/components/booking/BookingModal";
@@ -11,42 +14,157 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 const PublicCaregivers = () => {
-  const [caregivers, setCaregivers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSpecialty, setSelectedSpecialty] = useState("all");
+  const [selectedRegion, setSelectedRegion] = useState("all");
+  const [selectedDistrict, setSelectedDistrict] = useState("all");
+  const [selectedTA, setSelectedTA] = useState("all");
+  const [selectedVillage, setSelectedVillage] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
   const [bookingModal, setBookingModal] = useState({ open: false, caregiver: null });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [appliedFilters, setAppliedFilters] = useState({
+    search: '',
+    specialty: 'all',
+    region: 'all',
+    district: 'all',
+    traditionalAuthority: 'all',
+    village: 'all'
+  });
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  
+  const pageSize = 70;
 
-  useEffect(() => {
-    fetchCaregivers();
-  }, []);
+  const { data: caregiversData, isLoading, isFetching } = useQuery({
+    queryKey: ["public-caregivers", appliedFilters, currentPage],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString(),
+        ...(appliedFilters.search && { search: appliedFilters.search }),
+        ...(appliedFilters.specialty !== 'all' && { specialtyId: appliedFilters.specialty }),
+        ...(appliedFilters.region !== 'all' && { region: appliedFilters.region }),
+        ...(appliedFilters.district !== 'all' && { district: appliedFilters.district }),
+        ...(appliedFilters.traditionalAuthority !== 'all' && { traditionalAuthority: appliedFilters.traditionalAuthority }),
+        ...(appliedFilters.village !== 'all' && { village: appliedFilters.village })
+      });
+      const response = await api.get(`/public/caregivers?${params}`);
+      return response.data || {};
+    },
+  });
 
-  const fetchCaregivers = async () => {
-    try {
-      const response = await api.get('/public/caregivers');
-      setCaregivers(response.data.data || []);
-    } catch (error) {
-      toast.error("Failed to load caregivers");
-    } finally {
-      setLoading(false);
+  const { data: specialtiesData } = useQuery({
+    queryKey: ["specialties"],
+    queryFn: async () => {
+      const response = await api.get("/specialties");
+      return response.data.specialties || [];
+    },
+  });
+
+  // Fetch location data from API endpoints
+  const { data: regions } = useQuery({
+    queryKey: ["regions-list"],
+    queryFn: async () => {
+      const response = await api.get('/locations/regions');
+      return response.data.data || [];
+    }
+  });
+
+  const { data: districts } = useQuery({
+    queryKey: ["districts-list", selectedRegion],
+    queryFn: async () => {
+      if (selectedRegion === 'all') return [];
+      const response = await api.get(`/locations/districts/${selectedRegion}`);
+      return response.data.data || [];
+    },
+    enabled: selectedRegion !== 'all'
+  });
+
+  const { data: traditionalAuthorities } = useQuery({
+    queryKey: ["ta-list", selectedRegion, selectedDistrict],
+    queryFn: async () => {
+      if (selectedDistrict === 'all') return [];
+      const response = await api.get(`/locations/traditional-authorities/${selectedRegion}/${selectedDistrict}`);
+      return response.data.data || [];
+    },
+    enabled: selectedDistrict !== 'all'
+  });
+
+  const { data: villages } = useQuery({
+    queryKey: ["villages-list", selectedRegion, selectedDistrict, selectedTA],
+    queryFn: async () => {
+      if (selectedTA === 'all') return [];
+      const response = await api.get(`/locations/villages/${selectedRegion}/${selectedDistrict}/${selectedTA}`);
+      return response.data.data || [];
+    },
+    enabled: selectedTA !== 'all'
+  });
+
+  // Reset dependent filters when parent changes
+  const handleRegionChange = (value: string) => {
+    setSelectedRegion(value);
+    setSelectedDistrict('all');
+    setSelectedTA('all');
+    setSelectedVillage('all');
+  };
+
+  const handleDistrictChange = (value: string) => {
+    setSelectedDistrict(value);
+    setSelectedTA('all');
+    setSelectedVillage('all');
+  };
+
+  const handleTAChange = (value: string) => {
+    setSelectedTA(value);
+    setSelectedVillage('all');
+  };
+
+  const caregivers = Array.isArray(caregiversData?.caregivers) ? caregiversData.caregivers : [];
+  const specialties = Array.isArray(specialtiesData) ? specialtiesData : [];
+  const totalPages = caregiversData?.pagination?.totalPages || 1;
+  const hasMore = currentPage < totalPages;
+
+  const applyFilters = () => {
+    setAppliedFilters({
+      search: searchQuery,
+      specialty: selectedSpecialty,
+      region: selectedRegion,
+      district: selectedDistrict,
+      traditionalAuthority: selectedTA,
+      village: selectedVillage
+    });
+    setCurrentPage(1);
+  };
+
+  const loadMore = () => {
+    if (hasMore && !isFetching) {
+      setCurrentPage(prev => prev + 1);
     }
   };
 
-  const filteredCaregivers = caregivers.filter((caregiver: any) => {
-    const searchLower = searchTerm.toLowerCase();
-    const fullName = `${caregiver.firstName} ${caregiver.lastName}`.toLowerCase();
-    const qualifications = caregiver.qualifications?.toLowerCase() || '';
-    const specialties = caregiver.specialties?.map((s: any) => s.name.toLowerCase()).join(' ') || '';
-    const location = `${caregiver.region || ''} ${caregiver.district || ''} ${caregiver.village || ''}`.toLowerCase();
+  const filteredCaregivers = caregivers;
 
-    return fullName.includes(searchLower) ||
-           qualifications.includes(searchLower) ||
-           specialties.includes(searchLower) ||
-           location.includes(searchLower);
-  });
+  const clearFilters = () => {
+    setSelectedSpecialty("all");
+    setSelectedRegion("all");
+    setSelectedDistrict("all");
+    setSelectedTA("all");
+    setSelectedVillage("all");
+    setSearchQuery("");
+    setAppliedFilters({
+      search: '',
+      specialty: 'all',
+      region: 'all',
+      district: 'all',
+      traditionalAuthority: 'all',
+      village: 'all'
+    });
+    setCurrentPage(1);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -54,43 +172,208 @@ const PublicCaregivers = () => {
       
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 py-8">
-        <div className="container max-w-6xl mx-auto px-4 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-primary flex items-center justify-center">
-              <Heart className="h-6 w-6 text-primary-foreground" />
+        <div className="container max-w-6xl mx-auto px-4">
+          <div className="text-center mb-6">
+            <div className="flex justify-center mb-4">
+              <div className="h-12 w-12 rounded-2xl bg-gradient-primary flex items-center justify-center">
+                <Heart className="h-6 w-6 text-primary-foreground" />
+              </div>
             </div>
+            <h1 className="font-display text-2xl md:text-3xl font-bold mb-3">
+              Our Verified Caregivers
+            </h1>
+            <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
+              Meet our team of qualified healthcare professionals ready to provide supportive 
+              home care services. Our caregivers focus on assistance, monitoring, and support 
+              to complement your physician's medical care.
+            </p>
           </div>
-          <h1 className="font-display text-2xl md:text-3xl font-bold mb-3">
-            Our Verified Caregivers
-          </h1>
-          <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Meet our team of qualified healthcare professionals ready to provide exceptional home care services
-          </p>
           
-          {/* Search */}
-          <div className="max-w-md mx-auto relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, specialty, or location..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          {/* Search and Filters */}
+          <div className="flex gap-2 max-w-2xl mx-auto">
+            <Popover open={showFilters} onOpenChange={setShowFilters}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 h-9"
+                >
+                  <Filter className="h-4 w-4" />
+                  Filters
+                  <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? "rotate-180" : ""}`} />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-4" align="start">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-xs font-semibold mb-2 block">Specialty</Label>
+                    <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="All Specialties" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Specialties</SelectItem>
+                        {specialties.map((specialty: any) => (
+                          <SelectItem key={specialty.id} value={specialty.id.toString()}>
+                            {specialty.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold mb-2 block">Region</Label>
+                    <Select value={selectedRegion} onValueChange={handleRegionChange}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="All Regions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Regions</SelectItem>
+                        {regions?.map((region: string) => (
+                          <SelectItem key={region} value={region}>
+                            {region}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold mb-2 block">District</Label>
+                    <Select value={selectedDistrict} onValueChange={handleDistrictChange}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="All Districts" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Districts</SelectItem>
+                        {districts?.map((district: string) => (
+                          <SelectItem key={district} value={district}>
+                            {district}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold mb-2 block">Traditional Authority</Label>
+                    <Select value={selectedTA} onValueChange={handleTAChange}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="All TAs" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All TAs</SelectItem>
+                        {traditionalAuthorities?.map((ta: string) => (
+                          <SelectItem key={ta} value={ta}>
+                            {ta}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold mb-2 block">Village</Label>
+                    <Select value={selectedVillage} onValueChange={setSelectedVillage}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="All Villages" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Villages</SelectItem>
+                        {villages?.map((village: string) => (
+                          <SelectItem key={village} value={village}>
+                            {village}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="flex-1 h-9 text-xs"
+                      onClick={() => {
+                        applyFilters();
+                        setShowFilters(false);
+                      }}
+                      disabled={isFetching}
+                    >
+                      Apply Filters
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-2 h-9 text-xs"
+                      onClick={() => {
+                        clearFilters();
+                        setShowFilters(false);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+            
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, specialty, or location..."
+                className="pl-10 h-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && applyFilters()}
+              />
+            </div>
+            
+            <Button
+              variant="default"
+              size="sm"
+              className="gap-2 h-9 px-4"
+              onClick={applyFilters}
+              disabled={isFetching}
+            >
+              <Search className="h-4 w-4" />
+              Search
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* Caregivers Grid */}
-      <section className="py-16">
+      {/* Main Content */}
+      <section className="py-8">
         <div className="container max-w-6xl mx-auto px-4">
-          {loading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-muted-foreground">
+              {filteredCaregivers.length} caregiver{filteredCaregivers.length !== 1 ? 's' : ''} found
+              {currentPage > 1 && ` (Page ${currentPage})`}
+            </p>
+            {isFetching && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                Loading...
+              </div>
+            )}
+          </div>
+
+          {isLoading ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[...Array(6)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
-                  <CardContent className="p-6">
-                    <div className="h-20 w-20 bg-muted rounded-full mx-auto mb-4" />
-                    <div className="h-4 bg-muted rounded mb-2" />
-                    <div className="h-3 bg-muted rounded mb-4" />
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="h-12 w-12 bg-muted rounded-full" />
+                      <div className="flex-1">
+                        <div className="h-4 bg-muted rounded mb-2" />
+                        <div className="h-3 bg-muted rounded mb-1" />
+                        <div className="h-5 bg-muted rounded w-16" />
+                      </div>
+                    </div>
                     <div className="space-y-2">
                       <div className="h-3 bg-muted rounded" />
                       <div className="h-3 bg-muted rounded w-3/4" />
@@ -101,106 +384,146 @@ const PublicCaregivers = () => {
             </div>
           ) : filteredCaregivers.length === 0 ? (
             <div className="text-center py-12">
-              <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
               <h3 className="text-lg font-semibold mb-2">No caregivers found</h3>
-              <p className="text-muted-foreground">
-                {searchTerm ? "Try adjusting your search terms" : "No verified caregivers available at the moment"}
+              <p className="text-muted-foreground mb-4">
+                Try adjusting your filters to see more results
               </p>
+              <Button variant="outline" onClick={clearFilters}>
+                Clear All Filters
+              </Button>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCaregivers.map((caregiver: any) => (
-                <Card key={caregiver.id} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="text-center mb-4">
-                      {caregiver.profileImage ? (
-                        <img
-                          src={caregiver.profileImage}
-                          alt={`${caregiver.firstName} ${caregiver.lastName}`}
-                          className="h-20 w-20 rounded-full object-cover mx-auto mb-4"
-                        />
-                      ) : (
-                        <div className="h-20 w-20 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xl mx-auto mb-4">
-                          {caregiver.firstName?.charAt(0)}{caregiver.lastName?.charAt(0)}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredCaregivers.map((caregiver: any) => {
+                const caregiverData = caregiver.Caregiver || {};
+                const name = `${caregiver.firstName || ''} ${caregiver.lastName || ''}`.trim();
+                const location = [
+                  caregiverData.village,
+                  caregiverData.traditionalAuthority,
+                  caregiverData.district,
+                  caregiverData.region
+                ].filter(Boolean).join(', ') || 'Location not specified';
+
+                return (
+                  <Card key={caregiver.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="h-12 w-12 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-lg font-bold flex-shrink-0">
+                          {name.charAt(0) || 'C'}
                         </div>
-                      )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-sm truncate">{name}</h3>
+                            {caregiverData.verificationStatus === 'verified' && (
+                              <Shield className="h-3 w-3 text-success flex-shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {caregiverData.qualifications || 'Healthcare Professional'}
+                          </p>
+                          <Badge
+                            variant={caregiverData.verificationStatus === 'verified' ? 'default' : 'secondary'}
+                            className="mt-1 text-xs h-5"
+                          >
+                            {caregiverData.verificationStatus === 'verified' ? 'Verified' : 'Pending'}
+                          </Badge>
+                        </div>
+                      </div>
 
-                      <h3 className="font-semibold text-lg mb-1">
-                        {caregiver.firstName} {caregiver.lastName}
-                      </h3>
+                      <div className="space-y-1.5 mb-3">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3 flex-shrink-0" />
+                          <span>{caregiverData.experience || '0'} years experience</span>
+                        </div>
+                        <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
+                          <span className="line-clamp-1">{location}</span>
+                        </div>
+                      </div>
 
-                      <p className="text-muted-foreground text-sm mb-2">
-                        {caregiver.qualifications || "Healthcare Professional"}
-                      </p>
-
-                      {caregiver.specialties && caregiver.specialties.length > 0 && (
-                        <div className="flex flex-wrap gap-1 justify-center mb-3">
-                          {caregiver.specialties.slice(0, 3).map((specialty: any) => (
-                            <Badge key={specialty.id} variant="outline" className="text-xs">
-                              {specialty.name}
-                            </Badge>
+                      {/* Specialties with Fees */}
+                      {caregiverData.Specialties && caregiverData.Specialties.length > 0 && (
+                        <div className="mb-3 space-y-2">
+                          {caregiverData.Specialties.slice(0, 2).map((specialty: any) => (
+                            <div key={specialty.id} className="p-2 rounded-md border bg-muted/30">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-medium">{specialty.name}</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <span className="text-muted-foreground">Session:</span>
+                                  <span className="font-semibold text-primary ml-1">
+                                    MWK {specialty.sessionFee ? Number(specialty.sessionFee).toFixed(0) : '0'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Booking:</span>
+                                  <span className="font-semibold text-secondary ml-1">
+                                    MWK {specialty.bookingFee ? Number(specialty.bookingFee).toFixed(0) : '0'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
                           ))}
+                          {caregiverData.Specialties.length > 2 && (
+                            <p className="text-xs text-muted-foreground text-center">
+                              +{caregiverData.Specialties.length - 2} more specialt{caregiverData.Specialties.length - 2 === 1 ? 'y' : 'ies'}
+                            </p>
+                          )}
                         </div>
                       )}
-                    </div>
 
-                    {caregiver.bio && (
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-3 text-center">
-                        {caregiver.bio}
-                      </p>
-                    )}
-
-                    <div className="space-y-2 text-sm mb-4">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        <span>{caregiver.experience || 0} years experience</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        <span>MWK {caregiver.hourlyRate || 50000}/hour</span>
-                      </div>
-
-                      {(caregiver.region || caregiver.district || caregiver.village) && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="truncate">
-                            {[caregiver.village, caregiver.district, caregiver.region]
-                              .filter(Boolean)
-                              .join(', ')}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="pt-4 border-t space-y-2">
-                      <Badge variant="secondary" className="text-xs w-full justify-center">
-                        <Award className="h-3 w-3 mr-1" />
-                        Verified Professional
-                      </Badge>
-                      {isAuthenticated ? (
-                        <Button
-                          className="w-full"
-                          size="sm"
-                          onClick={() => setBookingModal({ open: true, caregiver })}
-                        >
-                          Book Now
+                      <div className="flex gap-2 pt-3 border-t">
+                        <Button variant="outline" size="sm" className="flex-1 h-8 text-xs">
+                          View Profile
                         </Button>
-                      ) : (
-                        <Button
-                          className="w-full"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => navigate('/login')}
-                        >
-                          <LogIn className="h-4 w-4 mr-2" />
-                          Login to Book
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                        {isAuthenticated ? (
+                          <Button
+                            size="sm"
+                            className="flex-1 gap-1 h-8 text-xs"
+                            onClick={() => setBookingModal({ open: true, caregiver })}
+                          >
+                            <Calendar className="h-3 w-3" />
+                            Book Now
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 gap-1 h-8 text-xs"
+                            onClick={() => navigate('/login')}
+                          >
+                            <LogIn className="h-3 w-3" />
+                            Login
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+          
+          {/* Load More Button */}
+          {hasMore && filteredCaregivers.length > 0 && (
+            <div className="flex justify-center mt-6">
+              <Button
+                variant="outline"
+                onClick={loadMore}
+                disabled={isFetching}
+                className="gap-2"
+              >
+                {isFetching ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    Loading...
+                  </>
+                ) : (
+                  'Load More Caregivers'
+                )}
+              </Button>
             </div>
           )}
         </div>
@@ -209,11 +532,21 @@ const PublicCaregivers = () => {
       {/* CTA Section */}
       <section className="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 py-16">
         <div className="container max-w-4xl mx-auto px-4 text-center">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-8">
+            <h3 className="font-display text-xl font-bold text-amber-800 mb-2">
+              Important Notice
+            </h3>
+            <p className="text-amber-700">
+              Our caregivers provide supportive care services and assistance - not medical treatment. 
+              All patients must have a physician for medical diagnosis, treatment, and prescriptions. 
+              CareConnect complements your doctor's care with supportive home services.
+            </p>
+          </div>
           <h2 className="font-display text-3xl font-bold mb-4">
             Ready to Get Started?
           </h2>
           <p className="text-muted-foreground mb-8">
-            Join thousands of patients who trust CareConnect for their healthcare needs
+            Join thousands of patients who trust CareConnect for their supportive healthcare needs
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="bg-gradient-primary">
@@ -232,9 +565,9 @@ const PublicCaregivers = () => {
         <BookingModal
           open={bookingModal.open}
           onClose={() => setBookingModal({ open: false, caregiver: null })}
-          caregiverId={bookingModal.caregiver.id}
-          caregiverName={`${bookingModal.caregiver.firstName} ${bookingModal.caregiver.lastName}`}
-          specialtyId={1}
+          caregiverId={bookingModal.caregiver.Caregiver?.id || bookingModal.caregiver.id}
+          caregiverName={`${bookingModal.caregiver.firstName || ''} ${bookingModal.caregiver.lastName || ''}`.trim() || 'Caregiver'}
+          specialtyId={bookingModal.caregiver.Caregiver?.Specialties?.[0]?.id || 1}
         />
       )}
     </div>

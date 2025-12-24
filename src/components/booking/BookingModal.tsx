@@ -174,77 +174,160 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
               </div>
 
               {selectedSlot && specialty && (
-                <div className="border-t pt-6">
-                  <h4 className="font-semibold text-lg mb-4">Booking Summary</h4>
+                <div className="border-t pt-6 space-y-5">
+                  <div>
+                    <h4 className="font-semibold text-lg mb-1">Booking Summary</h4>
+                    <p className="text-sm text-muted-foreground">Review your appointment details and complete payment</p>
+                  </div>
 
-                  <div className="bg-muted/50 rounded-lg p-4 mb-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Date & Time</p>
-                        <p className="font-medium">
-                          {new Date(selectedSlot.date).toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </p>
-                        <p className="font-medium">{selectedSlot.startTime} - {selectedSlot.endTime}</p>
+                  {/* Appointment Details Card */}
+                  <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20">
+                    <div className="grid gap-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Calendar className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Appointment Date & Time</p>
+                          <p className="font-semibold text-sm mt-0.5">
+                            {new Date(selectedSlot.date).toLocaleDateString('en-US', {
+                              weekday: 'short',
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{selectedSlot.startTime} - {selectedSlot.endTime}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Duration & Specialty</p>
-                        <p className="font-medium">{selectedSlot.duration || 180} minutes</p>
-                        <p className="font-medium text-primary">{specialty.name}</p>
+
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Clock className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Duration & Service</p>
+                          <p className="font-semibold text-sm mt-0.5">{selectedSlot.duration || 180} minutes</p>
+                          <p className="text-sm font-medium text-primary">{specialty.name}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-4 mb-6">
-                    <div>
-                      <h5 className="font-medium mb-2">Contact Information</h5>
-                      <div className="space-y-2">
-                        <label className="text-sm text-muted-foreground">Phone Number (for payment)</label>
-                        <Input
-                          type="tel"
-                          placeholder="+265 998 95 15 10"
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
-                          className="w-full"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Enter your mobile money number for payment
-                        </p>
+                  {/* Contact Information */}
+                  <div className="space-y-3">
+                    <h5 className="font-semibold text-base flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Payment Information
+                    </h5>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Mobile Money Number</label>
+                      <Input
+                        type="tel"
+                        placeholder="+265 998 95 15 10"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        className="w-full h-11"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enter your mobile money number for payment processing
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Payment Breakdown */}
+                  <div className="space-y-3">
+                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                      <p className="text-xs font-medium text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Two-stage payment: Pay booking fee now, session fee after service
+                      </p>
+                    </div>
+
+                    {/* Payment Cards */}
+                    <div className="grid gap-3">
+                      {/* Booking Fee Card */}
+                      <div className="border-2 border-green-200 dark:border-green-800 rounded-xl overflow-hidden">
+                        <div className="bg-green-50 dark:bg-green-950/30 px-4 py-2.5 border-b border-green-200 dark:border-green-800">
+                          <p className="text-sm font-semibold text-green-900 dark:text-green-100 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                            Pay Now - Booking Fee
+                          </p>
+                        </div>
+                        <div className="p-4 space-y-2 bg-white dark:bg-transparent">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Base fee</span>
+                            <span className="font-medium">MWK {Number(specialty.bookingFee || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Processing ({specialty.convenienceFeePercentage || 2}%)</span>
+                            <span className="font-medium">MWK {Math.round(Number(specialty.bookingFee || 0) * ((specialty.convenienceFeePercentage || 2) / 100)).toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between pt-2 border-t">
+                            <span className="font-semibold">Subtotal</span>
+                            <span className="font-bold text-green-600 dark:text-green-400">
+                              MWK {(Number(specialty.bookingFee || 0) + Math.round(Number(specialty.bookingFee || 0) * ((specialty.convenienceFeePercentage || 2) / 100))).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Session Fee Card */}
+                      <div className="border-2 border-blue-200 dark:border-blue-800 rounded-xl overflow-hidden">
+                        <div className="bg-blue-50 dark:bg-blue-950/30 px-4 py-2.5 border-b border-blue-200 dark:border-blue-800">
+                          <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                            Pay Later - Session Fee
+                          </p>
+                        </div>
+                        <div className="p-4 space-y-2 bg-white dark:bg-transparent">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Base fee</span>
+                            <span className="font-medium">MWK {Number(specialty.sessionFee || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Tax ({specialty.taxRate || 16.5}%)</span>
+                            <span className="font-medium">MWK {Math.round(Number(specialty.sessionFee || 0) * ((specialty.taxRate || 16.5) / 100)).toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Processing ({specialty.convenienceFeePercentage || 2}%)</span>
+                            <span className="font-medium">MWK {Math.round(Number(specialty.sessionFee || 0) * ((specialty.convenienceFeePercentage || 2) / 100)).toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between pt-2 border-t">
+                            <span className="font-semibold">Subtotal</span>
+                            <span className="font-bold text-blue-600 dark:text-blue-400">
+                              MWK {(
+                                Number(specialty.sessionFee || 0) +
+                                Math.round(Number(specialty.sessionFee || 0) * ((specialty.taxRate || 16.5) / 100)) +
+                                Math.round(Number(specialty.sessionFee || 0) * ((specialty.convenienceFeePercentage || 2) / 100))
+                              ).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <div>
-                      <h5 className="font-medium mb-2">Payment Details</h5>
-                      <div className="text-sm space-y-2 bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
-                        <p className="text-xs text-muted-foreground mb-2">
-                          <strong>Two-stage payment:</strong> Pay booking fee now, session fee after service
+                    {/* Grand Total */}
+                    <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 border-2 border-primary/30">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Total Cost</p>
+                          <p className="text-sm text-muted-foreground mt-0.5">Booking + Session fees (incl. tax)</p>
+                        </div>
+                        <p className="text-2xl font-bold text-primary">
+                          MWK {(
+                            Number(specialty.bookingFee || 0) + Math.round(Number(specialty.bookingFee || 0) * ((specialty.convenienceFeePercentage || 2) / 100)) +
+                            Number(specialty.sessionFee || 0) + Math.round(Number(specialty.sessionFee || 0) * ((specialty.taxRate || 16.5) / 100)) + Math.round(Number(specialty.sessionFee || 0) * ((specialty.convenienceFeePercentage || 2) / 100))
+                          ).toLocaleString()}
                         </p>
-                        <div className="flex justify-between">
-                          <span>Booking Fee (pay now):</span>
-                          <span className="font-semibold text-green-600">
-                            MWK {Number(specialty.bookingFee || 0).toFixed(0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Session Fee (pay after):</span>
-                          <span className="font-semibold text-blue-600">
-                            MWK {Number(specialty.sessionFee || 0).toFixed(0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between font-semibold border-t pt-2 text-base">
-                          <span>Total Cost:</span>
-                          <span>MWK {(Number(specialty.bookingFee || 0) + Number(specialty.sessionFee || 0)).toFixed(0)}</span>
-                        </div>
                       </div>
                     </div>
                   </div>
 
                   <Button
-                    className="w-full h-12 text-lg"
+                    className="w-full h-12 text-base font-semibold shadow-lg"
                     onClick={handleBookSlot}
                     disabled={booking}
                   >
@@ -254,13 +337,19 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
                         Preparing Payment...
                       </div>
                     ) : (
-                      `Pay Booking Fee - MWK ${Number(specialty.bookingFee || 0).toFixed(0)}`
+                      <div className="flex items-center justify-center gap-2">
+                        <DollarSign className="h-5 w-5" />
+                        Pay MWK {(Number(specialty.bookingFee || 0) + Math.round(Number(specialty.bookingFee || 0) * ((specialty.convenienceFeePercentage || 2) / 100))).toLocaleString()} Now
+                      </div>
                     )}
                   </Button>
 
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    You will be redirected to Paychangu to pay the booking fee. Session fee is paid after the service is completed.
-                  </p>
+                  <div className="bg-muted/50 rounded-lg p-3 border border-dashed">
+                    <p className="text-xs text-center text-muted-foreground leading-relaxed">
+                      You will be redirected to Paychangu to complete the booking fee payment.
+                      The session fee will be collected after your appointment is completed.
+                    </p>
+                  </div>
                 </div>
               )}
             </>
