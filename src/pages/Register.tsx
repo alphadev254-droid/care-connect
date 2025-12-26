@@ -120,10 +120,72 @@ const Register = () => {
   });
   const [showCustomRelationship, setShowCustomRelationship] = useState(false);
 
+  // Calculate age from date of birth
+  const calculateAge = (dateOfBirth: string): number => {
+    if (!dateOfBirth) return 0;
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    return age;
+  };
+
+  // Validate age based on patient type
+  const validateAge = (): boolean => {
+    if (!formData.dateOfBirth) return true; // Will be caught by required field validation
+
+    const age = calculateAge(formData.dateOfBirth);
+
+    if (formData.userType === 'child_patient') {
+      if (age > 18) {
+        toast.error("Child patients must be 18 years old or younger. Please select 'Patient (Adult)' or 'Elderly Patient' instead.");
+        return false;
+      }
+      if (age < 0) {
+        toast.error("Invalid date of birth. Please enter a valid date.");
+        return false;
+      }
+    } else if (formData.userType === 'patient') {
+      if (age < 18) {
+        toast.error("Adult patients must be 18 years or older. Please select 'Child Patient' instead.");
+        return false;
+      }
+      if (age >= 60) {
+        toast.info("Consider selecting 'Elderly Patient' for better specialized care options.");
+      }
+    } else if (formData.userType === 'elderly_patient') {
+      if (age < 18) {
+        toast.error("Please select 'Child Patient' for patients under 18 years old.");
+        return false;
+      }
+      if (age < 60) {
+        toast.info("Elderly patient category is typically for patients 60 years and above. You may continue or select 'Patient (Adult)' instead.");
+      }
+    } else if (formData.userType === 'caregiver') {
+      if (age < 18) {
+        toast.error("Caregivers must be at least 18 years old.");
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (step < 3) {
+      // Validate age before moving to step 3 if we're on step 2
+      if (step === 2) {
+        if (!validateAge()) {
+          return;
+        }
+      }
       setStep(step + 1);
       return;
     }
@@ -397,14 +459,33 @@ const Register = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="dateOfBirth">{formData.userType === 'child_patient' ? "Child's Date of Birth" : formData.userType === 'elderly_patient' ? "Elderly Person's Date of Birth" : "Date of Birth"}</Label>
+                        <Label htmlFor="dateOfBirth">
+                          {formData.userType === 'child_patient' ? "Child's Date of Birth" :
+                           formData.userType === 'elderly_patient' ? "Elderly Person's Date of Birth" :
+                           "Date of Birth"}
+                        </Label>
                         <Input
                           id="dateOfBirth"
                           type="date"
                           value={formData.dateOfBirth}
-                          onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                          onChange={(e) => {
+                            setFormData({ ...formData, dateOfBirth: e.target.value });
+                          }}
+                          max={new Date().toISOString().split('T')[0]}
+                          min={formData.userType === 'child_patient'
+                            ? new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]
+                            : formData.userType === 'elderly_patient'
+                            ? new Date(new Date().setFullYear(new Date().getFullYear() - 120)).toISOString().split('T')[0]
+                            : new Date(new Date().setFullYear(new Date().getFullYear() - 120)).toISOString().split('T')[0]
+                          }
                           required
                         />
+                        <p className="text-xs text-muted-foreground">
+                          {formData.userType === 'child_patient' && "Must be 18 years old or younger"}
+                          {formData.userType === 'patient' && "Must be 18 years or older"}
+                          {formData.userType === 'elderly_patient' && "Typically 60 years or older"}
+                          {formData.userType === 'caregiver' && "Must be 18 years or older"}
+                        </p>
                       </div>
                       {formData.userType === 'caregiver' && (
                         <div className="space-y-2">
