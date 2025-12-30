@@ -38,7 +38,7 @@ const UserDetails = () => {
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
 
-  const parseDocuments = (docs: any) => {
+  const parseDocuments = (docs: string | object | null | undefined): unknown[] => {
     try {
       return typeof docs === 'string' ? JSON.parse(docs) : docs || [];
     } catch {
@@ -215,6 +215,12 @@ const UserDetails = () => {
                       <label className="text-sm font-medium text-muted-foreground">Status</label>
                       <p className="font-medium">{userData.isActive ? 'Active' : 'Inactive'}</p>
                     </div>
+                    {userData.assignedRegion && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Assigned Region</label>
+                        <p className="font-medium">{userData.assignedRegion}</p>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
 
@@ -589,8 +595,12 @@ const UserDetails = () => {
                 )}
 
                 {userData.Role?.name === 'patient' && userData.Patient && (
-                  <TabsContent value="patient" className="space-y-4">
+                  <TabsContent value="patient" className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">ID Number</label>
+                        <p className="font-medium">{userData.idNumber || 'Not provided'}</p>
+                      </div>
                       <div>
                         <label className="text-sm font-medium text-muted-foreground">Date of Birth</label>
                         <p className="font-medium">
@@ -607,6 +617,88 @@ const UserDetails = () => {
                       <div>
                         <label className="text-sm font-medium text-muted-foreground">Emergency Contact</label>
                         <p className="font-medium">{userData.Patient.emergencyContact || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Patient Type</label>
+                        <p className="font-medium capitalize">{userData.Patient.patientType || 'Not provided'}</p>
+                      </div>
+                      {userData.Patient.medicalHistory && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Medical History</label>
+                          <p className="font-medium">{userData.Patient.medicalHistory}</p>
+                        </div>
+                      )}
+                      {userData.Patient.currentMedications && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Current Medications</label>
+                          <p className="font-medium">{userData.Patient.currentMedications}</p>
+                        </div>
+                      )}
+                      {userData.Patient.allergies && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Allergies</label>
+                          <p className="font-medium">{userData.Patient.allergies}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Guardian Information */}
+                    {(userData.Patient.patientType === 'child' || userData.Patient.patientType === 'elderly') && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Guardian Information
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">Guardian Name</label>
+                            <p className="font-medium">
+                              {userData.Patient.guardianFirstName} {userData.Patient.guardianLastName}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">Guardian Phone</label>
+                            <p className="font-medium">{userData.Patient.guardianPhone || 'Not provided'}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">Guardian Email</label>
+                            <p className="font-medium">{userData.Patient.guardianEmail || 'Not provided'}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">Relationship</label>
+                            <p className="font-medium capitalize">{userData.Patient.guardianRelationship || 'Not provided'}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">Guardian ID Number</label>
+                            <p className="font-medium">{userData.Patient.guardianIdNumber || 'Not provided'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Location Information */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Location Information
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Region</label>
+                          <p className="font-medium">{userData.Patient.region || 'Not provided'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">District</label>
+                          <p className="font-medium">{userData.Patient.district || 'Not provided'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Traditional Authority</label>
+                          <p className="font-medium">{userData.Patient.traditionalAuthority || 'Not provided'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Village</label>
+                          <p className="font-medium">{userData.Patient.village || 'Not provided'}</p>
+                        </div>
                       </div>
                     </div>
                   </TabsContent>

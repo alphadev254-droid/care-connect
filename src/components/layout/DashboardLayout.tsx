@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -36,6 +38,8 @@ import {
   CreditCard,
   Shield,
   ChevronDown,
+  UserCheck,
+  Key,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -46,10 +50,16 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
+  const { hasPermission, loading: permissionsLoading } = usePermissions();
   
   // Use actual user role if available, fallback to prop
-  const actualRole = user?.role === 'system_manager' || user?.role === 'regional_manager' ? 'admin' : (user?.role || userRole);
+  const actualRole = user?.role === 'system_manager' || user?.role === 'regional_manager' || user?.role === 'Accountant' ? 'admin' : (user?.role || userRole);
+
+  // Show loading while authentication or permissions are loading
+  if (authLoading || permissionsLoading) {
+    return <LoadingScreen />;
+  }
 
   // Get user initials
   const getInitials = () => {
@@ -94,11 +104,12 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
     ],
     admin: [
       { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-      // { icon: Shield, label: "Administration", href: "/dashboard/admin" },
-      { icon: Users, label: "User Management", href: "/dashboard/users" },
-      { icon: Heart, label: "Specialties", href: "/dashboard/specialties" },
-      { icon: CreditCard, label: "Earnings", href: "/dashboard/earnings" },
-      { icon: FileText, label: "Reports", href: "/dashboard/reports" },
+      ...((hasPermission('view_users') || hasPermission('view_caregivers') || hasPermission('view_patients') || hasPermission('view_accountants') || hasPermission('view_regional_managers') || hasPermission('view_system_managers')) ? [{ icon: Users, label: "User Management", href: "/dashboard/users" }] : []),
+      ...(hasPermission('view_roles') ? [{ icon: UserCheck, label: "Roles Management", href: "/dashboard/roles" }] : []),
+      ...(hasPermission('view_permissions') ? [{ icon: Key, label: "Permissions", href: "/dashboard/permissions" }] : []),
+      ...(hasPermission('view_specialties') ? [{ icon: Heart, label: "Specialties", href: "/dashboard/specialties" }] : []),
+      ...(hasPermission('view_financial_reports') ? [{ icon: CreditCard, label: "Earnings", href: "/dashboard/earnings" }] : []),
+      ...(hasPermission('view_care_plans') ? [{ icon: FileText, label: "Reports", href: "/dashboard/reports" }] : []),
     ],
   };
 

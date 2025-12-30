@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import { appointmentService } from "@/services/appointmentService";
 import { reportService } from "@/services/reportService";
 import { api } from "@/lib/api";
@@ -28,31 +29,42 @@ import {
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { hasPermission } = usePermissions();
 
-  // Fetch admin data for system managers
+  // Fetch admin data for system managers and regional managers only
   const { data: adminData } = useQuery({
     queryKey: ["admin", "dashboard"],
     queryFn: async () => {
-      const [usersRes, pendingRes] = await Promise.all([
-        api.get("/admin/users"),
-        api.get("/admin/caregivers/pending")
-      ]);
+      const requests = [api.get("/admin/users")];
+
+      // Only fetch pending caregivers if user has view_caregivers permission
+      if (hasPermission('view_caregivers')) {
+        requests.push(api.get("/admin/caregivers/pending"));
+      }
+
+      const responses = await Promise.all(requests);
+      const usersRes = responses[0];
+      const pendingRes = responses[1];
+
       return {
         users: usersRes.data.users || [],
-        pendingCaregivers: pendingRes.data.caregivers || []
+        pendingCaregivers: pendingRes?.data.caregivers || []
       };
     },
-    enabled: user?.role === 'system_manager' || user?.role === 'regional_manager'
+    enabled: user?.role === 'system_manager' || user?.role === 'regional_manager' || user?.role === 'Accountant'
   });
 
-  // Fetch caregiver data for non-admin users
+  // Fetch caregivers for accountants and regional managers with region check
   const { data: caregiversData } = useQuery({
-    queryKey: ["public", "caregivers"],
+    queryKey: ["caregivers", user?.role],
     queryFn: async () => {
-      const response = await api.get("/public/caregivers");
+      const endpoint = (user?.role === 'Accountant' || user?.role === 'regional_manager')
+        ? "/admin/caregivers"
+        : "/public/caregivers";
+      const response = await api.get(endpoint);
       return response.data.caregivers || [];
     },
-    enabled: user?.role !== 'system_manager' && user?.role !== 'regional_manager'
+    enabled: !['system_manager'].includes(user?.role || '')
   });
 
   // Fetch caregiver's patients
@@ -69,34 +81,31 @@ const Dashboard = () => {
   const { data: appointmentsData, isLoading: loadingAppointments } = useQuery({
     queryKey: ["appointments"],
     queryFn: () => appointmentService.getAppointments({ limit: 5 }),
+    enabled: user?.role !== 'Accountant'
   });
 
   // Fetch reports
   const { data: reportsData, isLoading: loadingReports } = useQuery({
     queryKey: ["reports"],
     queryFn: () => reportService.getReports({ limit: 5 }),
+    enabled: user?.role !== 'Accountant'
   });
 
   // Fetch earnings/transaction data for financial metrics
   const { data: earningsData } = useQuery({
     queryKey: ["earnings-dashboard", user?.role],
     queryFn: async () => {
-      try {
-        const isAdmin = user?.role === 'system_manager' || user?.role === 'regional_manager';
-        const endpoint = isAdmin
-          ? '/earnings/admin?period=this-month&limit=1000'
-          : user?.role === 'caregiver'
-          ? '/earnings/caregiver?period=this-month&limit=1000'
-          : '/earnings/payments/history?period=this-month&limit=1000';
+      const isAdmin = ['system_manager', 'regional_manager', 'Accountant'].includes(user?.role || '');
+      const endpoint = isAdmin
+        ? '/earnings/admin?period=this-month&limit=1000'
+        : user?.role === 'caregiver'
+        ? '/earnings/caregiver?period=this-month&limit=1000'
+        : '/earnings/payments/history?period=this-month&limit=1000';
 
-        const response = await api.get(endpoint);
-        return response.data.transactions || response.data.payments || [];
-      } catch (error) {
-        console.error("Failed to fetch earnings data:", error);
-        return [];
-      }
+      const response = await api.get(endpoint);
+      return response.data.transactions || response.data.payments || [];
     },
-    enabled: user?.role === 'caregiver' || user?.role === 'system_manager' || user?.role === 'regional_manager'
+    enabled: ['caregiver', 'system_manager', 'regional_manager', 'Accountant'].includes(user?.role || '')
   });
 
   const upcomingAppointments = appointmentsData?.appointments || [];
@@ -152,6 +161,37 @@ const Dashboard = () => {
             label: "Settings",
             description: "System config",
             href: "/dashboard/settings",
+            color: "success",
+          },
+        ];
+      case 'Accountant':
+        return [
+          {
+            icon: DollarSign,
+            label: "Financial Reports",
+            description: "View earnings",
+            href: "/dashboard/earnings",
+            color: "primary",
+          },
+          {
+            icon: TrendingUp,
+            label: "Analytics",
+            description: "Financial analytics",
+            href: "/dashboard/reports",
+            color: "secondary",
+          },
+          {
+            icon: FileText,
+            label: "Tax Reports",
+            description: "Tax collections",
+            href: "/dashboard/earnings",
+            color: "accent",
+          },
+          {
+            icon: Wallet,
+            label: "Commissions",
+            description: "Platform revenue",
+            href: "/dashboard/earnings",
             color: "success",
           },
         ];
@@ -254,7 +294,7 @@ const Dashboard = () => {
   const quickActions = getQuickActions();
 
   return (
-    <DashboardLayout userRole={user?.role === 'system_manager' || user?.role === 'regional_manager' ? 'admin' : (user?.role || "patient")}>
+    <DashboardLayout userRole={['system_manager', 'regional_manager', 'Accountant'].includes(user?.role || '') ? 'admin' : (user?.role || "patient")}>
       <div className="space-y-6">
         {/* Welcome Section - Compact */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -263,7 +303,9 @@ const Dashboard = () => {
               Welcome back, {user?.firstName || "User"}!
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              {user?.role === 'system_manager' || user?.role === 'regional_manager'
+              {user?.role === 'Accountant'
+                ? "Financial overview and earnings dashboard"
+                : ['system_manager', 'regional_manager'].includes(user?.role || '')
                 ? "System overview and management dashboard"
                 : user?.role === 'caregiver'
                 ? "Manage your patients and schedule efficiently"
@@ -292,7 +334,7 @@ const Dashboard = () => {
 
         {/* Role-based Statistics - Compact */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
+          {['system_manager', 'regional_manager', 'Accountant'].includes(user?.role || '') ? (
             <>
               <Card>
                 <CardContent className="p-4">
@@ -541,7 +583,7 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             </>
-          ) : (
+          ) : user?.role !== 'Accountant' ? (
             <>
               <Card>
                 <CardContent className="p-4">
@@ -613,329 +655,357 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             </>
-          )}
+          ) : null}
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-4">
-          {/* Role-based main content - Compact */}
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between p-4">
-              <div>
-                <CardTitle className="font-display text-base">
-                  {user?.role === 'system_manager' || user?.role === 'regional_manager'
-                    ? "Recent User Activity"
-                    : user?.role === 'caregiver'
-                    ? "Pending Requests"
-                    : user?.role === 'primary_physician'
-                    ? "Patient Overview"
-                    : "Upcoming Appointments"
-                  }
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  {user?.role === 'system_manager' || user?.role === 'regional_manager'
-                    ? "Latest registrations and system activity"
-                    : user?.role === 'caregiver'
-                    ? "New appointment requests"
-                    : user?.role === 'primary_physician'
-                    ? "Patients under your care"
-                    : "Your scheduled care sessions"
-                  }
-                </CardDescription>
-              </div>
-              <Link to={user?.role === 'caregiver' ? "/dashboard/schedule" : "/dashboard/appointments"}>
-                <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs">
-                  View All <ArrowRight className="h-3 w-3" />
-                </Button>
-              </Link>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
-                <div className="space-y-2">
-                  {adminData?.users?.slice(0, 5).map((user: any) => (
-                    <div
-                      key={user.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
-                          {user.firstName?.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{user.firstName} {user.lastName}</p>
-                          <p className="text-xs text-muted-foreground capitalize">{user.Role?.name?.replace('_', ' ')}</p>
-                        </div>
-                      </div>
-                      <Badge
-                        variant={user.isActive ? "default" : "secondary"}
-                        className="capitalize text-xs"
-                      >
-                        {user.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </div>
-                  )) || []}
-                  {(!adminData?.users || adminData.users.length === 0) && (
-                    <div className="text-center py-6 text-muted-foreground text-sm">
-                      No users found
-                    </div>
-                  )}
+        {user?.role !== 'Accountant' && (
+          <div className="grid lg:grid-cols-3 gap-4">
+            {/* Role-based main content - Compact */}
+            <Card className="lg:col-span-2">
+              <CardHeader className="flex flex-row items-center justify-between p-4">
+                <div>
+                  <CardTitle className="font-display text-base">
+                    {user?.role === 'system_manager' || user?.role === 'regional_manager'
+                      ? "Recent User Activity"
+                      : user?.role === 'caregiver'
+                      ? "Pending Requests"
+                      : user?.role === 'primary_physician'
+                      ? "Patient Overview"
+                      : "Upcoming Appointments"
+                    }
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    {user?.role === 'system_manager' || user?.role === 'regional_manager'
+                      ? "Latest registrations and system activity"
+                      : user?.role === 'caregiver'
+                      ? "New appointment requests"
+                      : user?.role === 'primary_physician'
+                      ? "Patients under your care"
+                      : "Your scheduled care sessions"
+                    }
+                  </CardDescription>
                 </div>
-              ) : loadingAppointments ? (
-                <div className="flex items-center justify-center py-6">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {upcomingAppointments.slice(0, 3).map((appointment: any) => {
-                    const caregiverName = appointment.Caregiver?.User
-                      ? `${appointment.Caregiver.User.firstName} ${appointment.Caregiver.User.lastName}`
-                      : "Caregiver";
-                    const specialtyName = appointment.Specialty?.name || "General Care";
-
-                    return (
+                <Link to={user?.role === 'caregiver' ? "/dashboard/schedule" : "/dashboard/appointments"}>
+                  <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs">
+                    View All <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </Link>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
+                  <div className="space-y-2">
+                    {adminData?.users?.slice(0, 5).map((user: any) => (
                       <div
-                        key={appointment.id}
+                        key={user.id}
                         className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
-                            {caregiverName.charAt(0)}
+                            {user.firstName?.charAt(0)}
                           </div>
                           <div>
-                            <p className="font-medium text-sm">{caregiverName}</p>
-                            <p className="text-xs text-muted-foreground">{specialtyName}</p>
+                            <p className="font-medium text-sm">{user.firstName} {user.lastName}</p>
+                            <p className="text-xs text-muted-foreground capitalize">{user.Role?.name?.replace('_', ' ')}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="flex items-center gap-1 text-xs mb-1">
-                            <Clock className="h-3 w-3 text-muted-foreground" />
-                            {formatDate(appointment.scheduledDate)}
-                          </div>
-                          <Badge
-                            variant={appointment.status === "confirmed" ? "default" : "secondary"}
-                            className="capitalize text-xs"
-                          >
-                            {appointment.status}
-                          </Badge>
-                        </div>
+                        <Badge
+                          variant={user.isActive ? "default" : "secondary"}
+                          className="capitalize text-xs"
+                        >
+                          {user.isActive ? "Active" : "Inactive"}
+                        </Badge>
                       </div>
-                    );
-                  })}
-                  {upcomingAppointments.length === 0 && (
-                    <div className="text-center py-6 text-muted-foreground text-sm">
-                      No upcoming appointments
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Role-based sidebar - Compact */}
-          <Card>
-            <CardHeader className="p-4">
-              <CardTitle className="font-display text-base">
-                {user?.role === 'system_manager' || user?.role === 'regional_manager'
-                  ? "System Status"
-                  : user?.role === 'caregiver'
-                  ? "Today's Summary"
-                  : user?.role === 'primary_physician'
-                  ? "Patient Status"
-                  : "Health Overview"
-                }
-              </CardTitle>
-              <CardDescription className="text-xs">
-                {user?.role === 'system_manager' || user?.role === 'regional_manager'
-                  ? "Overall system health"
-                  : user?.role === 'caregiver'
-                  ? "Your daily summary"
-                  : user?.role === 'primary_physician'
-                  ? "Patient health status"
-                  : "Your health status"
-                }
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 p-4 pt-0">
-              {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
-                <div className="text-center p-4 rounded-lg bg-primary/10">
-                  <Activity className="h-6 w-6 text-primary mx-auto mb-2" />
-                  <p className="font-display text-xl font-bold text-primary">Online</p>
-                  <p className="text-xs text-muted-foreground">System Status</p>
-                </div>
-              ) : (
-                <div className="text-center p-4 rounded-lg bg-success/10">
-                  <Activity className="h-6 w-6 text-success mx-auto mb-2" />
-                  <p className="font-display text-xl font-bold text-success">Stable</p>
-                  <p className="text-xs text-muted-foreground">Current Status</p>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <h4 className="font-semibold text-xs">
-                  {user?.role === 'system_manager' || user?.role === 'regional_manager'
-                    ? "Recent Activity"
-                    : "Recent Reports"
-                  }
-                </h4>
-                {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
-                  adminData?.pendingCaregivers?.slice(0, 3).map((caregiver: any) => (
-                    <div
-                      key={caregiver.id}
-                      className="flex items-center justify-between py-2 border-b last:border-0"
-                    >
-                      <div>
-                        <p className="text-xs font-medium">{caregiver.firstName} {caregiver.lastName}</p>
-                        <p className="text-xs text-muted-foreground">Pending Approval</p>
+                    )) || []}
+                    {(!adminData?.users || adminData.users.length === 0) && (
+                      <div className="text-center py-6 text-muted-foreground text-sm">
+                        No users found
                       </div>
-                      <Badge variant="outline" className="text-warning border-warning text-xs">
-                        Pending
-                      </Badge>
-                    </div>
-                  )) || (
-                    <p className="text-xs text-muted-foreground text-center py-3">No pending approvals</p>
-                  )
-                ) : loadingReports ? (
-                  <div className="flex items-center justify-center py-3">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    )}
                   </div>
-                ) : recentReports.length > 0 ? (
-                  recentReports.slice(0, 3).map((report: any) => {
-                    const reportDate = new Date(report.createdAt || report.Appointment?.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    const statusColor = {
-                      stable: "text-success border-success",
-                      improving: "text-primary border-primary",
-                      deteriorating: "text-warning border-warning",
-                      critical: "text-destructive border-destructive",
-                      cured: "text-success border-success",
-                      deceased: "text-muted-foreground border-muted-foreground"
-                    }[report.patientStatus] || "text-muted-foreground border-muted-foreground";
+                ) : loadingAppointments ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {upcomingAppointments.slice(0, 3).map((appointment: any) => {
+                      const caregiverName = appointment.Caregiver?.User
+                        ? `${appointment.Caregiver.User.firstName} ${appointment.Caregiver.User.lastName}`
+                        : "Caregiver";
+                      const specialtyName = appointment.Specialty?.name || "General Care";
 
-                    return (
+                      return (
+                        <div
+                          key={appointment.id}
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
+                              {caregiverName.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{caregiverName}</p>
+                              <p className="text-xs text-muted-foreground">{specialtyName}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="flex items-center gap-1 text-xs mb-1">
+                              <Clock className="h-3 w-3 text-muted-foreground" />
+                              {formatDate(appointment.scheduledDate)}
+                            </div>
+                            <Badge
+                              variant={appointment.status === "confirmed" ? "default" : "secondary"}
+                              className="capitalize text-xs"
+                            >
+                              {appointment.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {upcomingAppointments.length === 0 && (
+                      <div className="text-center py-6 text-muted-foreground text-sm">
+                        No upcoming appointments
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Role-based sidebar - Compact */}
+            <Card>
+              <CardHeader className="p-4">
+                <CardTitle className="font-display text-base">
+                  {user?.role === 'system_manager' || user?.role === 'regional_manager'
+                    ? "System Status"
+                    : user?.role === 'caregiver'
+                    ? "Today's Summary"
+                    : user?.role === 'primary_physician'
+                    ? "Patient Status"
+                    : "Health Overview"
+                  }
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  {user?.role === 'system_manager' || user?.role === 'regional_manager'
+                    ? "Overall system health"
+                    : user?.role === 'caregiver'
+                    ? "Your daily summary"
+                    : user?.role === 'primary_physician'
+                    ? "Patient health status"
+                    : "Your health status"
+                  }
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 p-4 pt-0">
+                {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
+                  <div className="text-center p-4 rounded-lg bg-primary/10">
+                    <Activity className="h-6 w-6 text-primary mx-auto mb-2" />
+                    <p className="font-display text-xl font-bold text-primary">Online</p>
+                    <p className="text-xs text-muted-foreground">System Status</p>
+                  </div>
+                ) : (
+                  <div className="text-center p-4 rounded-lg bg-success/10">
+                    <Activity className="h-6 w-6 text-success mx-auto mb-2" />
+                    <p className="font-display text-xl font-bold text-success">Stable</p>
+                    <p className="text-xs text-muted-foreground">Current Status</p>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-xs">
+                    {user?.role === 'system_manager' || user?.role === 'regional_manager'
+                      ? "Recent Activity"
+                      : "Recent Reports"
+                    }
+                  </h4>
+                  {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
+                    adminData?.pendingCaregivers?.slice(0, 3).map((caregiver: any) => (
                       <div
-                        key={report.id}
+                        key={caregiver.id}
                         className="flex items-center justify-between py-2 border-b last:border-0"
                       >
                         <div>
-                          <p className="text-xs font-medium">{reportDate}</p>
-                          <p className="text-xs text-muted-foreground">Care Report</p>
+                          <p className="text-xs font-medium">{caregiver.firstName} {caregiver.lastName}</p>
+                          <p className="text-xs text-muted-foreground">Pending Approval</p>
                         </div>
-                        <Badge variant="outline" className={`capitalize text-xs ${statusColor}`}>
-                          {report.patientStatus}
+                        <Badge variant="outline" className="text-warning border-warning text-xs">
+                          Pending
                         </Badge>
                       </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-xs text-muted-foreground text-center py-3">No reports yet</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                    )) || (
+                      <p className="text-xs text-muted-foreground text-center py-3">No pending approvals</p>
+                    )
+                  ) : loadingReports ? (
+                    <div className="flex items-center justify-center py-3">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    </div>
+                  ) : recentReports.length > 0 ? (
+                    recentReports.slice(0, 3).map((report: any) => {
+                      const reportDate = new Date(report.createdAt || report.Appointment?.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                      const statusColor = {
+                        stable: "text-success border-success",
+                        improving: "text-primary border-primary",
+                        deteriorating: "text-warning border-warning",
+                        critical: "text-destructive border-destructive",
+                        cured: "text-success border-success",
+                        deceased: "text-muted-foreground border-muted-foreground"
+                      }[report.patientStatus] || "text-muted-foreground border-muted-foreground";
+
+                      return (
+                        <div
+                          key={report.id}
+                          className="flex items-center justify-between py-2 border-b last:border-0"
+                        >
+                          <div>
+                            <p className="text-xs font-medium">{reportDate}</p>
+                            <p className="text-xs text-muted-foreground">Care Report</p>
+                          </div>
+                          <Badge variant="outline" className={`capitalize text-xs ${statusColor}`}>
+                            {report.patientStatus}
+                          </Badge>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-3">No reports yet</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Role-based bottom section - Compact */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between p-4">
-            <div>
-              <CardTitle className="font-display text-base">
-                {user?.role === 'caregiver'
-                  ? "Recent Patients"
-                  : user?.role === 'primary_physician'
-                  ? "Recommended Caregivers"
-                  : "Recommended for You"
-                }
-              </CardTitle>
-              <CardDescription className="text-xs">
-                {user?.role === 'caregiver'
-                  ? "Recently provided care"
-                  : user?.role === 'primary_physician'
-                  ? "Top-rated caregivers"
-                  : "Matching your needs"
-                }
-              </CardDescription>
-            </div>
-            <Link to={user?.role === 'caregiver' ? "/dashboard/patients" : "/dashboard/caregivers"}>
-              <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs">
-                {user?.role === 'caregiver' ? "View All" : "Browse"} <ArrowRight className="h-3 w-3" />
-              </Button>
-            </Link>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
-                // Show real admin stats - Compact
-                <>
-                  <div className="p-3 rounded-lg border bg-primary/5">
-                    <h4 className="font-semibold text-primary text-xs mb-1">Total Users</h4>
-                    <p className="text-xl font-bold">{adminData?.users?.length || 0}</p>
-                  </div>
-                  <div className="p-3 rounded-lg border bg-warning/5">
-                    <h4 className="font-semibold text-warning text-xs mb-1">Pending Approvals</h4>
-                    <p className="text-xl font-bold">{adminData?.pendingCaregivers?.length || 0}</p>
-                  </div>
-                  <div className="p-3 rounded-lg border bg-success/5">
-                    <h4 className="font-semibold text-success text-xs mb-1">Active Caregivers</h4>
-                    <p className="text-xl font-bold">{adminData?.users?.filter((u: any) => u.Role?.name === 'caregiver' && u.isActive)?.length || 0}</p>
-                  </div>
-                </>
-              ) : (
-                // Show real caregivers - Compact
-                caregiversData?.slice(0, 3).map((caregiver: any) => (
-                  <div
-                    key={caregiver.id}
-                    className="p-3 rounded-lg border hover:border-primary/30 hover:shadow-md transition-all"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
-                        {caregiver.firstName?.charAt(0) || 'C'}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">{caregiver.firstName} {caregiver.lastName}</p>
-                        <div className="flex items-center gap-1 text-xs text-accent">
-                          <Star className="h-3 w-3 fill-current" />
-                          <span>4.9</span>
+        {user?.role !== 'Accountant' && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between p-4">
+              <div>
+                <CardTitle className="font-display text-base">
+                  {user?.role === 'caregiver'
+                    ? "Recent Patients"
+                    : user?.role === 'primary_physician'
+                    ? "Recommended Caregivers"
+                    : "Recommended for You"
+                  }
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  {user?.role === 'caregiver'
+                    ? "Recently provided care"
+                    : user?.role === 'primary_physician'
+                    ? "Top-rated caregivers"
+                    : "Matching your needs"
+                  }
+                </CardDescription>
+              </div>
+              <Link to={user?.role === 'caregiver' ? "/dashboard/patients" : "/dashboard/caregivers"}>
+                <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs">
+                  {user?.role === 'caregiver' ? "View All" : "Browse"} <ArrowRight className="h-3 w-3" />
+                </Button>
+              </Link>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
+                  // Show real admin stats - Compact
+                  <>
+                    <div className="p-3 rounded-lg border bg-primary/5">
+                      <h4 className="font-semibold text-primary text-xs mb-1">Total Users</h4>
+                      <p className="text-xl font-bold">{adminData?.users?.length || 0}</p>
+                    </div>
+                    <div className="p-3 rounded-lg border bg-warning/5">
+                      <h4 className="font-semibold text-warning text-xs mb-1">Pending Approvals</h4>
+                      <p className="text-xl font-bold">{adminData?.pendingCaregivers?.length || 0}</p>
+                    </div>
+                    <div className="p-3 rounded-lg border bg-success/5">
+                      <h4 className="font-semibold text-success text-xs mb-1">Active Caregivers</h4>
+                      <p className="text-xl font-bold">{adminData?.users?.filter((u: any) => u.Role?.name === 'caregiver' && u.isActive)?.length || 0}</p>
+                    </div>
+                  </>
+                ) : (
+                  // Show real caregivers - Compact
+                  caregiversData?.slice(0, 3).map((caregiver: any) => (
+                    <div
+                      key={caregiver.id}
+                      className="p-3 rounded-lg border hover:border-primary/30 hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
+                          {caregiver.firstName?.charAt(0) || 'C'}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm">{caregiver.firstName} {caregiver.lastName}</p>
+                          <div className="flex items-center gap-1 text-xs text-accent">
+                            <Star className="h-3 w-3 fill-current" />
+                            <span>4.9</span>
+                          </div>
                         </div>
                       </div>
+                      <Badge variant="secondary" className="mb-2 text-xs">{caregiver.Caregiver?.qualifications || 'Healthcare Pro'}</Badge>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        {caregiver.Caregiver?.experience || 0} years exp • MWK {caregiver.Caregiver?.hourlyRate || 50}/hr
+                      </p>
+                      <Link to="/dashboard/caregivers">
+                        <Button variant="outline" size="sm" className="w-full h-7 text-xs">
+                          View Profile
+                        </Button>
+                      </Link>
                     </div>
-                    <Badge variant="secondary" className="mb-2 text-xs">{caregiver.Caregiver?.qualifications || 'Healthcare Pro'}</Badge>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      {caregiver.Caregiver?.experience || 0} years exp • MWK {caregiver.Caregiver?.hourlyRate || 50}/hr
-                    </p>
-                    <Link to="/dashboard/caregivers">
+                  )) || [1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="p-3 rounded-lg border hover:border-primary/30 hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
+                          C{i}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm">Caregiver {i}</p>
+                          <div className="flex items-center gap-1 text-xs text-accent">
+                            <Star className="h-3 w-3 fill-current" />
+                            <span>4.9</span>
+                          </div>
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="mb-2 text-xs">Nursing Care</Badge>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        5+ years in home healthcare
+                      </p>
                       <Button variant="outline" size="sm" className="w-full h-7 text-xs">
                         View Profile
                       </Button>
-                    </Link>
-                  </div>
-                )) || [1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="p-3 rounded-lg border hover:border-primary/30 hover:shadow-md transition-all"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
-                        C{i}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">Caregiver {i}</p>
-                        <div className="flex items-center gap-1 text-xs text-accent">
-                          <Star className="h-3 w-3 fill-current" />
-                          <span>4.9</span>
-                        </div>
-                      </div>
                     </div>
-                    <Badge variant="secondary" className="mb-2 text-xs">Nursing Care</Badge>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      5+ years in home healthcare
-                    </p>
-                    <Button variant="outline" size="sm" className="w-full h-7 text-xs">
-                      View Profile
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))
+                )}
+              </div>
           </CardContent>
         </Card>
+        )}
+
+        {/* Quick Actions for all roles */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {quickActions.map((action, index) => {
+            const IconComponent = action.icon;
+            return (
+              <Link key={index} to={action.href}>
+                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`h-10 w-10 rounded-lg bg-${action.color}/10 flex items-center justify-center`}>
+                        <IconComponent className={`h-5 w-5 text-${action.color}`} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{action.label}</p>
+                        <p className="text-xs text-muted-foreground">{action.description}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </DashboardLayout>
   );

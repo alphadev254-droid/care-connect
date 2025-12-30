@@ -18,34 +18,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const initAuth = async () => {
-      const currentUser = authService.getCurrentUser();
-      if (currentUser && authService.isAuthenticated()) {
-        try {
-          const profile = await authService.getProfile();
-          setUser(profile);
-        } catch (error) {
-          authService.logout();
-          setUser(null);
+      try {
+        const currentUser = authService.getCurrentUser();
+        if (currentUser && authService.isAuthenticated()) {
+          try {
+            const profile = await authService.getProfile();
+            setUser(profile);
+          } catch (error) {
+            console.error('Failed to fetch user profile:', error);
+            authService.logout();
+            setUser(null);
+          }
         }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await authService.login({ email, password });
-    setUser(response.user);
+    try {
+      const response = await authService.login({ email, password });
+      setUser(response.user);
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   };
 
   const register = async (data: any) => {
-    const response = await authService.register(data);
-    if (response.requiresApproval) {
-      return { requiresApproval: true };
+    try {
+      const response = await authService.register(data);
+      if (response.requiresApproval) {
+        return { requiresApproval: true };
+      }
+      setUser(response.user);
+      return response;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
     }
-    setUser(response.user);
-    return response;
   };
 
   const logout = () => {

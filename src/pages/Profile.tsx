@@ -399,6 +399,18 @@ const Profile = () => {
                     </div>
                   </div>
                 )}
+
+                {(profileData?.role === 'regional_manager' || profileData?.role === 'Accountant') && profileData?.assignedRegion && (
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <MapPin className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground">Assigned Region</p>
+                      <p className="text-sm font-medium">{profileData.assignedRegion === 'all' ? 'All Regions' : profileData.assignedRegion}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

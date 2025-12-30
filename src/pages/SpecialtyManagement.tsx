@@ -34,6 +34,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { usePermissions } from "@/hooks/usePermissions";
 import { api } from "@/lib/api";
 import { Users, Calendar } from "lucide-react";
 import {
@@ -60,6 +62,7 @@ interface Specialty {
 }
 
 const SpecialtyManagement = () => {
+  const { hasPermission } = usePermissions();
   const queryClient = useQueryClient();
   const [createDialog, setCreateDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
@@ -194,7 +197,8 @@ const SpecialtyManagement = () => {
   const inactiveSpecialties = specialties?.filter((s: Specialty) => !s.isActive) || [];
 
   return (
-    <DashboardLayout userRole="admin">
+    <ProtectedRoute requiredPermission="view_specialties">
+      <DashboardLayout userRole="admin">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -203,10 +207,12 @@ const SpecialtyManagement = () => {
               Manage healthcare specialties and their associated fees
             </p>
           </div>
-          <Button onClick={() => setCreateDialog(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Specialty
-          </Button>
+          {hasPermission('create_specialties') && (
+            <Button onClick={() => setCreateDialog(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Specialty
+            </Button>
+          )}
         </div>
 
         <div className="grid gap-3 md:grid-cols-4">
@@ -333,20 +339,24 @@ const SpecialtyManagement = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(specialty)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(specialty)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            {hasPermission('edit_specialties') && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(specialty)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {hasPermission('delete_specialties') && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(specialty)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -554,7 +564,8 @@ const SpecialtyManagement = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </DashboardLayout>
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 };
 

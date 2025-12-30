@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { ExportButton } from "@/components/shared/ExportButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
@@ -144,7 +145,9 @@ const Earnings = () => {
     endDate: ''
   });
   
-  const isAdmin = user?.role === 'system_manager' || user?.role === 'regional_manager';
+  const isAdmin = user?.role === 'system_manager' || user?.role === 'regional_manager' || user?.role === 'Accountant';
+  const userAssignedRegion = user?.assignedRegion;
+  const isRegionRestricted = (user?.role === 'regional_manager' || user?.role === 'Accountant') && userAssignedRegion && userAssignedRegion !== 'all';
 
   const { data: earningsData, isLoading } = useQuery({
     queryKey: ["earnings", appliedFilters, user?.role, currentPage, pageSize],
@@ -188,12 +191,16 @@ const Earnings = () => {
     enabled: appliedFilters.period !== 'custom' || (!!appliedFilters.startDate && !!appliedFilters.endDate)
   });
 
-  // Fetch caregivers and locations for admin filters
+  // Fetch caregivers - restricted to user's assigned region
   const { data: caregivers } = useQuery({
     queryKey: ["caregivers-list"],
     queryFn: async () => {
       if (!isAdmin) return [];
-      const response = await api.get('/caregivers');
+      const params = new URLSearchParams();
+      if (isRegionRestricted) {
+        params.append('region', userAssignedRegion);
+      }
+      const response = await api.get(`/caregivers?${params}`);
       return response.data.caregivers || [];
     },
     enabled: isAdmin
@@ -240,13 +247,17 @@ const Earnings = () => {
     enabled: user?.role === 'caregiver' && selectedTA !== 'all'
   });
 
-  // Search caregivers by name or email - always fetch for dropdown filtering
+  // Search caregivers - restricted to user's assigned region
   const { data: searchedCaregivers } = useQuery({
     queryKey: ["caregivers-search", caregiverSearch],
     queryFn: async () => {
       if (!isAdmin) return [];
       if (caregiverSearch.length >= 2) {
-        const response = await api.get(`/earnings/caregivers/search?q=${caregiverSearch}`);
+        const params = new URLSearchParams({ q: caregiverSearch });
+        if (isRegionRestricted) {
+          params.append('region', userAssignedRegion);
+        }
+        const response = await api.get(`/earnings/caregivers/search?${params}`);
         return response.data.caregivers || [];
       }
       return [];
@@ -256,21 +267,27 @@ const Earnings = () => {
 
   const displayCaregivers = caregiverSearch.length >= 2 ? searchedCaregivers : caregivers;
 
+  // Fetch regions for admin filters - restricted users only see their assigned region
   const { data: regions } = useQuery({
     queryKey: ["regions-list"],
     queryFn: async () => {
       if (!isAdmin) return [];
+      if (isRegionRestricted) {
+        return [userAssignedRegion]; // Only show assigned region
+      }
       const response = await api.get('/locations/regions');
       return response.data.data || [];
     },
     enabled: isAdmin
   });
 
+  // Fetch districts - restricted to user's assigned region
   const { data: districts } = useQuery({
     queryKey: ["districts-list", selectedRegion],
     queryFn: async () => {
       if (!isAdmin || selectedRegion === 'all') return [];
-      const response = await api.get(`/locations/districts/${selectedRegion}`);
+      const regionToUse = isRegionRestricted ? userAssignedRegion : selectedRegion;
+      const response = await api.get(`/locations/districts/${regionToUse}`);
       return response.data.data || [];
     },
     enabled: isAdmin && selectedRegion !== 'all'
@@ -561,7 +578,8 @@ const Earnings = () => {
   }
 
   return (
-    <DashboardLayout userRole={mapUserRole(user?.role || 'caregiver')}>
+    <ProtectedRoute requiredPermission="view_financial_reports">
+      <DashboardLayout userRole={mapUserRole(user?.role || 'caregiver')}>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -1318,7 +1336,8 @@ const Earnings = () => {
           </div>
         )}
       </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 };
 

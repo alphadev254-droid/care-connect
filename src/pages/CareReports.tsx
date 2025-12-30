@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { ExportButton } from "@/components/shared/ExportButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
@@ -407,7 +408,8 @@ const CareReports = () => {
   }
 
   return (
-    <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
+    <ProtectedRoute requiredPermission="view_care_plans">
+      <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
       <div className="space-y-6">
         <div>
           <h1 className="font-display text-xl md:text-2xl font-bold">
@@ -1424,7 +1426,8 @@ const CareReports = () => {
           </Tabs>
         )}
       </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 };
 

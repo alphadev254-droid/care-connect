@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -29,8 +29,11 @@ import AdminDashboard from "./pages/AdminDashboard";
 import UserManagement from "./pages/UserManagement";
 import AdminReports from "./pages/AdminReports";
 import UserDetails from "./pages/UserDetails";
+import UserEdit from "./pages/UserEdit";
 import PublicCaregivers from "./pages/PublicCaregivers";
 import SpecialtyManagement from "./pages/SpecialtyManagement";
+import RolesManagement from "./pages/RolesManagement";
+import PermissionsManagement from "./pages/PermissionsManagement";
 import AppointmentDetails from "./pages/AppointmentDetails";
 import NotFound from "./pages/NotFound";
 
@@ -167,10 +170,42 @@ const App = () => (
               }
             />
             <Route
+              path="/dashboard/users/edit/:userId"
+              element={
+                <ProtectedRoute>
+                  <UserEdit />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/specialties"
               element={
                 <ProtectedRoute>
                   <SpecialtyManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/roles"
+              element={
+                <ProtectedRoute>
+                  <RolesManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/permissions"
+              element={
+                <ProtectedRoute>
+                  <PermissionsManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/permissions"
+              element={
+                <ProtectedRoute>
+                  <PermissionsManagement />
                 </ProtectedRoute>
               }
             />

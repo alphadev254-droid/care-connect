@@ -3,12 +3,13 @@ import { api } from '@/lib/api';
 export interface User {
   id: number;
   email: string;
-  role: 'patient' | 'caregiver' | 'primary_physician' | 'system_manager' | 'regional_manager';
+  role: 'patient' | 'caregiver' | 'primary_physician' | 'system_manager' | 'regional_manager' | 'Accountant';
   firstName: string;
   lastName: string;
   phone?: string;
   isVerified: boolean;
   isActive: boolean;
+  permissions?: string[];
 }
 
 export interface LoginData {
@@ -53,7 +54,14 @@ export const authService = {
 
   getProfile: async (): Promise<User> => {
     const response = await api.get('/auth/profile');
-    return response.data.user;
+    const user = response.data.user;
+    // Update localStorage with fresh profile data
+    localStorage.setItem('user', JSON.stringify(user));
+    return user;
+  },
+
+  updateUserInStorage: (user: User): void => {
+    localStorage.setItem('user', JSON.stringify(user));
   },
 
   getCurrentUser: (): User | null => {

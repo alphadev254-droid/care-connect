@@ -309,8 +309,11 @@ const Appointments = () => {
 
         {appointment.status === "session_waiting" && (
           <div className="flex gap-1.5 mt-3 pt-2 border-t">
-            {appointment.sessionType === "teleconference" ? (
-              <Button className="flex-1 gap-1.5 h-7 text-[11px]">
+            {appointment.sessionType === "teleconference" || appointment.type === "video" ? (
+              <Button
+                className="flex-1 gap-1.5 h-7 text-[11px]"
+                onClick={() => navigate(`/teleconference?appointmentId=${appointment.id}`)}
+              >
                 <Video className="h-3 w-3" />
                 Join Call
               </Button>

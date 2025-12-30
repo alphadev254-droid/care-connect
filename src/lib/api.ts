@@ -29,7 +29,11 @@ api.interceptors.response.use(
       window.location.href = '/login';
       toast.error('Session expired. Please login again.');
     } else if (error.response?.status === 403) {
-      toast.error('You do not have permission to perform this action.');
+      const errorMessage = error.response?.data?.error || 'You do not have permission to perform this action.';
+      toast.error('Permission Denied', {
+        description: errorMessage,
+        duration: 5000,
+      });
     } else if (error.response?.status === 404) {
       toast.error('Resource not found.');
     } else if (error.response?.status >= 500) {
