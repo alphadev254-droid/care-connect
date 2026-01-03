@@ -43,6 +43,8 @@ const CareReports = () => {
   const queryClient = useQueryClient();
   const appointmentId = searchParams.get('appointment');
   const isCaregiver = user?.role === 'caregiver';
+  const isPatient = user?.role === 'patient';
+  const bypassPermissionCheck = isCaregiver || isPatient;
 
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -407,9 +409,9 @@ const CareReports = () => {
     );
   }
 
-  return (
-    <ProtectedRoute requiredPermission="view_care_plans">
-      <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
+  // Caregivers don't need permission check, but patients/admins do
+  const PageContent = () => (
+    <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
       <div className="space-y-6">
         <div>
           <h1 className="font-display text-xl md:text-2xl font-bold">
@@ -1426,7 +1428,15 @@ const CareReports = () => {
           </Tabs>
         )}
       </div>
-      </DashboardLayout>
+    </DashboardLayout>
+  );
+
+  // Caregivers and patients bypass permission check, others need view_care_plans permission
+  return bypassPermissionCheck ? (
+    <PageContent />
+  ) : (
+    <ProtectedRoute requiredPermission="view_care_plans">
+      <PageContent />
     </ProtectedRoute>
   );
 };

@@ -343,12 +343,12 @@ const Dashboard = () => {
                       <p className="text-xs text-muted-foreground">Total Collections</p>
                       <p className="text-2xl font-bold mt-1">
                         MWK {transactions
-                          .filter((t: any) => t.status === 'completed')
-                          .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0)
+                          .filter((t: Record<string, unknown>) => t.status === 'completed')
+                          .reduce((sum: number, t: Record<string, unknown>) => sum + Number(t.amount || 0), 0)
                           .toLocaleString()}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {transactions.filter((t: any) => t.status === 'completed').length} transactions
+                        {transactions.filter((t: Record<string, unknown>) => t.status === 'completed').length} transactions
                       </p>
                     </div>
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -365,8 +365,8 @@ const Dashboard = () => {
                       <p className="text-xs text-muted-foreground">Tax Collected</p>
                       <p className="text-2xl font-bold mt-1">
                         MWK {transactions
-                          .filter((t: any) => t.status === 'completed')
-                          .reduce((sum: number, t: any) => sum + Number(t.taxAmount || 0), 0)
+                          .filter((t: Record<string, unknown>) => t.status === 'completed')
+                          .reduce((sum: number, t: Record<string, unknown>) => sum + Number(t.taxAmount || 0), 0)
                           .toLocaleString()}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -387,8 +387,8 @@ const Dashboard = () => {
                       <p className="text-xs text-muted-foreground">Platform Commission</p>
                       <p className="text-2xl font-bold mt-1">
                         MWK {transactions
-                          .filter((t: any) => t.status === 'completed')
-                          .reduce((sum: number, t: any) => sum + Number(t.platformCommissionAmount || 0), 0)
+                          .filter((t: Record<string, unknown>) => t.status === 'completed')
+                          .reduce((sum: number, t: Record<string, unknown>) => sum + Number(t.convenienceFeeAmount || 0), 0)
                           .toLocaleString()}
                       </p>
                       <p className="text-xs text-success mt-1">
@@ -409,8 +409,8 @@ const Dashboard = () => {
                       <p className="text-xs text-muted-foreground">Caregiver Earnings</p>
                       <p className="text-2xl font-bold mt-1">
                         MWK {transactions
-                          .filter((t: any) => t.status === 'completed')
-                          .reduce((sum: number, t: any) => sum + Number(t.caregiverEarnings || 0), 0)
+                          .filter((t: Record<string, unknown>) => t.status === 'completed')
+                          .reduce((sum: number, t: Record<string, unknown>) => sum + Number(t.baseFee || 0), 0)
                           .toLocaleString()}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -433,8 +433,8 @@ const Dashboard = () => {
                       <p className="text-xs text-muted-foreground">Net Earnings</p>
                       <p className="text-2xl font-bold mt-1">
                         MWK {transactions
-                          .filter((t: any) => t.status === 'completed' && t.paymentType === 'session_fee')
-                          .reduce((sum: number, t: any) => sum + Number(t.caregiverEarnings || 0), 0)
+                          .filter((t: Record<string, unknown>) => t.status === 'completed' && t.paymentType === 'session_fee')
+                          .reduce((sum: number, t: Record<string, unknown>) => sum + Number(t.caregiverEarnings || 0), 0)
                           .toLocaleString()}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -455,8 +455,8 @@ const Dashboard = () => {
                       <p className="text-xs text-muted-foreground">Commission Deducted</p>
                       <p className="text-2xl font-bold mt-1">
                         MWK {transactions
-                          .filter((t: any) => t.status === 'completed' && t.paymentType === 'session_fee')
-                          .reduce((sum: number, t: any) => sum + Number(t.platformCommissionAmount || 0), 0)
+                          .filter((t: Record<string, unknown>) => t.status === 'completed' && t.paymentType === 'session_fee')
+                          .reduce((sum: number, t: Record<string, unknown>) => sum + Number(t.platformCommissionAmount || 0), 0)
                           .toLocaleString()}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -476,7 +476,7 @@ const Dashboard = () => {
                     <div>
                       <p className="text-xs text-muted-foreground">Sessions Completed</p>
                       <p className="text-2xl font-bold mt-1">
-                        {transactions.filter((t: any) => t.status === 'completed' && t.paymentType === 'session_fee').length}
+                        {transactions.filter((t: Record<string, unknown>) => t.status === 'completed' && t.paymentType === 'session_fee').length}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Total sessions
@@ -496,8 +496,8 @@ const Dashboard = () => {
                       <p className="text-xs text-muted-foreground">Avg Earnings/Session</p>
                       <p className="text-2xl font-bold mt-1">
                         MWK {(() => {
-                          const sessionTxs = transactions.filter((t: any) => t.status === 'completed' && t.paymentType === 'session_fee');
-                          const totalEarnings = sessionTxs.reduce((sum: number, t: any) => sum + Number(t.caregiverEarnings || 0), 0);
+                          const sessionTxs = transactions.filter((t: Record<string, unknown>) => t.status === 'completed' && t.paymentType === 'session_fee');
+                          const totalEarnings = sessionTxs.reduce((sum: number, t: Record<string, unknown>) => sum + Number(t.caregiverEarnings || 0), 0);
                           const avgEarnings = sessionTxs.length > 0 ? Math.round(totalEarnings / sessionTxs.length) : 0;
                           return avgEarnings.toLocaleString();
                         })()}
@@ -694,7 +694,7 @@ const Dashboard = () => {
               <CardContent className="p-4 pt-0">
                 {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
                   <div className="space-y-2">
-                    {adminData?.users?.slice(0, 5).map((user: any) => (
+                    {adminData?.users?.slice(0, 5).map((user: Record<string, unknown>) => (
                       <div
                         key={user.id}
                         className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
@@ -728,7 +728,7 @@ const Dashboard = () => {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {upcomingAppointments.slice(0, 3).map((appointment: any) => {
+                    {upcomingAppointments.slice(0, 3).map((appointment: Record<string, unknown>) => {
                       const caregiverName = appointment.Caregiver?.User
                         ? `${appointment.Caregiver.User.firstName} ${appointment.Caregiver.User.lastName}`
                         : "Caregiver";
@@ -820,7 +820,7 @@ const Dashboard = () => {
                     }
                   </h4>
                   {user?.role === 'system_manager' || user?.role === 'regional_manager' ? (
-                    adminData?.pendingCaregivers?.slice(0, 3).map((caregiver: any) => (
+                    adminData?.pendingCaregivers?.slice(0, 3).map((caregiver: Record<string, unknown>) => (
                       <div
                         key={caregiver.id}
                         className="flex items-center justify-between py-2 border-b last:border-0"
@@ -841,7 +841,7 @@ const Dashboard = () => {
                       <Loader2 className="h-5 w-5 animate-spin text-primary" />
                     </div>
                   ) : recentReports.length > 0 ? (
-                    recentReports.slice(0, 3).map((report: any) => {
+                    recentReports.slice(0, 3).map((report: Record<string, unknown>) => {
                       const reportDate = new Date(report.createdAt || report.Appointment?.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                       const statusColor = {
                         stable: "text-success border-success",
@@ -919,12 +919,12 @@ const Dashboard = () => {
                     </div>
                     <div className="p-3 rounded-lg border bg-success/5">
                       <h4 className="font-semibold text-success text-xs mb-1">Active Caregivers</h4>
-                      <p className="text-xl font-bold">{adminData?.users?.filter((u: any) => u.Role?.name === 'caregiver' && u.isActive)?.length || 0}</p>
+                      <p className="text-xl font-bold">{adminData?.users?.filter((u: Record<string, unknown>) => u.Role?.name === 'caregiver' && u.isActive)?.length || 0}</p>
                     </div>
                   </>
                 ) : (
                   // Show real caregivers - Compact
-                  caregiversData?.slice(0, 3).map((caregiver: any) => (
+                  caregiversData?.slice(0, 3).map((caregiver: Record<string, unknown>) => (
                     <div
                       key={caregiver.id}
                       className="p-3 rounded-lg border hover:border-primary/30 hover:shadow-md transition-all"

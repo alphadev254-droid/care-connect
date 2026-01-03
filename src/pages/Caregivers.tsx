@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { BookingModal } from "@/components/booking/BookingModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +25,10 @@ import {
   Heart,
   DollarSign,
   X,
+  User,
+  Award,
+  Briefcase,
+  FileText,
 } from "lucide-react";
 
 const Caregivers = () => {
@@ -35,6 +41,7 @@ const Caregivers = () => {
   const [selectedVillage, setSelectedVillage] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [bookingModal, setBookingModal] = useState({ open: false, caregiver: null });
+  const [profileDialog, setProfileDialog] = useState({ open: false, caregiver: null });
   const [currentPage, setCurrentPage] = useState(1);
   const [appliedFilters, setAppliedFilters] = useState({
     search: '',
@@ -376,9 +383,12 @@ const Caregivers = () => {
                   <Card key={caregiver.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3 mb-3">
-                        <div className="h-12 w-12 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-lg font-bold flex-shrink-0">
-                          {name.charAt(0) || 'C'}
-                        </div>
+                        <Avatar className="h-12 w-12 flex-shrink-0">
+                          <AvatarImage src={caregiverData.profileImage} alt={name} />
+                          <AvatarFallback className="bg-gradient-primary text-primary-foreground text-lg font-bold">
+                            {name.charAt(0) || 'C'}
+                          </AvatarFallback>
+                        </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-sm truncate">{name}</h3>
@@ -442,7 +452,12 @@ const Caregivers = () => {
                       )}
 
                       <div className="flex gap-2 pt-3 border-t">
-                        <Button variant="outline" size="sm" className="flex-1 h-8 text-xs">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-8 text-xs"
+                          onClick={() => setProfileDialog({ open: true, caregiver })}
+                        >
                           View Profile
                         </Button>
                         <Button
@@ -505,6 +520,163 @@ const Caregivers = () => {
           caregiverName={`${bookingModal.caregiver.firstName || ''} ${bookingModal.caregiver.lastName || ''}`.trim() || 'Caregiver'}
           specialtyId={bookingModal.caregiver.Caregiver?.Specialties?.[0]?.id || 1}
         />
+      )}
+
+      {/* Profile Dialog */}
+      {profileDialog.caregiver && (
+        <Dialog open={profileDialog.open} onOpenChange={(open) => setProfileDialog({ open, caregiver: open ? profileDialog.caregiver : null })}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">Caregiver Profile</DialogTitle>
+              <DialogDescription>
+                Detailed information about this healthcare professional
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Profile Header */}
+              <div className="flex items-start gap-4">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={profileDialog.caregiver.Caregiver?.profileImage} />
+                  <AvatarFallback className="text-2xl bg-gradient-primary text-primary-foreground">
+                    {profileDialog.caregiver.firstName?.charAt(0)}{profileDialog.caregiver.lastName?.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h3 className="text-xl font-semibold">
+                    {profileDialog.caregiver.firstName} {profileDialog.caregiver.lastName}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    {profileDialog.caregiver.Caregiver?.verificationStatus === 'verified' && (
+                      <Badge className="gap-1">
+                        <Shield className="h-3 w-3" />
+                        Verified Professional
+                      </Badge>
+                    )}
+                    {profileDialog.caregiver.Caregiver?.Specialties?.map((specialty: any) => (
+                      <Badge key={specialty.id} variant="outline">
+                        {specialty.name}
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Briefcase className="h-4 w-4" />
+                      {profileDialog.caregiver.Caregiver?.experience} years experience
+                    </div>
+                 
+                  </div>
+                </div>
+              </div>
+
+              {/* Bio */}
+              {profileDialog.caregiver.Caregiver?.bio && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <User className="h-5 w-5 text-primary" />
+                      <h4 className="font-semibold">About</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {profileDialog.caregiver.Caregiver.bio}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Qualifications */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Award className="h-5 w-5 text-primary" />
+                    <h4 className="font-semibold">Qualifications & Licensing</h4>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Qualifications</Label>
+                      <p className="text-sm mt-1">{profileDialog.caregiver.Caregiver?.qualifications || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Licensing Institution</Label>
+                      <p className="text-sm mt-1">{profileDialog.caregiver.Caregiver?.licensingInstitution || 'Not specified'}</p>
+                    </div>
+                   
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Location */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    <h4 className="font-semibold">Service Location</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Region</Label>
+                      <p className="text-sm mt-1 capitalize">{profileDialog.caregiver.Caregiver?.region || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">District</Label>
+                      <p className="text-sm mt-1 uppercase">{profileDialog.caregiver.Caregiver?.district || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Traditional Authority</Label>
+                      <p className="text-sm mt-1 uppercase">{profileDialog.caregiver.Caregiver?.traditionalAuthority || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Village</Label>
+                      <p className="text-sm mt-1 uppercase">{profileDialog.caregiver.Caregiver?.village || 'Not specified'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Appointment Details */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Clock className="h-5 w-5 text-primary" />
+                    <h4 className="font-semibold">Appointment Information</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Default Duration</Label>
+                      <p className="text-sm mt-1">{profileDialog.caregiver.Caregiver?.appointmentDuration || 60} minutes</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Auto-Confirm</Label>
+                      <p className="text-sm mt-1">
+                        {profileDialog.caregiver.Caregiver?.autoConfirm ? 'Yes' : 'No'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    setProfileDialog({ open: false, caregiver: null });
+                    setBookingModal({ open: true, caregiver: profileDialog.caregiver });
+                  }}
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Book Appointment
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setProfileDialog({ open: false, caregiver: null })}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </DashboardLayout>
   );

@@ -35,6 +35,9 @@ import SpecialtyManagement from "./pages/SpecialtyManagement";
 import RolesManagement from "./pages/RolesManagement";
 import PermissionsManagement from "./pages/PermissionsManagement";
 import AppointmentDetails from "./pages/AppointmentDetails";
+import MeetingJoin from "./pages/MeetingJoin";
+import TeleconferenceAdmin from "./pages/TeleconferenceAdmin";
+import TeleconferenceSessionDetails from "./pages/TeleconferenceSessionDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +60,7 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/meeting/join/:token" element={<MeetingJoin />} />
             <Route
               path="/dashboard"
               element={
@@ -150,6 +154,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/teleconference"
+              element={
+                <ProtectedRoute>
+                  <TeleconferenceAdmin />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/teleconference/session/:sessionId"
+              element={
+                <ProtectedRoute>
+                  <TeleconferenceSessionDetails />
                 </ProtectedRoute>
               }
             />

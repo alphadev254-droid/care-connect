@@ -215,31 +215,31 @@ const Appointments = () => {
 
   const PatientCard = ({ appointment }: { appointment: typeof appointments[0] }) => (
     <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
+      <CardContent className="p-5">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-sm font-bold">
+            <div className="h-11 w-11 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-base font-bold">
               {(appointment.caregiver || appointment.Caregiver?.User?.firstName || 'C').charAt(0)}
             </div>
             <div>
-              <h3 className="font-semibold text-sm">{appointment.caregiver || `${appointment.Caregiver?.User?.firstName || ''} ${appointment.Caregiver?.User?.lastName || ''}`.trim() || 'Caregiver'}</h3>
-              <p className="text-xs text-muted-foreground">{appointment.Specialty?.name || appointment.specialty || 'General Care'}</p>
-              <div className="flex gap-1 mt-2 flex-wrap">
-                <Badge className={`${getStatusColor(appointment.status)} text-xs px-2 py-1 h-5`}>
+              <h3 className="font-semibold text-base">{appointment.caregiver || `${appointment.Caregiver?.User?.firstName || ''} ${appointment.Caregiver?.User?.lastName || ''}`.trim() || 'Caregiver'}</h3>
+              <p className="text-sm text-muted-foreground">{appointment.Specialty?.name || appointment.specialty || 'General Care'}</p>
+              <div className="flex gap-1.5 mt-2 flex-wrap">
+                <Badge className={`${getStatusColor(appointment.status)} text-xs px-2.5 py-1 h-6`}>
                   {getStatusLabel(appointment.status)}
                 </Badge>
                 {appointment.bookingFeeStatus === 'completed' && (
-                  <Badge variant="outline" className="bg-green-50 text-green-700 text-[10px] px-1 py-0 h-4">
+                  <Badge variant="outline" className="bg-green-50 text-green-700 text-[11px] px-1.5 py-0.5 h-5">
                     Booking ✓
                   </Badge>
                 )}
                 {appointment.sessionFeeStatus === 'completed' && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 text-[10px] px-1 py-0 h-4">
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 text-[11px] px-1.5 py-0.5 h-5">
                     Session ✓
                   </Badge>
                 )}
                 {appointment.rescheduleCount > 0 && (
-                  <Badge variant="outline" className="bg-orange-50 text-orange-700 text-[10px] px-1 py-0 h-4">
+                  <Badge variant="outline" className="bg-orange-50 text-orange-700 text-[11px] px-1.5 py-0.5 h-5">
                     Rescheduled {appointment.rescheduleCount}x
                   </Badge>
                 )}
@@ -248,113 +248,146 @@ const Appointments = () => {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6">
-                <MoreVertical className="h-3 w-3" />
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigate(`/appointment/${appointment.id}`)} className="text-xs">View Details</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/appointment/${appointment.id}`)} className="text-sm">View Details</DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => handleReschedule(appointment)}
                 disabled={!canReschedule(appointment)}
-                className="text-xs"
+                className="text-sm"
               >
-                <RotateCcw className="h-3 w-3 mr-2" />
+                <RotateCcw className="h-4 w-4 mr-2" />
                 Reschedule
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="text-destructive text-xs"
+                className="text-destructive text-sm"
                 onClick={() => handleCancel(appointment)}
                 disabled={!canCancel(appointment)}
               >
-                <X className="h-3 w-3 mr-2" />
+                <X className="h-4 w-4 mr-2" />
                 Cancel
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 mt-3">
-          <div className="flex items-center gap-1.5 text-[11px]">
-            <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+        <div className="grid grid-cols-2 gap-2.5 mt-4">
+          <div className="flex items-center gap-2 text-[13px]">
+            <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <span className="truncate">{new Date(appointment.scheduledDate || appointment.date).toLocaleDateString()}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px]">
-            <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+          <div className="flex items-center gap-2 text-[13px]">
+            <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <span className="truncate">{appointment.TimeSlot ?
               `${appointment.TimeSlot.startTime} - ${appointment.TimeSlot.endTime}` :
               new Date(appointment.scheduledDate || appointment.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
             }</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px]">
+          <div className="flex items-center gap-2 text-[13px]">
             {appointment.sessionType === "teleconference" || appointment.type === "video" ? (
-              <Video className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              <Video className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             ) : (
-              <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             )}
             <span className="truncate">{appointment.sessionType === "teleconference" || appointment.type === "video" ? "Video" : "In-Person"}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px]">
-            <DollarSign className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+          <div className="flex items-center gap-2 text-[13px]">
+            <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <span className="font-medium truncate">MWK {appointment.totalCost || appointment.TimeSlot?.price || 'N/A'}</span>
           </div>
         </div>
 
+        {(appointment.jitsiRoomName || appointment.patientMeetingToken) && (
+          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-900">
+            <div className="space-y-2">
+              {appointment.jitsiRoomName && (
+                <div className="flex items-center gap-2 text-[13px]">
+                  <Video className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-blue-900 dark:text-blue-100">Meeting Room</p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 truncate">{appointment.jitsiRoomName}</p>
+                  </div>
+                </div>
+              )}
+              {appointment.patientMeetingToken && (
+                <div className={appointment.jitsiRoomName ? "pt-2 border-t border-blue-200 dark:border-blue-900" : ""}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-xs h-8 bg-white dark:bg-blue-950"
+                    onClick={() => {
+                      const meetingUrl = `${window.location.origin}/meeting/join/${appointment.patientMeetingToken}`;
+                      navigator.clipboard.writeText(meetingUrl);
+                      toast.success('Meeting link copied to clipboard');
+                    }}
+                  >
+                    <Video className="h-3 w-3 mr-1.5" />
+                    Copy Meeting Link
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {appointment.notes && (
-          <div className="mt-2 p-2 bg-muted/50 rounded">
-            <p className="text-[10px] font-medium mb-0.5">Notes:</p>
-            <p className="text-[10px] text-muted-foreground">{appointment.notes}</p>
+          <div className="mt-3 p-3 bg-muted/50 rounded">
+            <p className="text-xs font-medium mb-1">Notes:</p>
+            <p className="text-xs text-muted-foreground">{appointment.notes}</p>
           </div>
         )}
 
         {appointment.status === "session_waiting" && (
-          <div className="flex gap-1.5 mt-3 pt-2 border-t">
+          <div className="flex gap-2 mt-3 pt-3 border-t">
             {appointment.sessionType === "teleconference" || appointment.type === "video" ? (
               <Button
-                className="flex-1 gap-1.5 h-7 text-[11px]"
+                className="flex-1 gap-2 h-8 text-xs"
                 onClick={() => navigate(`/teleconference?appointmentId=${appointment.id}`)}
               >
-                <Video className="h-3 w-3" />
+                <Video className="h-4 w-4" />
                 Join Call
               </Button>
             ) : (
               <Button
                 variant="outline"
-                className="flex-1 gap-1.5 h-7 text-[11px]"
+                className="flex-1 gap-2 h-8 text-xs"
                 onClick={() => handleShowContact(appointment)}
               >
-                <Phone className="h-3 w-3" />
+                <Phone className="h-4 w-4" />
                 Contact
               </Button>
             )}
               <Button
                 variant="outline"
-                className="flex-1 gap-1.5 h-7 text-[11px]"
+                className="flex-1 gap-2 h-8 text-xs"
                 onClick={() => handleReschedule(appointment)}
                 disabled={!canReschedule(appointment)}
               >
-                <RotateCcw className="h-3 w-3" />
+                <RotateCcw className="h-4 w-4" />
                 Reschedule
               </Button>
           </div>
         )}
 
         {appointment.status === "session_waiting" && appointment.sessionFeeStatus === "pending" && (
-          <div className="mt-2 pt-2 border-t">
-            <div className="bg-blue-50 dark:bg-blue-950 p-2 rounded mb-2 space-y-0.5">
-              <div className="flex justify-between text-[10px]">
+          <div className="mt-3 pt-3 border-t">
+            <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded mb-2 space-y-1">
+              <div className="flex justify-between text-xs">
                 <span>Base fee:</span>
                 <span>MWK {Number(appointment.sessionFee || 0).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-[10px]">
+              <div className="flex justify-between text-xs">
                 <span>Tax ({appointment.Specialty?.taxRate || 16.5}%):</span>
                 <span>MWK {Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 16.5) / 100)).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-[10px]">
+              <div className="flex justify-between text-xs">
                 <span>Processing ({appointment.Specialty?.convenienceFeePercentage || 2}%):</span>
                 <span>MWK {Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.convenienceFeePercentage || 2) / 100)).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-[11px] font-semibold border-t pt-0.5">
+              <div className="flex justify-between text-sm font-semibold border-t pt-1">
                 <span>Total:</span>
                 <span>MWK {(
                   Number(appointment.sessionFee || 0) +
@@ -364,14 +397,14 @@ const Appointments = () => {
               </div>
             </div>
             <Button
-              className="w-full gap-1.5 bg-blue-600 hover:bg-blue-700 h-7 text-[11px]"
+              className="w-full gap-2 bg-blue-600 hover:bg-blue-700 h-8 text-xs"
               onClick={() => {
                 console.log('Button clicked for appointment:', appointment.id);
                 handlePaySessionFee(appointment);
               }}
               disabled={paySessionFeeMutation.isPending}
             >
-              <DollarSign className="h-3 w-3" />
+              <DollarSign className="h-4 w-4" />
               {paySessionFeeMutation.isPending ? 'Processing...' : `Pay Session Fee - MWK ${(
                 Number(appointment.sessionFee || 0) +
                 Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 16.5) / 100)) +
@@ -382,21 +415,21 @@ const Appointments = () => {
         )}
 
         {appointment.status === "session_attended" && appointment.sessionFeeStatus === "pending" && (
-          <div className="mt-2 pt-2 border-t">
-            <div className="bg-blue-50 dark:bg-blue-950 p-2 rounded mb-2 space-y-0.5">
-              <div className="flex justify-between text-[10px]">
+          <div className="mt-3 pt-3 border-t">
+            <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded mb-2 space-y-1">
+              <div className="flex justify-between text-xs">
                 <span>Base fee:</span>
                 <span>MWK {Number(appointment.sessionFee || 0).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-[10px]">
+              <div className="flex justify-between text-xs">
                 <span>Tax ({appointment.Specialty?.taxRate || 16.5}%):</span>
                 <span>MWK {Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 16.5) / 100)).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-[10px]">
+              <div className="flex justify-between text-xs">
                 <span>Processing ({appointment.Specialty?.convenienceFeePercentage || 2}%):</span>
                 <span>MWK {Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.convenienceFeePercentage || 2) / 100)).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-[11px] font-semibold border-t pt-0.5">
+              <div className="flex justify-between text-sm font-semibold border-t pt-1">
                 <span>Total:</span>
                 <span>MWK {(
                   Number(appointment.sessionFee || 0) +
@@ -406,11 +439,11 @@ const Appointments = () => {
               </div>
             </div>
             <Button
-              className="w-full gap-1.5 bg-blue-600 hover:bg-blue-700 h-7 text-[11px]"
+              className="w-full gap-2 bg-blue-600 hover:bg-blue-700 h-8 text-xs"
               onClick={() => handlePaySessionFee(appointment)}
               disabled={paySessionFeeMutation.isPending}
             >
-              <DollarSign className="h-3 w-3" />
+              <DollarSign className="h-4 w-4" />
               Pay Session Fee - MWK {(
                 Number(appointment.sessionFee || 0) +
                 Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 16.5) / 100)) +
@@ -425,20 +458,20 @@ const Appointments = () => {
 
   const CaregiverCard = ({ appointment }: { appointment: typeof appointments[0] }) => (
     <Card className="mb-3">
-      <CardContent className="p-4">
-        <div className="flex justify-between items-start mb-3">
+      <CardContent className="p-5">
+        <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="w-5 h-5 text-primary" />
+            <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center">
+              <User className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h4 className="font-medium">
+              <h4 className="font-semibold text-base">
                 {appointment.Patient?.User?.firstName} {appointment.Patient?.User?.lastName}
               </h4>
               <p className="text-sm text-muted-foreground">{appointment.Specialty?.name}</p>
             </div>
           </div>
-          <Badge className={getStatusColor(appointment.status)}>
+          <Badge className={`${getStatusColor(appointment.status)} text-xs px-2.5 py-1`}>
             {appointment.status === "session_waiting" ? "Confirmed" : "Completed"}
           </Badge>
         </div>
@@ -466,18 +499,51 @@ const Appointments = () => {
           </div>
         </div>
 
+        {(appointment.jitsiRoomName || appointment.caregiverMeetingToken) && (
+          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-900">
+            <div className="space-y-2">
+              {appointment.jitsiRoomName && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Video className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-blue-900 dark:text-blue-100">Meeting Room</p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 truncate">{appointment.jitsiRoomName}</p>
+                  </div>
+                </div>
+              )}
+              {appointment.caregiverMeetingToken && (
+                <div className={appointment.jitsiRoomName ? "pt-2 border-t border-blue-200 dark:border-blue-900" : ""}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-xs h-8 bg-white dark:bg-blue-950"
+                    onClick={() => {
+                      const meetingUrl = `${window.location.origin}/meeting/join/${appointment.caregiverMeetingToken}`;
+                      navigator.clipboard.writeText(meetingUrl);
+                      toast.success('Meeting link copied to clipboard');
+                    }}
+                  >
+                    <Video className="h-3 w-3 mr-1.5" />
+                    Copy Meeting Link
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {appointment.notes && (
-          <div className="mt-3 p-2 bg-muted/50 rounded text-sm">
+          <div className="mt-3 p-3 bg-muted/50 rounded text-sm">
             <strong>Notes:</strong> {appointment.notes}
           </div>
         )}
 
         {appointment.status === "session_waiting" && (
           <div className="mt-3 pt-3 border-t">
-            <Button 
+            <Button
               onClick={() => markAttendedMutation.mutate(appointment.id)}
               disabled={markAttendedMutation.isPending}
-              className="w-full"
+              className="w-full h-9 text-sm"
             >
               Mark Session Attended
             </Button>
@@ -486,16 +552,6 @@ const Appointments = () => {
       </CardContent>
     </Card>
   );
-
-  if (isLoading) {
-    return (
-      <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   return (
     <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
@@ -643,7 +699,14 @@ const Appointments = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {confirmedAppointments.length === 0 ? (
+                    {isLoading ? (
+                      <div className="py-12">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                          <p className="text-sm text-muted-foreground">Loading appointments...</p>
+                        </div>
+                      </div>
+                    ) : confirmedAppointments.length === 0 ? (
                       <div className="py-12 text-center">
                         <Calendar className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
                         <h3 className="font-semibold text-sm mb-1">No confirmed appointments</h3>
@@ -774,7 +837,14 @@ const Appointments = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {completedAppointments.length === 0 ? (
+                    {isLoading ? (
+                      <div className="py-12">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                          <p className="text-sm text-muted-foreground">Loading appointments...</p>
+                        </div>
+                      </div>
+                    ) : completedAppointments.length === 0 ? (
                       <div className="py-12 text-center">
                         <CheckCircle className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
                         <h3 className="font-semibold text-sm mb-1">No completed appointments</h3>
@@ -858,7 +928,16 @@ const Appointments = () => {
           ) : (
             <>
               <TabsContent value="upcoming" className="space-y-4">
-                {upcomingAppointments.length > 0 ? (
+                {isLoading ? (
+                  <Card>
+                    <CardContent className="py-12">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <p className="text-sm text-muted-foreground">Loading appointments...</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : upcomingAppointments.length > 0 ? (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {upcomingAppointments.map((appointment) => (
                       <PatientCard key={appointment.id} appointment={appointment} />
@@ -878,20 +957,52 @@ const Appointments = () => {
               </TabsContent>
 
               <TabsContent value="past" className="space-y-4">
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {pastAppointments.map((appointment) => (
-                    <PatientCard key={appointment.id} appointment={appointment} />
-                  ))}
-                </div>
+                {isLoading ? (
+                  <Card>
+                    <CardContent className="py-12">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <p className="text-sm text-muted-foreground">Loading appointments...</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : pastAppointments.length > 0 ? (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {pastAppointments.map((appointment) => (
+                      <PatientCard key={appointment.id} appointment={appointment} />
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="font-semibold mb-2">No past appointments</h3>
+                      <p className="text-muted-foreground">
+                        Your completed appointments will appear here
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               {rescheduledAppointments.length > 0 && (
                 <TabsContent value="rescheduled" className="space-y-4">
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {rescheduledAppointments.map((appointment) => (
-                      <PatientCard key={appointment.id} appointment={appointment} />
-                    ))}
-                  </div>
+                  {isLoading ? (
+                    <Card>
+                      <CardContent className="py-12">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                          <p className="text-sm text-muted-foreground">Loading appointments...</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {rescheduledAppointments.map((appointment) => (
+                        <PatientCard key={appointment.id} appointment={appointment} />
+                      ))}
+                    </div>
+                  )}
                 </TabsContent>
               )}
             </>
@@ -902,51 +1013,51 @@ const Appointments = () => {
         <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-sm">Caregiver Contact Information</DialogTitle>
-              <DialogDescription className="text-[10px]">
+              <DialogTitle className="text-base">Caregiver Contact Information</DialogTitle>
+              <DialogDescription className="text-sm">
                 Contact details for your appointment
               </DialogDescription>
             </DialogHeader>
             {selectedAppointment && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="w-4 h-4 text-primary" />
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-xs">
+                    <h3 className="font-semibold text-sm">
                       {selectedAppointment.Caregiver?.User?.firstName} {selectedAppointment.Caregiver?.User?.lastName}
                     </h3>
-                    <p className="text-[10px] text-muted-foreground">{selectedAppointment.Specialty?.name}</p>
+                    <p className="text-xs text-muted-foreground">{selectedAppointment.Specialty?.name}</p>
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                     <div>
-                      <p className="text-[10px] font-medium">Phone</p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs font-medium">Phone</p>
+                      <p className="text-sm text-muted-foreground">
                         {selectedAppointment.Caregiver?.User?.phone || 'Not provided'}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                     <div>
-                      <p className="text-[10px] font-medium">Email</p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs font-medium">Email</p>
+                      <p className="text-sm text-muted-foreground break-all">
                         {selectedAppointment.Caregiver?.User?.email || 'Not provided'}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Home className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                  <div className="flex items-center gap-3">
+                    <Home className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                     <div>
-                      <p className="text-[10px] font-medium">Location</p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs font-medium">Location</p>
+                      <p className="text-sm text-muted-foreground">
                         {selectedAppointment.Caregiver?.village && selectedAppointment.Caregiver?.district ?
                           `${selectedAppointment.Caregiver.village}, ${selectedAppointment.Caregiver.traditionalAuthority || ''} ${selectedAppointment.Caregiver.district}, ${selectedAppointment.Caregiver.region}`.replace(', ,', ',').trim() :
                           'Location will be provided closer to appointment time'
@@ -955,32 +1066,32 @@ const Appointments = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                     <div>
-                      <p className="text-[10px] font-medium">Appointment</p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs font-medium">Appointment</p>
+                      <p className="text-sm text-muted-foreground">
                         {new Date(selectedAppointment.scheduledDate).toLocaleDateString()} at {selectedAppointment.TimeSlot?.startTime}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex gap-1.5 pt-2">
+                <div className="flex gap-2 pt-3">
                   <Button
                     variant="outline"
-                    className="flex-1 h-7 text-[11px]"
+                    className="flex-1 h-9 text-sm"
                     onClick={() => window.open(`tel:${selectedAppointment.Caregiver?.User?.phone}`)}
                   >
-                    <Phone className="w-3 h-3 mr-1" />
+                    <Phone className="w-4 h-4 mr-2" />
                     Call
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1 h-7 text-[11px]"
+                    className="flex-1 h-9 text-sm"
                     onClick={() => window.open(`mailto:${selectedAppointment.Caregiver?.User?.email}`)}
                   >
-                    <Mail className="w-3 h-3 mr-1" />
+                    <Mail className="w-4 h-4 mr-2" />
                     Email
                   </Button>
                 </div>

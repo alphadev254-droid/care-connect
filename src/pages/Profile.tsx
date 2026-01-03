@@ -368,6 +368,16 @@ const Profile = () => {
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Shield className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground">Role</p>
+                    <p className="text-sm font-medium capitalize">{profileData?.Role?.name?.replace('_', ' ') || profileData?.role?.replace('_', ' ') || "Not assigned"}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                     <Phone className="h-4 w-4 text-primary" />
                   </div>
                   <div className="flex-1">
