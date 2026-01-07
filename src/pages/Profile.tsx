@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -27,13 +28,18 @@ import {
   Eye,
   EyeOff,
   FileText,
-  Users
+  Users,
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -224,6 +230,26 @@ const Profile = () => {
       currentPassword: passwordData.currentPassword,
       newPassword: passwordData.newPassword
     });
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    
+    try {
+      await api.delete('/account/delete');
+      toast.success("Account deletion initiated. You will be logged out.");
+      
+      setTimeout(() => {
+        logout();
+        navigate('/');
+      }, 2000);
+      
+    } catch (error) {
+      toast.error("Failed to delete account. Please try again.");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
   };
 
   // Location change handlers
@@ -934,6 +960,66 @@ const Profile = () => {
                     </div>
                   </DialogContent>
                 </Dialog>
+                
+                {/* Delete Account Section */}
+                <div className="border-t pt-6 mt-6">
+                  <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-semibold text-destructive mb-2">Delete Account</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Permanently delete your account and all associated data. This action cannot be undone.
+                        </p>
+                      </div>
+                      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                        <DialogTrigger asChild>
+                          <Button variant="destructive" size="sm" className="ml-4">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Account
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-destructive">
+                              <AlertTriangle className="h-5 w-5" />
+                              Delete Account
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="py-4">
+                            <p className="mb-4">
+                              Are you sure you want to delete your account? This will:
+                            </p>
+                            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                              <li>Remove your personal information from active systems</li>
+                              <li>Cancel all future appointments</li>
+                              <li>Process within 30 days</li>
+                              <li>Retain some data as required by law</li>
+                            </ul>
+                            <p className="mt-4 font-semibold text-destructive">
+                              This action cannot be undone.
+                            </p>
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              variant="outline"
+                              onClick={() => setShowDeleteDialog(false)}
+                              disabled={isDeleting}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={handleDeleteAccount}
+                              disabled={isDeleting}
+                            >
+                              {isDeleting ? "Deleting..." : "Delete Account"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

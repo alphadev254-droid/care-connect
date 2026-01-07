@@ -218,7 +218,7 @@ const Register = () => {
       if (formData.village) formDataToSend.append('village', formData.village);
 
       if (formData.userType === 'patient' || formData.userType === 'child_patient' || formData.userType === 'elderly_patient') {
-        formDataToSend.append('idNumber', formData.idNumber);
+        if (formData.idNumber) formDataToSend.append('idNumber', formData.idNumber);
         formDataToSend.append('dateOfBirth', formData.dateOfBirth);
         formDataToSend.append('address', formData.address);
         formDataToSend.append('emergencyContact', formData.emergencyContact);
@@ -286,7 +286,9 @@ const Register = () => {
 
   const fetchTerms = async (role: string) => {
     try {
-      const response = await api.get(`/terms/${role}`);
+      // Normalize patient types to 'patient' for terms
+      const termsRole = ['patient', 'child_patient', 'elderly_patient'].includes(role) ? 'patient' : role;
+      const response = await api.get(`/terms/${termsRole}`);
       setTermsContent(response.data.data.terms);
       setShowTerms(true);
     } catch (error) {
@@ -320,25 +322,33 @@ const Register = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="flex items-center justify-center py-16 lg:py-24">
-        <div className="container max-w-4xl">
-          <Card className="border-0 shadow-xl">
-            <CardHeader className="text-center pb-2">
-              <div className="flex justify-center mb-4">
-                <div className="h-14 w-14 rounded-2xl bg-gradient-primary flex items-center justify-center">
-                  <Heart className="h-7 w-7 text-primary-foreground" />
-                </div>
+      <main className="flex items-center justify-center py-8 lg:py-12">
+        <div className="container max-w-6xl">
+          <Card className="border-0 shadow-xl overflow-hidden">
+            <div className="grid lg:grid-cols-2">
+              {/* Left Side - Image */}
+              <div className="hidden lg:block bg-cover bg-[center_20%] bg-no-repeat" style={{ backgroundImage: 'url(/mission.png)' }}>
+                <div className="w-full h-full bg-black/20"></div>
               </div>
-              <CardTitle className="font-display text-2xl">Create Account</CardTitle>
-              <CardDescription>
-                Join CareConnect in just a few steps
-              </CardDescription>
+              
+              {/* Right Side - Form */}
+              <div className="p-6">
+                <CardHeader className="text-center pb-1 p-0">
+                  <div className="flex justify-center mb-3">
+                    <div className="h-12 w-12 rounded-xl bg-gradient-primary flex items-center justify-center">
+                      <Heart className="h-6 w-6 text-primary-foreground" />
+                    </div>
+                  </div>
+                  <CardTitle className="font-display text-xl">Create Account</CardTitle>
+                  <CardDescription className="text-sm">
+                    Join CareConnect in just a few steps
+                  </CardDescription>
 
-              <div className="flex items-center justify-center gap-2 mt-6">
+              <div className="flex items-center justify-center gap-1 mt-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-2">
+                  <div key={i} className="flex items-center gap-1">
                     <div
-                      className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                      className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
                         step > i
                           ? "bg-success text-success-foreground"
                           : step === i
@@ -346,11 +356,11 @@ const Register = () => {
                           : "bg-muted text-muted-foreground"
                       }`}
                     >
-                      {step > i ? <Check className="h-4 w-4" /> : i}
+                      {step > i ? <Check className="h-3 w-3" /> : i}
                     </div>
                     {i < 3 && (
                       <div
-                        className={`w-12 h-1 rounded ${
+                        className={`w-8 h-0.5 rounded ${
                           step > i ? "bg-success" : "bg-muted"
                         }`}
                       />
@@ -359,15 +369,15 @@ const Register = () => {
                 ))}
               </div>
             </CardHeader>
-            <CardContent className="pt-6">
-              <form onSubmit={handleSubmit} className="space-y-5">
+            <CardContent className="pt-4">
+              <form onSubmit={handleSubmit} className="space-y-3">
                 {step === 1 && (
-                  <div className="space-y-4">
-                    <Label>I am a...</Label>
+                  <div className="space-y-3">
+                    <Label className="text-sm">I am a...</Label>
                     <RadioGroup
                       value={formData.userType}
                       onValueChange={(value) => setFormData({ ...formData, userType: value })}
-                      className="grid gap-4"
+                      className="grid gap-3"
                     >
                       {userTypes.map((type) => (
                         <div key={type.id}>
@@ -378,20 +388,20 @@ const Register = () => {
                           />
                           <Label
                             htmlFor={type.id}
-                            className="flex items-center gap-4 rounded-xl border-2 border-muted bg-card p-4 hover:bg-muted/50 cursor-pointer peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all"
+                            className="flex items-center gap-3 rounded-lg border-2 border-muted bg-card p-3 hover:bg-muted/50 cursor-pointer peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all"
                           >
-                            <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${
+                            <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
                               type.id === "patient" ? "bg-primary/10" : "bg-secondary/10"
                             }`}>
                               {type.id === "patient" ? (
-                                <User className="h-6 w-6 text-primary" />
+                                <User className="h-5 w-5 text-primary" />
                               ) : (
-                                <Heart className="h-6 w-6 text-secondary" />
+                                <Heart className="h-5 w-5 text-secondary" />
                               )}
                             </div>
                             <div>
-                              <p className="font-semibold">{type.title}</p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="font-medium text-sm">{type.title}</p>
+                              <p className="text-xs text-muted-foreground">
                                 {type.description}
                               </p>
                             </div>
@@ -403,9 +413,9 @@ const Register = () => {
                 )}
 
                 {step === 2 && (
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="grid md:grid-cols-2 gap-4">
                     {/* Left Column - Always 6 fields */}
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       <div className="space-y-2">
                         <Label htmlFor="firstName">{(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? 'Patient First Name' : 'First Name'}</Label>
                         <Input
@@ -449,13 +459,12 @@ const Register = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="idNumber">{(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? 'Patient ID Number' : 'National ID Number'}</Label>
+                        <Label htmlFor="idNumber">{(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? 'Patient ID Number (Optional)' : 'National ID Number (Optional)'}</Label>
                         <Input
                           id="idNumber"
                           placeholder="National ID number"
                           value={formData.idNumber}
                           onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
-                          required
                         />
                       </div>
                       <div className="space-y-2">
@@ -505,7 +514,7 @@ const Register = () => {
                     </div>
 
                     {/* Right Column - Always 6 fields */}
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {/* Patient Types */}
                       {(formData.userType === 'patient' || formData.userType === 'child_patient' || formData.userType === 'elderly_patient') && (
                         <>
@@ -751,9 +760,9 @@ const Register = () => {
                 )}
 
                 {step === 3 && (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {/* Location Fields */}
-                    <div className="grid md:grid-cols-2 gap-4 pb-4 border-b">
+                    <div className="grid md:grid-cols-2 gap-3 pb-3 border-b">
                       <div className="space-y-2">
                         <Label htmlFor="region">Region</Label>
                         <Select
@@ -885,63 +894,66 @@ const Register = () => {
                         className="text-sm text-muted-foreground cursor-pointer leading-tight"
                       >
                         I agree to the{" "}
+                       
                         <button
                           type="button"
-                          onClick={() => fetchTerms(formData.userType)}
+                          onClick={() => {
+                            const termsRole = ['patient', 'child_patient', 'elderly_patient'].includes(formData.userType) ? 'patient' : formData.userType;
+                            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                            window.open(`${apiUrl}/terms/${termsRole}/pdf`, '_blank');
+                          }}
                           className="text-primary hover:underline"
                         >
-                          Terms of Service
-                        </button>{" "}
-                        and{" "}
-                        <Link to="/privacy" className="text-primary hover:underline">
-                          Privacy Policy
-                        </Link>
+                          Terms of Service and Privacy Policy
+                        </button>
                       </label>
                     </div>
                   </div>
                 )}
 
-                <div className="flex gap-4">
+                <div className="flex gap-3 mt-4">
                   {step > 1 && (
                     <Button
                       type="button"
                       variant="outline"
-                      className="flex-1 gap-2"
+                      className="flex-1 gap-2 h-9"
                       onClick={() => setStep(step - 1)}
                     >
-                      <ArrowLeft className="h-4 w-4" />
+                      <ArrowLeft className="h-3 w-3" />
                       Back
                     </Button>
                   )}
                   <Button
                     type="submit"
-                    className="flex-1 bg-gradient-primary hover:opacity-90 gap-2"
+                    className="flex-1 bg-gradient-primary hover:opacity-90 gap-2 h-9"
                     disabled={isLoading}
                   >
                     {step < 3 ? (
                       <>
                         Continue
-                        <ArrowRight className="h-4 w-4" />
+                        <ArrowRight className="h-3 w-3" />
                       </>
                     ) : isLoading ? (
                       "Creating account..."
                     ) : (
                       <>
                         Create Account
-                        <ArrowRight className="h-4 w-4" />
+                        <ArrowRight className="h-3 w-3" />
                       </>
                     )}
                   </Button>
                 </div>
               </form>
 
-              <p className="text-center text-sm text-muted-foreground mt-6">
+              <p className="text-center text-xs text-muted-foreground mt-4">
                 Already have an account?{" "}
                 <Link to="/login" className="text-primary font-medium hover:underline">
                   Sign in
                 </Link>
               </p>
-            </CardContent>
+                </CardContent>
+              </div>
+            </div>
           </Card>
         </div>
       </main>

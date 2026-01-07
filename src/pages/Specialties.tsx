@@ -109,29 +109,37 @@ const Specialties = () => {
       <Header />
       <main>
         {/* Hero Section */}
-        <section className="py-8 lg:py-12 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-          <div className="container">
-            <div className="text-center max-w-4xl mx-auto">
-              <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
-                Healthcare <span className="text-primary">Specialties</span>
-              </h1>
-              <p className="text-lg text-muted-foreground mb-6">
-                Our network of verified healthcare professionals provides supportive care services 
-                to assist with daily health needs. Our caregivers focus on support, monitoring, 
-                and assistance - not medical treatment. All patients must have a physician for 
-                medical diagnosis and treatment.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to="/register">
-                  <Button size="lg" className="gap-2 bg-gradient-primary">
-                    Find a Caregiver <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <Link to="/how-it-works">
-                  <Button size="lg" variant="outline" className="gap-2">
-                    How It Works
-                  </Button>
-                </Link>
+        <section 
+          className="py-8 lg:py-12 relative bg-cover bg-no-repeat rounded-b-3xl overflow-hidden"
+          style={{ backgroundImage: 'url(/specialities.png)', backgroundPosition: '0 45%' }}
+        >
+          <div className="absolute inset-0 bg-black/40"></div>
+          <div className="container mx-auto relative z-10">
+            <div className="grid lg:grid-cols-2 gap-8 items-center">
+              <div className="text-left">
+                <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mb-4 text-white">
+                  Healthcare <span className="text-primary">Specialties</span>
+                </h1>
+                <p className="text-lg text-white/90 mb-6">
+                  Our network of verified healthcare professionals provides supportive care services 
+                  to assist with daily health needs. Our caregivers focus on support, monitoring, 
+                  and assistance - not medical treatment. All patients must have a physician for 
+                  medical diagnosis and treatment.
+                </p>
+              </div>
+              <div className="text-center lg:text-right">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-end">
+                  <Link to="/register">
+                    <Button size="lg" className="gap-2 bg-gradient-primary">
+                      Find a Caregiver <ArrowRight className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <Link to="/how-it-works">
+                    <Button size="lg" variant="outline" className="gap-2">
+                      How It Works
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
@@ -239,20 +247,26 @@ const Specialties = () => {
         {/* CTA Section */}
         <section className="py-16 lg:py-24">
           <div className="container">
-            <Card className="p-8 lg:p-16 bg-gradient-primary text-primary-foreground text-center">
+            <Card className="p-8 lg:p-16 bg-white border border-slate-200 shadow-lg">
               <CardContent className="p-0">
-                <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
-                  Ready to Find Your Specialist?
-                </h2>
-                <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
-                  Connect with qualified healthcare professionals in your area. 
-                  Get the specialized care you deserve, delivered with compassion and expertise.
-                </p>
-                <Link to="/register">
-                  <Button size="lg" variant="secondary" className="gap-2">
-                    Get Started Today <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </Link>
+                <div className="grid lg:grid-cols-2 gap-8 items-center">
+                  <div className="text-left">
+                    <h2 className="font-display text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+                      Ready to Find Your Specialist?
+                    </h2>
+                    <p className="text-lg text-gray-600 mb-6">
+                      Connect with qualified healthcare professionals in your area. 
+                      Get the specialized care you deserve, delivered with compassion and expertise.
+                    </p>
+                  </div>
+                  <div className="text-center lg:text-right">
+                    <Link to="/register">
+                      <Button size="lg" className="gap-2 bg-primary text-white hover:bg-primary/90 px-8 py-3">
+                        Get Started Today <ArrowRight className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

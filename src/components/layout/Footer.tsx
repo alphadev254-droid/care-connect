@@ -1,48 +1,31 @@
 import { Link } from "react-router-dom";
-import { Heart, Phone, Mail, MapPin, Facebook, Twitter, Linkedin, Instagram } from "lucide-react";
+import { Heart, Phone, Mail, MapPin } from "lucide-react";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   const footerLinks = {
     services: [
-      { label: "Find Caregivers", href: "/caregivers" },
-      { label: "Book Appointment", href: "/book" },
-      { label: "Teleconference", href: "/teleconference" },
-      { label: "Care Reports", href: "/reports" },
-    ],
-    company: [
+      { label: "Find Caregivers", href: "/dashboard" },
+      { label: "Book Appointment", href: "/dashboard" },
       { label: "About Us", href: "/about" },
-      { label: "How It Works", href: "/how-it-works" },
-      { label: "Careers", href: "/careers" },
-      { label: "Press", href: "/press" },
-    ],
-    support: [
-      { label: "Help Center", href: "/help" },
       { label: "Contact Us", href: "/contact" },
-      { label: "FAQs", href: "/faq" },
-      { label: "Community", href: "/community" },
+      { label: "Specialties", href: "/specialties" },
+      { label: "How It Works", href: "/how-it-works" },
     ],
     legal: [
-      { label: "Terms of Service", href: "/terms" },
-      { label: "Privacy Policy", href: "/privacy" },
-      { label: "Cookie Policy", href: "/cookies" },
-      { label: "HIPAA Compliance", href: "/hipaa" },
+      { label: "Terms of Service", href: "/terms/patient/pdf", external: true },
+      { label: "Privacy Policy", href: "/terms/patient/pdf", external: true },
     ],
   };
 
-  const socialLinks = [
-    { icon: Facebook, href: "#", label: "Facebook" },
-    { icon: Twitter, href: "#", label: "Twitter" },
-    { icon: Linkedin, href: "#", label: "LinkedIn" },
-    { icon: Instagram, href: "#", label: "Instagram" },
-  ];
+  const socialLinks = [];
 
   return (
     <footer className="bg-foreground text-background">
       {/* Main Footer */}
       <div className="container py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Brand Column */}
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-6">
@@ -72,7 +55,7 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Links Columns */}
+          {/* Services Column */}
           <div>
             <h4 className="font-display font-semibold mb-4">Services</h4>
             <ul className="space-y-3">
@@ -89,49 +72,29 @@ const Footer = () => {
             </ul>
           </div>
 
-          <div>
-            <h4 className="font-display font-semibold mb-4">Company</h4>
-            <ul className="space-y-3">
-              {footerLinks.company.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    to={link.href}
-                    className="text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-display font-semibold mb-4">Support</h4>
-            <ul className="space-y-3">
-              {footerLinks.support.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    to={link.href}
-                    className="text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
+          {/* Legal Column */}
           <div>
             <h4 className="font-display font-semibold mb-4">Legal</h4>
             <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.href}>
-                  <Link
-                    to={link.href}
-                    className="text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {link.label}
-                  </Link>
+                  {link.external ? (
+                    <a
+                      href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${link.href}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      to={link.href}
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -141,22 +104,10 @@ const Footer = () => {
 
       {/* Bottom Bar */}
       <div className="border-t border-border/20">
-        <div className="container py-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-muted-foreground text-sm">
+        <div className="container py-6">
+          <p className="text-muted-foreground text-sm text-center">
             © {currentYear} CareConnect. All rights reserved.
           </p>
-          <div className="flex items-center gap-4">
-            {socialLinks.map((social) => (
-              <a
-                key={social.label}
-                href={social.href}
-                className="h-10 w-10 flex items-center justify-center rounded-full bg-muted/10 text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
-                aria-label={social.label}
-              >
-                <social.icon className="h-4 w-4" />
-              </a>
-            ))}
-          </div>
         </div>
       </div>
     </footer>

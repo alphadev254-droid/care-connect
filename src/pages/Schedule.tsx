@@ -249,7 +249,9 @@ const Schedule = () => {
                                   variant="default"
                                   size="sm"
                                   onClick={() => navigate(`/dashboard/reports?appointment=${appointment.id}`)}
+                                  disabled={!sessionFeePaid}
                                   className="h-7 text-xs bg-green-600 hover:bg-green-700"
+                                  title={!sessionFeePaid ? "Session fee must be paid before completing" : "Complete session and create report"}
                                 >
                                   <Check className="h-3 w-3 mr-1" />
                                   Complete

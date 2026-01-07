@@ -115,19 +115,29 @@ const HowItWorks = () => {
 
       <main>
         {/* Hero Section */}
-        <section className="py-8 lg:py-12 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-          <div className="container text-center max-w-3xl mx-auto">
-            <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
-              How CareConnect <span className="text-primary">Works</span>
-            </h1>
-            <p className="text-lg text-muted-foreground mb-6">
-              Quality healthcare at home through a simple and trusted process.
-            </p>
-            <Link to="/register">
-              <Button size="lg" className="gap-2 bg-gradient-primary">
-                Get Started Today <ArrowRight className="h-5 w-5" />
-              </Button>
-            </Link>
+        <section 
+          className="py-16 lg:py-20 relative bg-cover bg-no-repeat rounded-b-3xl overflow-hidden"
+          style={{ backgroundImage: 'url(/how_it_works.png)', backgroundPosition: '0 45%' }}
+        >
+          <div className="absolute inset-0 bg-black/40"></div>
+          <div className="container mx-auto relative z-10">
+            <div className="grid lg:grid-cols-2 gap-8 items-center">
+              <div className="text-left">
+                <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mb-4 text-white">
+                  How CareConnect <span className="text-primary">Works</span>
+                </h1>
+                <p className="text-lg text-white/90 mb-6">
+                  Quality healthcare at home through a simple and trusted process.
+                </p>
+              </div>
+              <div className="text-center lg:text-right">
+                <Link to="/register">
+                  <Button size="lg" className="gap-2 bg-gradient-primary">
+                    Get Started Today <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
 

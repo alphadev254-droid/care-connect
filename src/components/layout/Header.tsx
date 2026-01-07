@@ -20,14 +20,30 @@ const Header = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+    <>
+      {/* Top Bar */}
+      <div className="w-full bg-slate-800 text-white/80 text-xs py-2">
+        <div className="container flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span>📧 info@careconnect.mw</span>
+            <span>📞 +265 1 234 567</span>
+          </div>
+          <div className="hidden md:flex items-center gap-4">
+            <span>🕒 Mon-Fri: 8AM-6PM</span>
+            <span>Emergency: 24/7</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Main Header */}
+      <header className="sticky top-0 z-50 w-full bg-primary backdrop-blur supports-[backdrop-filter]:bg-primary/95 shadow-lg">
+      <div className="container flex h-20 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary">
             <Heart className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="font-display text-xl font-bold text-foreground">
-            Care<span className="text-primary">Connect</span>
+          <span className="font-display text-xl font-bold text-white">
+            Care<span className="text-white">Connect</span>
           </span>
         </Link>
 
@@ -39,8 +55,8 @@ const Header = () => {
               to={link.href}
               className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 isActive(link.href)
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "text-white bg-white/20"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
               }`}
             >
               {link.label}
@@ -50,17 +66,17 @@ const Header = () => {
 
         {/* Desktop Actions */}
         <div className="hidden lg:flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="gap-2">
+          <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10">
             <Phone className="h-4 w-4" />
             <span className="text-sm">1-800-CARE</span>
           </Button>
           <Link to="/login">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="border-white/30 hover:bg-white/10">
               Sign In
             </Button>
           </Link>
           <Link to="/register">
-            <Button size="sm" className="bg-gradient-primary hover:opacity-90">
+            <Button size="sm" className="bg-white text-primary hover:bg-white/90">
               Get Started
             </Button>
           </Link>
@@ -108,6 +124,7 @@ const Header = () => {
         </Sheet>
       </div>
     </header>
+    </>
   );
 };
 

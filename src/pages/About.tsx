@@ -47,33 +47,6 @@ const About = () => {
     { number: "24/7", label: "Support Available", icon: Clock }
   ];
 
-  const team = [
-    {
-      name: "Dr. Sarah Johnson",
-      role: "Chief Medical Officer",
-      description: "15+ years in healthcare administration and patient care coordination.",
-      image: "SJ"
-    },
-    {
-      name: "Michael Chen",
-      role: "Head of Technology",
-      description: "Expert in healthcare technology and secure patient data management.",
-      image: "MC"
-    },
-    {
-      name: "Dr. Amina Hassan",
-      role: "Quality Assurance Director",
-      description: "Specialist in healthcare quality standards and caregiver certification.",
-      image: "AH"
-    },
-    {
-      name: "James Wilson",
-      role: "Patient Experience Manager",
-      description: "Dedicated to ensuring exceptional patient satisfaction and care outcomes.",
-      image: "JW"
-    }
-  ];
-
   const milestones = [
     {
       year: "2020",
@@ -107,14 +80,18 @@ const About = () => {
       <Header />
       <main>
         {/* Hero Section */}
-        <section className="py-8 lg:py-12 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-          <div className="container">
+        <section 
+          className="py-8 lg:py-12 relative bg-cover bg-top bg-no-repeat"
+          style={{ backgroundImage: 'url(/mission.png)' }}
+        >
+          <div className="absolute inset-0 bg-black/40"></div>
+          <div className="container relative z-10">
             <div className="grid lg:grid-cols-2 gap-8 items-center">
               <div>
-                <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
+                <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mb-4 text-white">
                   About <span className="text-primary">CareConnect</span>
                 </h1>
-                <p className="text-lg text-muted-foreground mb-6">
+                <p className="text-lg text-white/90 mb-6">
                   We're revolutionizing healthcare delivery in Malawi by connecting patients 
                   with qualified caregivers for supportive, compassionate care in the comfort of home. 
                   Our caregivers provide assistance and monitoring services that complement your 
@@ -127,48 +104,21 @@ const About = () => {
                     </Button>
                   </Link>
                   <Link to="/how-it-works">
-                    <Button size="lg" variant="outline">
+                    <Button size="lg" variant="outline" className="border-white  hover:bg-white hover:text-black">
                       Learn More
                     </Button>
                   </Link>
                 </div>
               </div>
               <div className="relative">
-                <Card className="p-8 bg-gradient-to-br from-primary/10 to-secondary/10">
-                  <CardContent className="p-0 text-center">
-                    <Heart className="h-24 w-24 text-primary mx-auto mb-6" />
-                    <h3 className="font-display text-2xl font-bold mb-4">Our Mission</h3>
-                    <p className="text-muted-foreground">
-                      To make quality supportive healthcare accessible, affordable, and convenient for every 
-                      person in Malawi through innovative home-based care solutions that complement 
-                      physician-provided medical care.
-                    </p>
-                  </CardContent>
-                </Card>
+                {/* Empty space or additional content */}
               </div>
             </div>
           </div>
         </section>
 
-        {/* Stats Section */}
-        <section className="py-16 lg:py-24">
-          <div className="container">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {stats.map((stat, index) => (
-                <Card key={index} className="text-center p-8 hover:shadow-lg transition-shadow">
-                  <CardContent className="p-0">
-                    <stat.icon className="h-12 w-12 text-primary mx-auto mb-4" />
-                    <div className="text-3xl font-bold text-primary mb-2">{stat.number}</div>
-                    <div className="text-muted-foreground">{stat.label}</div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Values Section */}
-        <section className="py-16 lg:py-24 bg-muted/30">
+        <section className="py-12 lg:py-16 bg-muted/30">
           <div className="container">
             <div className="text-center mb-16">
               <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
@@ -200,7 +150,7 @@ const About = () => {
         </section>
 
         {/* Timeline Section */}
-        <section className="py-16 lg:py-24">
+        <section className="py-12 lg:py-16 bg-muted/30">
           <div className="container">
             <div className="text-center mb-16">
               <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
@@ -210,29 +160,40 @@ const About = () => {
                 From a simple idea to transforming healthcare delivery across Malawi.
               </p>
             </div>
-            <div className="max-w-4xl mx-auto">
-              <div className="space-y-8">
+            <div className="relative">
+              {/* Timeline Line */}
+              <div className="absolute left-1/2 transform -translate-x-1/2 w-1 bg-primary/20 h-full"></div>
+              
+              <div className="space-y-12">
                 {milestones.map((milestone, index) => (
-                  <div key={index} className="flex gap-8 items-start">
-                    <div className="flex-shrink-0">
-                      <div className="h-12 w-12 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold">
+                  <div key={index} className={`flex items-center gap-8 ${index % 2 === 0 ? '' : 'flex-row-reverse'}`}>
+                    {/* Content Card */}
+                    <div className="flex-1">
+                      <Card className="p-6 bg-white shadow-lg hover:shadow-xl transition-shadow">
+                        <CardContent className="p-0">
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className="text-2xl font-bold text-primary">{milestone.year}</span>
+                            <CheckCircle className="h-5 w-5 text-success" />
+                          </div>
+                          <h3 className="font-display text-xl font-bold mb-3">
+                            {milestone.title}
+                          </h3>
+                          <p className="text-muted-foreground">
+                            {milestone.description}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    {/* Timeline Node */}
+                    <div className="flex-shrink-0 relative z-10">
+                      <div className="h-16 w-16 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-lg shadow-lg">
                         {milestone.year.slice(-2)}
                       </div>
                     </div>
-                    <Card className="flex-1 p-6">
-                      <CardContent className="p-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="text-sm font-medium text-primary">{milestone.year}</span>
-                          <CheckCircle className="h-4 w-4 text-success" />
-                        </div>
-                        <h3 className="font-display text-xl font-bold mb-2">
-                          {milestone.title}
-                        </h3>
-                        <p className="text-muted-foreground">
-                          {milestone.description}
-                        </p>
-                      </CardContent>
-                    </Card>
+                    
+                    {/* Spacer for alternating layout */}
+                    <div className="flex-1"></div>
                   </div>
                 ))}
               </div>
@@ -240,64 +201,35 @@ const About = () => {
           </div>
         </section>
 
-        {/* Team Section */}
-        <section className="py-16 lg:py-24 bg-muted/30">
-          <div className="container">
-            <div className="text-center mb-16">
-              <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
-                Meet Our Team
-              </h2>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Dedicated professionals working tirelessly to improve healthcare 
-                accessibility and quality in Malawi.
-              </p>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {team.map((member, index) => (
-                <Card key={index} className="text-center p-6">
-                  <CardContent className="p-0">
-                    <div className="h-20 w-20 rounded-full bg-gradient-primary flex items-center justify-center mx-auto mb-4 text-primary-foreground font-bold text-xl">
-                      {member.image}
-                    </div>
-                    <h3 className="font-display text-lg font-bold mb-1">
-                      {member.name}
-                    </h3>
-                    <div className="text-primary text-sm font-medium mb-3">
-                      {member.role}
-                    </div>
-                    <p className="text-muted-foreground text-sm">
-                      {member.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* CTA Section */}
         <section className="py-16 lg:py-24">
           <div className="container">
-            <Card className="p-8 lg:p-16 bg-gradient-primary text-primary-foreground text-center">
+            <Card className="p-6 lg:p-12 bg-white border border-slate-200 shadow-2xl rounded-lg">
               <CardContent className="p-0">
-                <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
-                  Join the CareConnect Family
-                </h2>
-                <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
-                  Whether you're seeking care or looking to provide care, 
-                  we invite you to be part of our mission to transform healthcare in Malawi.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link to="/register">
-                    <Button size="lg" variant="secondary" className="gap-2">
-                      Get Started <ArrowRight className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                  <Link to="/contact">
-                    <Button size="lg" variant="outline" className="gap-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
-                      Contact Us
-                    </Button>
-                  </Link>
+                <div className="grid lg:grid-cols-2 gap-8 items-center">
+                  <div className="text-left">
+                    <h2 className="font-display text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+                      Ready to Transform Healthcare Together?
+                    </h2>
+                    <p className="text-lg text-gray-600 mb-6">
+                      Join thousands of patients and caregivers who are revolutionizing healthcare delivery in Malawi. 
+                      Experience compassionate, professional care that brings quality healthcare to your doorstep.
+                    </p>
+                  </div>
+                  <div className="text-center lg:text-right">
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-end">
+                      <Link to="/register">
+                        <Button size="lg" className="gap-2 bg-primary text-white hover:bg-primary/90">
+                          Get Started <ArrowRight className="h-5 w-5" />
+                        </Button>
+                      </Link>
+                      <Link to="/caregivers">
+                        <Button size="lg" variant="outline" className="gap-2">
+                          Find Caregivers
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

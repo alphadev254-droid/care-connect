@@ -93,13 +93,17 @@ const Contact = () => {
       <Header />
       <main>
         {/* Hero Section */}
-        <section className="py-8 lg:py-12 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-          <div className="container">
+        <section 
+          className="py-8 lg:py-12 relative bg-cover bg-no-repeat rounded-b-3xl overflow-hidden"
+          style={{ backgroundImage: 'url(/contact.png)', backgroundPosition: '0 45%' }}
+        >
+          <div className="absolute inset-0 bg-black/40"></div>
+          <div className="container relative z-10">
             <div className="text-center max-w-3xl mx-auto">
-              <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
+              <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mb-4 text-white">
                 Get in <span className="text-primary">Touch</span>
               </h1>
-              <p className="text-lg text-muted-foreground mb-6">
+              <p className="text-lg text-white/90 mb-6">
                 We're here to help! Whether you have questions about our services, 
                 need technical support, or want to provide feedback, our team is ready to assist you.
               </p>
@@ -108,9 +112,9 @@ const Contact = () => {
         </section>
 
         {/* Contact Methods */}
-        <section className="py-16 lg:py-24">
+        <section className="py-12 lg:py-16">
           <div className="container">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12">
               <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
                 Multiple Ways to Reach Us
               </h2>
@@ -146,9 +150,9 @@ const Contact = () => {
         </section>
 
         {/* Contact Form & Office Locations */}
-        <section className="py-16 lg:py-24 bg-muted/30">
+        <section className="py-12 lg:py-16 bg-muted/30">
           <div className="container">
-            <div className="grid lg:grid-cols-2 gap-12">
+            <div className="grid lg:grid-cols-2 gap-8 items-center">
               {/* Contact Form */}
               <Card className="p-8">
                 <CardHeader className="p-0 mb-6">
@@ -239,56 +243,67 @@ const Contact = () => {
         </section>
 
         {/* FAQ Section */}
-        <section className="py-16 lg:py-24">
+        <section className="py-12 lg:py-16">
           <div className="container">
-            <div className="text-center mb-16">
-              <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
-                Frequently Asked Questions
-              </h2>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Quick answers to common questions. Can't find what you're looking for? 
-                Contact us directly.
-              </p>
-            </div>
-            <div className="max-w-3xl mx-auto space-y-6">
-              {faqs.map((faq, index) => (
-                <Card key={index} className="p-6">
-                  <CardContent className="p-0">
-                    <h3 className="font-display text-lg font-bold mb-3 text-primary">
-                      {faq.question}
-                    </h3>
-                    <p className="text-muted-foreground">
-                      {faq.answer}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* FAQ Questions */}
+              <div className="space-y-6">
+                {faqs.map((faq, index) => (
+                  <Card key={index} className="p-6">
+                    <CardContent className="p-0">
+                      <h3 className="font-display text-lg font-bold mb-3 text-primary">
+                        {faq.question}
+                      </h3>
+                      <p className="text-muted-foreground">
+                        {faq.answer}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              
+              {/* FAQ Header */}
+              <div className="text-center">
+                <div className="text-9xl text-blue-500/40 mb-4">?</div>
+                <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
+                  Frequently Asked Questions
+                </h2>
+                <p className="text-xl text-muted-foreground">
+                  Quick answers to common questions. Can't find what you're looking for? 
+                  Contact us directly.
+                </p>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Emergency Contact */}
-        <section className="py-16 lg:py-24 bg-muted/30">
+        <section className="py-12 lg:py-16 bg-muted/30">
           <div className="container">
-            <Card className="p-8 lg:p-16 bg-gradient-to-r from-red-500 to-red-600 text-white text-center">
+            <Card className="p-8 lg:p-12 bg-white border border-slate-200 shadow-2xl rounded-lg">
               <CardContent className="p-0">
-                <HeadphonesIcon className="h-16 w-16 mx-auto mb-6 opacity-90" />
-                <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
-                  Emergency Support
-                </h2>
-                <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
-                  For urgent medical situations, call our 24/7 emergency hotline. 
-                  Our team will help coordinate immediate care or direct you to appropriate emergency services.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button size="lg" variant="secondary" className="gap-2">
-                    <Phone className="h-5 w-5" />
-                    Call +265 1 911 911
-                  </Button>
-                  <Button size="lg" variant="outline" className="gap-2 border-white text-white hover:bg-white hover:text-red-600">
-                    <MessageCircle className="h-5 w-5" />
-                    WhatsApp Emergency
-                  </Button>
+                <div className="grid lg:grid-cols-2 gap-8 items-center">
+                  <div className="text-left">
+                    <h2 className="font-display text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+                      Emergency Support
+                    </h2>
+                    <p className="text-lg text-gray-600 mb-6">
+                      For urgent medical situations, call our 24/7 emergency hotline. 
+                      Our team will help coordinate immediate care or direct you to appropriate emergency services.
+                    </p>
+                  </div>
+                  <div className="text-center lg:text-right">
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-end">
+                      <Button size="lg" className="gap-2 bg-red-600 text-white hover:bg-red-700">
+                        <Phone className="h-5 w-5" />
+                        Call +265 1 911 911
+                      </Button>
+                      <Button size="lg" variant="outline" className="gap-2">
+                        <MessageCircle className="h-5 w-5" />
+                        WhatsApp Emergency
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -5,7 +5,7 @@ import { ArrowRight, Play, Shield, Clock, Users, Star } from "lucide-react";
 
 const HeroSection = () => {
   return (
-    <section className="relative overflow-hidden bg-gradient-hero py-14 lg:py-18">
+    <section className="relative overflow-hidden bg-white lg:py-18">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl" />
@@ -91,7 +91,7 @@ const HeroSection = () => {
               </div>
 
               {/* Floating Cards */}
-              <div className="absolute -top-6 -left-6 bg-card rounded-2xl shadow-lg p-4 border ">
+              <div className="absolute top-6 -left-12 bg-card rounded-2xl shadow-lg p-4 border ">
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-full bg-success/20 flex items-center justify-center">
                     <Shield className="h-6 w-6 text-success" />

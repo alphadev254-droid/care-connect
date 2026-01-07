@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Heart, Search, Clock, DollarSign, LogIn, MapPin, Award, User, Filter, ChevronDown, Calendar, Shield, X } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Heart, Search, Clock, DollarSign, LogIn, MapPin, Award, User, Filter, ChevronDown, Calendar, Shield, X, Briefcase } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { BookingModal } from "@/components/booking/BookingModal";
@@ -25,6 +27,7 @@ const PublicCaregivers = () => {
   const [selectedVillage, setSelectedVillage] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [bookingModal, setBookingModal] = useState({ open: false, caregiver: null });
+  const [profileDialog, setProfileDialog] = useState<{ open: boolean; caregiver: any }>({ open: false, caregiver: null });
   const [currentPage, setCurrentPage] = useState(1);
   const [appliedFilters, setAppliedFilters] = useState({
     search: '',
@@ -171,183 +174,190 @@ const PublicCaregivers = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 py-8">
-        <div className="container max-w-6xl mx-auto px-4">
-          <div className="text-center mb-6">
-            <div className="flex justify-center mb-4">
-              <div className="h-12 w-12 rounded-2xl bg-gradient-primary flex items-center justify-center">
-                <Heart className="h-6 w-6 text-primary-foreground" />
+      <section 
+        className="py-8 lg:py-12 relative bg-cover bg-no-repeat rounded-b-3xl overflow-hidden"
+        style={{ backgroundImage: 'url(/caregivers.png)', backgroundPosition: '0 45%' }}
+      >
+        <div className="absolute inset-0 bg-black/40"></div>
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-8 items-center mb-6">
+            <div className="text-center lg:text-left">
+              <div className="flex justify-center lg:justify-start mb-4">
+                <div className="h-12 w-12 rounded-2xl bg-gradient-primary flex items-center justify-center">
+                  <Heart className="h-6 w-6 text-primary-foreground" />
+                </div>
               </div>
+              <h1 className="font-display text-2xl md:text-3xl font-bold mb-3 text-white">
+                Our Verified Caregivers
+              </h1>
+              <p className="text-lg text-white/90 mb-6">
+                Meet our team of qualified healthcare professionals ready to provide supportive 
+                home care services. Our caregivers focus on assistance, monitoring, and support 
+                to complement your physician's medical care.
+              </p>
             </div>
-            <h1 className="font-display text-2xl md:text-3xl font-bold mb-3">
-              Our Verified Caregivers
-            </h1>
-            <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-              Meet our team of qualified healthcare professionals ready to provide supportive 
-              home care services. Our caregivers focus on assistance, monitoring, and support 
-              to complement your physician's medical care.
-            </p>
-          </div>
-          
-          {/* Search and Filters */}
-          <div className="flex gap-2 max-w-2xl mx-auto">
-            <Popover open={showFilters} onOpenChange={setShowFilters}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 h-9"
-                >
-                  <Filter className="h-4 w-4" />
-                  Filters
-                  <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? "rotate-180" : ""}`} />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-4" align="start">
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-xs font-semibold mb-2 block">Specialty</Label>
-                    <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
-                      <SelectTrigger className="h-9 text-xs">
-                        <SelectValue placeholder="All Specialties" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Specialties</SelectItem>
-                        {specialties.map((specialty: any) => (
-                          <SelectItem key={specialty.id} value={specialty.id.toString()}>
-                            {specialty.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs font-semibold mb-2 block">Region</Label>
-                    <Select value={selectedRegion} onValueChange={handleRegionChange}>
-                      <SelectTrigger className="h-9 text-xs">
-                        <SelectValue placeholder="All Regions" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Regions</SelectItem>
-                        {regions?.map((region: string) => (
-                          <SelectItem key={region} value={region}>
-                            {region}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs font-semibold mb-2 block">District</Label>
-                    <Select value={selectedDistrict} onValueChange={handleDistrictChange}>
-                      <SelectTrigger className="h-9 text-xs">
-                        <SelectValue placeholder="All Districts" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Districts</SelectItem>
-                        {districts?.map((district: string) => (
-                          <SelectItem key={district} value={district}>
-                            {district}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs font-semibold mb-2 block">Traditional Authority</Label>
-                    <Select value={selectedTA} onValueChange={handleTAChange}>
-                      <SelectTrigger className="h-9 text-xs">
-                        <SelectValue placeholder="All TAs" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All TAs</SelectItem>
-                        {traditionalAuthorities?.map((ta: string) => (
-                          <SelectItem key={ta} value={ta}>
-                            {ta}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs font-semibold mb-2 block">Village</Label>
-                    <Select value={selectedVillage} onValueChange={setSelectedVillage}>
-                      <SelectTrigger className="h-9 text-xs">
-                        <SelectValue placeholder="All Villages" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Villages</SelectItem>
-                        {villages?.map((village: string) => (
-                          <SelectItem key={village} value={village}>
-                            {village}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="flex-1 h-9 text-xs"
-                      onClick={() => {
-                        applyFilters();
-                        setShowFilters(false);
-                      }}
-                      disabled={isFetching}
-                    >
-                      Apply Filters
-                    </Button>
+            <div className="space-y-4">
+              {/* Search and Filters */}
+              <div className="flex gap-2">
+                <Popover open={showFilters} onOpenChange={setShowFilters}>
+                  <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 gap-2 h-9 text-xs"
-                      onClick={() => {
-                        clearFilters();
-                        setShowFilters(false);
-                      }}
+                      className="gap-2 h-9"
                     >
-                      <X className="h-4 w-4" />
-                      Clear
+                      <Filter className="h-4 w-4" />
+                      Filters
+                      <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? "rotate-180" : ""}`} />
                     </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-            
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, specialty, or location..."
-                className="pl-10 h-9"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && applyFilters()}
-              />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-4" align="end">
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-xs font-semibold mb-2 block">Specialty</Label>
+                        <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue placeholder="All Specialties" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Specialties</SelectItem>
+                            {specialties.map((specialty: any) => (
+                              <SelectItem key={specialty.id} value={specialty.id.toString()}>
+                                {specialty.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs font-semibold mb-2 block">Region</Label>
+                        <Select value={selectedRegion} onValueChange={handleRegionChange}>
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue placeholder="All Regions" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Regions</SelectItem>
+                            {regions?.map((region: string) => (
+                              <SelectItem key={region} value={region}>
+                                {region}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs font-semibold mb-2 block">District</Label>
+                        <Select value={selectedDistrict} onValueChange={handleDistrictChange}>
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue placeholder="All Districts" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Districts</SelectItem>
+                            {districts?.map((district: string) => (
+                              <SelectItem key={district} value={district}>
+                                {district}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs font-semibold mb-2 block">Traditional Authority</Label>
+                        <Select value={selectedTA} onValueChange={handleTAChange}>
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue placeholder="All TAs" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All TAs</SelectItem>
+                            {traditionalAuthorities?.map((ta: string) => (
+                              <SelectItem key={ta} value={ta}>
+                                {ta}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs font-semibold mb-2 block">Village</Label>
+                        <Select value={selectedVillage} onValueChange={setSelectedVillage}>
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue placeholder="All Villages" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Villages</SelectItem>
+                            {villages?.map((village: string) => (
+                              <SelectItem key={village} value={village}>
+                                {village}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="flex-1 h-9 text-xs"
+                          onClick={() => {
+                            applyFilters();
+                            setShowFilters(false);
+                          }}
+                          disabled={isFetching}
+                        >
+                          Apply Filters
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 gap-2 h-9 text-xs"
+                          onClick={() => {
+                            clearFilters();
+                            setShowFilters(false);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="gap-2 h-9 px-4"
+                  onClick={applyFilters}
+                  disabled={isFetching}
+                >
+                  <Search className="h-4 w-4" />
+                  Search
+                </Button>
+              </div>
+              
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, specialty, or location..."
+                  className="pl-10 h-9"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && applyFilters()}
+                />
+              </div>
             </div>
-            
-            <Button
-              variant="default"
-              size="sm"
-              className="gap-2 h-9 px-4"
-              onClick={applyFilters}
-              disabled={isFetching}
-            >
-              <Search className="h-4 w-4" />
-              Search
-            </Button>
           </div>
         </div>
       </section>
 
       {/* Main Content */}
       <section className="py-8">
-        <div className="container max-w-6xl mx-auto px-4">
+        <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-muted-foreground">
               {filteredCaregivers.length} caregiver{filteredCaregivers.length !== 1 ? 's' : ''} found
@@ -475,7 +485,12 @@ const PublicCaregivers = () => {
                       )}
 
                       <div className="flex gap-2 pt-3 border-t">
-                        <Button variant="outline" size="sm" className="flex-1 h-8 text-xs">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-8 text-xs"
+                          onClick={() => setProfileDialog({ open: true, caregiver })}
+                        >
                           View Profile
                         </Button>
                         {isAuthenticated ? (
@@ -530,37 +545,215 @@ const PublicCaregivers = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 py-16">
-        <div className="container max-w-4xl mx-auto px-4 text-center">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-8">
-            <h3 className="font-display text-xl font-bold text-amber-800 mb-2">
-              Important Notice
-            </h3>
-            <p className="text-amber-700">
-              Our caregivers provide supportive care services and assistance - not medical treatment. 
-              All patients must have a physician for medical diagnosis, treatment, and prescriptions. 
-              CareConnect complements your doctor's care with supportive home services.
-            </p>
-          </div>
-          <h2 className="font-display text-3xl font-bold mb-4">
-            Ready to Get Started?
-          </h2>
-          <p className="text-muted-foreground mb-8">
-            Join thousands of patients who trust CareConnect for their supportive healthcare needs
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-gradient-primary">
-              Find Your Caregiver
-            </Button>
-            <Button size="lg" variant="outline">
-              Learn More
-            </Button>
-          </div>
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <Card className="p-8 lg:p-12 bg-white border border-slate-200 shadow-lg">
+            <CardContent className="p-0">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-8">
+                <h3 className="font-display text-xl font-bold text-amber-800 mb-2">
+                  Important Notice
+                </h3>
+                <p className="text-amber-700">
+                  Our caregivers provide supportive care services and assistance - not medical treatment. 
+                  All patients must have a physician for medical diagnosis, treatment, and prescriptions. 
+                  CareConnect complements your doctor's care with supportive home services.
+                </p>
+              </div>
+              <div className="grid lg:grid-cols-2 gap-8 items-center">
+                <div className="text-left">
+                  <h2 className="font-display text-3xl font-bold mb-4 text-gray-900">
+                    Ready to Get Started?
+                  </h2>
+                  <p className="text-lg text-gray-600 mb-6">
+                    Join thousands of patients who trust CareConnect for their supportive healthcare needs
+                  </p>
+                </div>
+                <div className="text-center lg:text-right">
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-end">
+                    <Button size="lg" className="bg-primary text-white hover:bg-primary/90">
+                      Find Your Caregiver
+                    </Button>
+                    <Button size="lg" variant="outline">
+                      Learn More
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
       <Footer />
-      
+
+      {/* Profile Dialog */}
+      {profileDialog.caregiver && (
+        <Dialog open={profileDialog.open} onOpenChange={(open) => setProfileDialog({ open, caregiver: open ? profileDialog.caregiver : null })}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">Caregiver Profile</DialogTitle>
+              <DialogDescription>
+                Detailed information about this healthcare professional
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Profile Header */}
+              <div className="flex items-start gap-4">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={profileDialog.caregiver.Caregiver?.profileImage} />
+                  <AvatarFallback className="text-2xl bg-gradient-primary text-primary-foreground">
+                    {profileDialog.caregiver.firstName?.charAt(0)}{profileDialog.caregiver.lastName?.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h3 className="text-xl font-semibold">
+                    {profileDialog.caregiver.firstName} {profileDialog.caregiver.lastName}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    {profileDialog.caregiver.Caregiver?.verificationStatus === 'verified' && (
+                      <Badge className="gap-1">
+                        <Shield className="h-3 w-3" />
+                        Verified Professional
+                      </Badge>
+                    )}
+                    {profileDialog.caregiver.Caregiver?.Specialties?.map((specialty: any) => (
+                      <Badge key={specialty.id} variant="outline">
+                        {specialty.name}
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Briefcase className="h-4 w-4" />
+                      {profileDialog.caregiver.Caregiver?.experience} years experience
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bio */}
+              {profileDialog.caregiver.Caregiver?.bio && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <User className="h-5 w-5 text-primary" />
+                      <h4 className="font-semibold">About</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {profileDialog.caregiver.Caregiver.bio}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Qualifications */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Award className="h-5 w-5 text-primary" />
+                    <h4 className="font-semibold">Qualifications & Licensing</h4>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Qualifications</Label>
+                      <p className="text-sm mt-1">{profileDialog.caregiver.Caregiver?.qualifications || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Licensing Institution</Label>
+                      <p className="text-sm mt-1">{profileDialog.caregiver.Caregiver?.licensingInstitution || 'Not specified'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Location */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    <h4 className="font-semibold">Service Location</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Region</Label>
+                      <p className="text-sm mt-1 capitalize">{profileDialog.caregiver.Caregiver?.region || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">District</Label>
+                      <p className="text-sm mt-1 uppercase">{profileDialog.caregiver.Caregiver?.district || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Traditional Authority</Label>
+                      <p className="text-sm mt-1 uppercase">{profileDialog.caregiver.Caregiver?.traditionalAuthority || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Village</Label>
+                      <p className="text-sm mt-1 uppercase">{profileDialog.caregiver.Caregiver?.village || 'Not specified'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Appointment Details */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Clock className="h-5 w-5 text-primary" />
+                    <h4 className="font-semibold">Appointment Information</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Default Duration</Label>
+                      <p className="text-sm mt-1">{profileDialog.caregiver.Caregiver?.appointmentDuration || 60} minutes</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Auto-Confirm</Label>
+                      <p className="text-sm mt-1">
+                        {profileDialog.caregiver.Caregiver?.autoConfirm ? 'Yes' : 'No'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                {isAuthenticated ? (
+                  <Button
+                    className="flex-1"
+                    onClick={() => {
+                      setProfileDialog({ open: false, caregiver: null });
+                      setBookingModal({ open: true, caregiver: profileDialog.caregiver });
+                    }}
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Book Appointment
+                  </Button>
+                ) : (
+                  <Button
+                    className="flex-1"
+                    onClick={() => {
+                      setProfileDialog({ open: false, caregiver: null });
+                      navigate('/login');
+                    }}
+                  >
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Login to Book
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => setProfileDialog({ open: false, caregiver: null })}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {bookingModal.caregiver && isAuthenticated && (
         <BookingModal
           open={bookingModal.open}
