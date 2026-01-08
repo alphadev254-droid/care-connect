@@ -175,7 +175,7 @@ const PublicCaregivers = () => {
       
       {/* Hero Section */}
       <section 
-        className="py-8 lg:py-12 relative bg-cover bg-no-repeat rounded-b-3xl overflow-hidden"
+        className="py-4 lg:py-6 relative bg-cover bg-no-repeat rounded-b-3xl overflow-hidden"
         style={{ backgroundImage: 'url(/caregivers.png)', backgroundPosition: '0 45%' }}
       >
         <div className="absolute inset-0 bg-black/40"></div>

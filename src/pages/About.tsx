@@ -81,10 +81,10 @@ const About = () => {
       <main>
         {/* Hero Section */}
         <section 
-          className="py-8 lg:py-12 relative bg-cover bg-top bg-no-repeat"
+          className="py-6 lg:py-8 relative bg-cover bg-top bg-no-repeat rounded-b-3xl overflow-hidden"
           style={{ backgroundImage: 'url(/mission.png)' }}
         >
-          <div className="absolute inset-0 bg-black/40"></div>
+          <div className="absolute inset-0 bg-black/40 rounded-b-3xl"></div>
           <div className="container relative z-10">
             <div className="grid lg:grid-cols-2 gap-8 items-center">
               <div>
@@ -92,10 +92,9 @@ const About = () => {
                   About <span className="text-primary">CareConnect</span>
                 </h1>
                 <p className="text-lg text-white/90 mb-6">
-                  We're revolutionizing healthcare delivery in Malawi by connecting patients 
-                  with qualified caregivers for supportive, compassionate care in the comfort of home. 
-                  Our caregivers provide assistance and monitoring services that complement your 
-                  physician's medical care.
+                  We connect patients with professional home-based caregivers for quality supportive health 
+                  services in the comfort of home. Our verified caregivers provide compassionate assistance 
+                  and monitoring services that complement your physician's medical care.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link to="/register">
