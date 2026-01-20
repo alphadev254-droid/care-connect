@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -146,9 +147,36 @@ const UserManagement = () => {
     },
   });
 
-  const toggleUserMutation = useMutation({
+  const verifyCaregiver = useMutation({
     mutationFn: async (userId: string) => {
-      await api.put(`/admin/users/${userId}/toggle-status`);
+      await api.put(`/admin/caregivers/${userId}/verify`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
+      toast.success("Caregiver verified successfully");
+    },
+  });
+
+  const rejectCaregiver = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
+      await api.put(`/admin/caregivers/${userId}/reject`, { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
+      toast.success("Caregiver rejected successfully");
+      setRejectDialog({ open: false, userId: "", reason: "" });
+    },
+  });
+
+  const [rejectDialog, setRejectDialog] = useState<{
+    open: boolean;
+    userId: string;
+    reason: string;
+  }>({ open: false, userId: "", reason: "" });
+
+  const toggleUserMutation = useMutation({
+    mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
+      await api.put(`/admin/users/${userId}/toggle-status`, { isActive });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin"] });
@@ -182,12 +210,22 @@ const UserManagement = () => {
     }
   });
 
+  const handleRejectCaregiver = (userId: string) => {
+    setRejectDialog({ open: true, userId, reason: "" });
+  };
+
+  const handleConfirmReject = () => {
+    if (rejectDialog.reason.trim()) {
+      rejectCaregiver.mutate({ userId: rejectDialog.userId, reason: rejectDialog.reason });
+    }
+  };
+
   const handleToggleUser = (user: any) => {
     setConfirmDialog({
       open: true,
       title: user.isActive ? "Deactivate User" : "Activate User",
       description: `Are you sure you want to ${user.isActive ? 'deactivate' : 'activate'} ${user.firstName} ${user.lastName}?`,
-      action: () => toggleUserMutation.mutate(user.id)
+      action: () => toggleUserMutation.mutate({ userId: user.id, isActive: !user.isActive })
     });
   };
 
@@ -410,7 +448,8 @@ const UserManagement = () => {
                   <TableHead className="h-9">User</TableHead>
                   <TableHead className="h-9">Role</TableHead>
                   <TableHead className="h-9">Contact</TableHead>
-                  <TableHead className="h-9">Status</TableHead>
+                  <TableHead className="h-9">Account Status</TableHead>
+                  <TableHead className="h-9">Verification</TableHead>
                   <TableHead className="h-9">Joined</TableHead>
                   <TableHead className="h-9 text-right">Actions</TableHead>
                 </TableRow>
@@ -418,7 +457,7 @@ const UserManagement = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       <div className="flex items-center justify-center gap-2">
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
                         <span className="text-sm text-muted-foreground">Loading users...</span>
@@ -461,45 +500,162 @@ const UserManagement = () => {
                           {user.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
+                      <TableCell className="py-2">
+                        {user.role === 'caregiver' && user.Caregiver ? (
+                          <Badge 
+                            variant={
+                              user.Caregiver.verificationStatus === 'APPROVED' ? "default" :
+                              user.Caregiver.verificationStatus === 'REJECTED' ? "destructive" : "secondary"
+                            } 
+                            className="text-xs"
+                          >
+                            {user.Caregiver.verificationStatus === 'pending' ? 'Awaiting Verification' : user.Caregiver.verificationStatus}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">N/A</span>
+                        )}
+                      </TableCell>
                       <TableCell className="py-2 text-xs text-muted-foreground">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="py-2 text-right">
                         {user.Role?.name !== 'system_manager' ? (
                           <div className="flex items-center justify-end gap-1">
-                            {canViewUserDetails(user.Role?.name) && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-1 h-7 text-xs"
-                                onClick={() => navigate(`/dashboard/user/${user.id}`)}
-                              >
-                                <Eye className="h-3 w-3" />
-                                View
-                              </Button>
-                            )}
-                            {canEditUser(user.Role?.name) && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-1 h-7 text-xs"
-                                onClick={() => navigate(`/dashboard/users/edit/${user.id}`)}
-                              >
-                                <Pencil className="h-3 w-3" />
-                                Edit
-                              </Button>
-                            )}
-                            {canActivateDeactivateUser(user.Role?.name, user.isActive) && (
-                              <Button
-                                variant={user.isActive ? "outline" : "default"}
-                                size="sm"
-                                className="gap-1 h-7 text-xs"
-                                onClick={() => handleToggleUser(user)}
-                                disabled={toggleUserMutation.isPending}
-                              >
-                                {user.isActive ? <UserX className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
-                                {user.isActive ? 'Deactivate' : 'Activate'}
-                              </Button>
+                            {user.role === 'caregiver' && user.Caregiver ? (
+                              // Caregiver-specific actions based on verification status
+                              user.Caregiver.verificationStatus === 'pending' ? (
+                                // Show Verify/Reject for pending caregivers
+                                <>
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    className="gap-1 h-7 text-xs"
+                                    onClick={() => verifyCaregiver.mutate(user.id)}
+                                    disabled={verifyCaregiver.isPending && verifyCaregiver.variables === user.id}
+                                  >
+                                    {verifyCaregiver.isPending && verifyCaregiver.variables === user.id ? (
+                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                    ) : (
+                                      <UserCheck className="h-3 w-3" />
+                                    )}
+                                    {verifyCaregiver.isPending && verifyCaregiver.variables === user.id ? 'Verifying...' : 'Verify'}
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="gap-1 h-7 text-xs"
+                                    onClick={() => handleRejectCaregiver(user.id)}
+                                    disabled={rejectCaregiver.isPending}
+                                  >
+                                    <UserX className="h-3 w-3" />
+                                    Reject
+                                  </Button>
+                                </>
+                              ) : user.Caregiver.verificationStatus === 'APPROVED' ? (
+                                // Show standard actions for approved caregivers
+                                <>
+                                  {canViewUserDetails(user.Role?.name) && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1 h-7 text-xs"
+                                      onClick={() => navigate(`/dashboard/user/${user.id}`)}
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                      View
+                                    </Button>
+                                  )}
+                                  {canEditUser(user.Role?.name) && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1 h-7 text-xs"
+                                      onClick={() => navigate(`/dashboard/users/edit/${user.id}`)}
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                      Edit
+                                    </Button>
+                                  )}
+                                  {canActivateDeactivateUser(user.Role?.name, user.isActive) && (
+                                    <Button
+                                      variant={user.isActive ? "outline" : "default"}
+                                      size="sm"
+                                      className="gap-1 h-7 text-xs"
+                                      onClick={() => handleToggleUser(user)}
+                                      disabled={toggleUserMutation.isPending}
+                                    >
+                                      {user.isActive ? <UserX className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
+                                      {user.isActive ? 'Deactivate' : 'Activate'}
+                                    </Button>
+                                  )}
+                                </>
+                              ) : (
+                                // Show re-verify and reject for rejected caregivers
+                                <>
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    className="gap-1 h-7 text-xs"
+                                    onClick={() => verifyCaregiver.mutate(user.id)}
+                                    disabled={verifyCaregiver.isPending && verifyCaregiver.variables === user.id}
+                                  >
+                                    {verifyCaregiver.isPending && verifyCaregiver.variables === user.id ? (
+                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                    ) : (
+                                      <UserCheck className="h-3 w-3" />
+                                    )}
+                                    {verifyCaregiver.isPending && verifyCaregiver.variables === user.id ? 'Verifying...' : 'Re-verify'}
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="gap-1 h-7 text-xs"
+                                    onClick={() => handleRejectCaregiver(user.id)}
+                                    disabled={rejectCaregiver.isPending}
+                                  >
+                                    <UserX className="h-3 w-3" />
+                                    Reject
+                                  </Button>
+                                </>
+                              )
+                            ) : (
+                              // Standard actions for non-caregivers
+                              <>
+                                {canViewUserDetails(user.Role?.name) && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1 h-7 text-xs"
+                                    onClick={() => navigate(`/dashboard/user/${user.id}`)}
+                                  >
+                                    <Eye className="h-3 w-3" />
+                                    View
+                                  </Button>
+                                )}
+                                {canEditUser(user.Role?.name) && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1 h-7 text-xs"
+                                    onClick={() => navigate(`/dashboard/users/edit/${user.id}`)}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                    Edit
+                                  </Button>
+                                )}
+                                {canActivateDeactivateUser(user.Role?.name, user.isActive) && (
+                                  <Button
+                                    variant={user.isActive ? "outline" : "default"}
+                                    size="sm"
+                                    className="gap-1 h-7 text-xs"
+                                    onClick={() => handleToggleUser(user)}
+                                    disabled={toggleUserMutation.isPending}
+                                  >
+                                    {user.isActive ? <UserX className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
+                                    {user.isActive ? 'Deactivate' : 'Activate'}
+                                  </Button>
+                                )}
+                              </>
                             )}
                           </div>
                         ) : (
@@ -510,7 +666,7 @@ const UserManagement = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">
                       No users found matching the current filters
                     </TableCell>
                   </TableRow>
@@ -722,6 +878,49 @@ const UserManagement = () => {
                 disabled={createUserMutation.isPending || !createUserForm.firstName || !createUserForm.lastName || !createUserForm.email || !createUserForm.password || !createUserForm.roleId || (requiresRegion && !createUserForm.assignedRegion)}
               >
                 {createUserMutation.isPending ? "Creating..." : "Create User"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={rejectDialog.open} onOpenChange={(open) => {
+          if (!rejectCaregiver.isPending) {
+            setRejectDialog(prev => ({ ...prev, open }));
+          }
+        }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Reject Caregiver Application</DialogTitle>
+              <DialogDescription>
+                Please provide a reason for rejecting this caregiver application
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="reason">Reason for rejection</Label>
+                <Textarea
+                  id="reason"
+                  value={rejectDialog.reason}
+                  onChange={(e) => setRejectDialog(prev => ({ ...prev, reason: e.target.value }))}
+                  placeholder="Enter detailed reason for rejection..."
+                  rows={4}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setRejectDialog({ open: false, userId: "", reason: "" })}
+                disabled={rejectCaregiver.isPending}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={handleConfirmReject}
+                disabled={rejectCaregiver.isPending || !rejectDialog.reason.trim()}
+              >
+                {rejectCaregiver.isPending ? "Rejecting..." : "Reject"}
               </Button>
             </DialogFooter>
           </DialogContent>

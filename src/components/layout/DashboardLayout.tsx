@@ -1,9 +1,14 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Sidebar,
   SidebarContent,
@@ -52,6 +57,34 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
   const navigate = useNavigate();
   const { user, logout, loading: authLoading } = useAuth();
   const { hasPermission, loading: permissionsLoading } = usePermissions();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  
+  // Mock notifications - replace with real data
+  const notifications = [
+    {
+      id: 1,
+      title: "New Appointment Request",
+      message: "You have a new appointment request from John Doe",
+      time: "2 minutes ago",
+      unread: true,
+    },
+    {
+      id: 2,
+      title: "Payment Received",
+      message: "Payment of MWK 25,000 has been received",
+      time: "1 hour ago",
+      unread: true,
+    },
+    {
+      id: 3,
+      title: "Profile Updated",
+      message: "Your profile has been successfully updated",
+      time: "3 hours ago",
+      unread: false,
+    },
+  ];
+  
+  const unreadCount = notifications.filter(n => n.unread).length;
   
   // Use actual user role if available, fallback to prop
   const actualRole = user?.role === 'system_manager' || user?.role === 'regional_manager' || user?.role === 'Accountant' ? 'admin' : (user?.role || userRole);
@@ -192,12 +225,62 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
             </div>
 
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
-                  3
-                </span>
-              </Button>
+              <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="end">
+                  <div className="p-4 border-b">
+                    <h3 className="font-semibold">Notifications</h3>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.length > 0 ? (
+                      notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className={`p-4 border-b last:border-b-0 hover:bg-muted/50 cursor-pointer ${
+                            notification.unread ? 'bg-muted/30' : ''
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`h-2 w-2 rounded-full mt-2 ${
+                              notification.unread ? 'bg-primary' : 'bg-transparent'
+                            }`} />
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{notification.title}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {notification.message}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-2">
+                                {notification.time}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center text-muted-foreground">
+                        <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>No notifications</p>
+                      </div>
+                    )}
+                  </div>
+                  {notifications.length > 0 && (
+                    <div className="p-3 border-t">
+                      <Button variant="ghost" size="sm" className="w-full">
+                        Mark all as read
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
