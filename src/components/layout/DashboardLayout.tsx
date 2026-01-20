@@ -1,9 +1,11 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api";
 import {
   Popover,
   PopoverContent,
@@ -58,33 +60,51 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
   const { user, logout, loading: authLoading } = useAuth();
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const queryClient = useQueryClient();
   
-  // Mock notifications - replace with real data
-  const notifications = [
-    {
-      id: 1,
-      title: "New Appointment Request",
-      message: "You have a new appointment request from John Doe",
-      time: "2 minutes ago",
-      unread: true,
+  // Fetch real notifications
+  const { data: notificationsData } = useQuery({
+    queryKey: ['notifications', user?.id],
+    queryFn: async () => {
+      const response = await api.get('/notifications?limit=10');
+      return response.data.data;
     },
-    {
-      id: 2,
-      title: "Payment Received",
-      message: "Payment of MWK 25,000 has been received",
-      time: "1 hour ago",
-      unread: true,
+    enabled: !!user?.id,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const { data: unreadCountData } = useQuery({
+    queryKey: ['notifications', 'count', user?.id],
+    queryFn: async () => {
+      const response = await api.get('/notifications/count');
+      return response.data;
     },
-    {
-      id: 3,
-      title: "Profile Updated",
-      message: "Your profile has been successfully updated",
-      time: "3 hours ago",
-      unread: false,
+    enabled: !!user?.id,
+    refetchInterval: 30000,
+  });
+
+  // Mark notification as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: async (notificationId: number) => {
+      await api.put(`/notifications/${notificationId}/read`);
     },
-  ];
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+
+  // Mark all as read mutation
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      await api.put('/notifications/mark-all-read');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
   
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const notifications = notificationsData?.notifications || [];
+  const unreadCount = unreadCountData?.count || 0;
   
   // Use actual user role if available, fallback to prop
   const actualRole = user?.role === 'system_manager' || user?.role === 'regional_manager' || user?.role === 'Accountant' ? 'admin' : (user?.role || userRole);
@@ -242,16 +262,21 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {notifications.length > 0 ? (
-                      notifications.map((notification) => (
+                      notifications.map((notification: any) => (
                         <div
                           key={notification.id}
                           className={`p-4 border-b last:border-b-0 hover:bg-muted/50 cursor-pointer ${
-                            notification.unread ? 'bg-muted/30' : ''
+                            !notification.isRead ? 'bg-muted/30' : ''
                           }`}
+                          onClick={() => {
+                            if (!notification.isRead) {
+                              markAsReadMutation.mutate(notification.id);
+                            }
+                          }}
                         >
                           <div className="flex items-start gap-3">
                             <div className={`h-2 w-2 rounded-full mt-2 ${
-                              notification.unread ? 'bg-primary' : 'bg-transparent'
+                              !notification.isRead ? 'bg-primary' : 'bg-transparent'
                             }`} />
                             <div className="flex-1">
                               <p className="font-medium text-sm">{notification.title}</p>
@@ -259,7 +284,7 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
                                 {notification.message}
                               </p>
                               <p className="text-xs text-muted-foreground mt-2">
-                                {notification.time}
+                                {new Date(notification.createdAt).toLocaleString()}
                               </p>
                             </div>
                           </div>
@@ -274,8 +299,14 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
                   </div>
                   {notifications.length > 0 && (
                     <div className="p-3 border-t">
-                      <Button variant="ghost" size="sm" className="w-full">
-                        Mark all as read
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => markAllAsReadMutation.mutate()}
+                        disabled={markAllAsReadMutation.isPending}
+                      >
+                        {markAllAsReadMutation.isPending ? 'Marking...' : 'Mark all as read'}
                       </Button>
                     </div>
                   )}

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, Mail, Lock, Eye, EyeOff, User, Phone, ArrowRight, ArrowLeft, Check } from "lucide-react";
+import { Heart, Mail, Lock, Eye, EyeOff, User, Phone, ArrowRight, ArrowLeft, Check, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/layout/Header";
@@ -22,7 +22,17 @@ const Register = () => {
   useEffect(() => {
     fetchSpecialties();
     fetchRegions();
+    fetchPlatformCommission();
   }, []);
+
+  const fetchPlatformCommission = async () => {
+    try {
+      const response = await api.get('/config/platform-commission');
+      setPlatformCommission(response.data.commission || 20);
+    } catch (error) {
+      console.error('Failed to fetch platform commission:', error);
+    }
+  };
 
   const fetchSpecialties = async () => {
     try {
@@ -76,6 +86,8 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [showRateCard, setShowRateCard] = useState(false);
+  const [platformCommission, setPlatformCommission] = useState(20);
   const [termsContent, setTermsContent] = useState("");
   const [specialties, setSpecialties] = useState([]);
   const [regions, setRegions] = useState([]);
@@ -687,7 +699,19 @@ const Register = () => {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label>Specialties</Label>
+                            <div className="flex items-center justify-between">
+                              <Label>Specialties</Label>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowRateCard(true)}
+                                className="gap-2 h-7 text-xs"
+                              >
+                                <CreditCard className="h-3 w-3" />
+                                Our Rate Card
+                              </Button>
+                            </div>
                             <div className="max-h-24 overflow-y-auto border rounded-md p-2">
                               {specialties.map((specialty: any) => (
                                 <div key={specialty.id} className="flex items-center space-x-2 py-1">
@@ -958,6 +982,95 @@ const Register = () => {
         </div>
       </main>
       <Footer />
+      
+      <Dialog open={showRateCard} onOpenChange={setShowRateCard}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              CareConnect Rate Card
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <h3 className="font-semibold mb-2">Platform Commission</h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                CareConnect charges a {platformCommission}% commission on all completed sessions.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                This covers platform maintenance, payment processing, and customer support.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold mb-3">Specialty Rates</h3>
+              <div className="space-y-2">
+                {specialties.map((specialty: any) => {
+                  const sessionFee = parseFloat(specialty.sessionFee || 0);
+                  const caregiverEarnings = sessionFee * (1 - platformCommission / 100);
+                  
+                  return (
+                    <div key={specialty.id} className="border rounded-lg p-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-medium text-sm">{specialty.name}</h4>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold">MWK {sessionFee.toLocaleString()}</p>
+                          <p className="text-xs text-muted-foreground">Session Fee</p>
+                        </div>
+                      </div>
+                      
+                      <p className="text-xs text-muted-foreground mb-3">
+                        {specialty.description}
+                      </p>
+                      
+                      <div className="grid grid-cols-2 gap-4 text-xs">
+                        <div className="bg-green-50 p-2 rounded">
+                          <p className="font-medium text-green-800">Your Earnings</p>
+                          <p className="text-green-600 font-semibold">
+                            MWK {caregiverEarnings.toLocaleString()}
+                          </p>
+                          <p className="text-green-600 text-xs">
+                            ({100 - platformCommission}% of session fee)
+                          </p>
+                        </div>
+                        
+                        <div className="bg-blue-50 p-2 rounded">
+                          <p className="font-medium text-blue-800">Platform Fee</p>
+                          <p className="text-blue-600 font-semibold">
+                            MWK {(sessionFee - caregiverEarnings).toLocaleString()}
+                          </p>
+                          <p className="text-blue-600 text-xs">
+                            ({platformCommission}% commission)
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {specialty.bookingFee && (
+                        <div className="mt-2 pt-2 border-t">
+                          <p className="text-xs text-muted-foreground">
+                            Booking Fee: MWK {parseFloat(specialty.bookingFee).toLocaleString()} (paid by patient)
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
+            <div className="bg-yellow-50 p-4 rounded-lg">
+              <h4 className="font-medium text-yellow-800 mb-2">Important Notes</h4>
+              <ul className="text-xs text-yellow-700 space-y-1">
+                <li>• All fees are in Malawian Kwacha (MWK)</li>
+                <li>• Commission is deducted from completed sessions only</li>
+                <li>• Booking fees go directly to the platform</li>
+                <li>• Payments are processed weekly to your account</li>
+                <li>• Additional taxes may apply based on local regulations</li>
+              </ul>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <Dialog open={showTerms} onOpenChange={setShowTerms}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
