@@ -24,6 +24,16 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      const errorMessage = error.response?.data?.error;
+      const isLoginRequest = error.config?.url?.includes('/auth/login');
+      
+      // Handle login-related 401 errors without redirect
+      if (isLoginRequest) {
+        toast.error(errorMessage || 'Invalid credentials');
+        return Promise.reject(error);
+      }
+      
+      // Handle authenticated session 401 errors with redirect
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';

@@ -33,6 +33,7 @@ const Login = () => {
     } catch (error: any) {
       console.error("Login error:", error);
       // Error toast is already shown by API interceptor
+      // Don't navigate or show success message on error
     } finally {
       setIsLoading(false);
     }
