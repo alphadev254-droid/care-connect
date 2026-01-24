@@ -1,13 +1,19 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { mapUserRole } from "@/lib/roleMapper";
+import { toast } from "sonner";
 import {
   User,
   Mail,
@@ -23,6 +29,7 @@ import {
   FileText,
   Users,
   CreditCard,
+  Send,
 } from "lucide-react";
 import {
   Table,
@@ -37,6 +44,40 @@ const UserDetails = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+
+  const sendEmailMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post(`/admin/caregivers/${userId}/send-email`, {
+        subject: emailSubject,
+        message: emailMessage,
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || "Email sent successfully");
+      setEmailDialogOpen(false);
+      setEmailSubject("");
+      setEmailMessage("");
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "Failed to send email");
+    },
+  });
+
+  const handleSendEmail = () => {
+    if (!emailSubject.trim()) {
+      toast.error("Please enter an email subject");
+      return;
+    }
+    if (!emailMessage.trim()) {
+      toast.error("Please enter an email message");
+      return;
+    }
+    sendEmailMutation.mutate();
+  };
 
   const parseDocuments = (docs: string | object | null | undefined): unknown[] => {
     try {
@@ -111,17 +152,25 @@ const UserDetails = () => {
   return (
     <DashboardLayout userRole={mapUserRole(currentUser?.role || 'system_manager')}>
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div>
-            <h1 className="font-display text-2xl md:text-3xl font-bold">
-              {userData.firstName} {userData.lastName}
-            </h1>
-            <p className="text-muted-foreground">User Profile Details</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <div>
+              <h1 className="font-display text-2xl md:text-3xl font-bold">
+                {userData.firstName} {userData.lastName}
+              </h1>
+              <p className="text-muted-foreground">User Profile Details</p>
+            </div>
           </div>
+          {userData.Role?.name === 'caregiver' && (
+            <Button onClick={() => setEmailDialogOpen(true)} className="gap-2">
+              <Send className="h-4 w-4" />
+              Send Email
+            </Button>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -709,6 +758,60 @@ const UserDetails = () => {
           </Card>
         </div>
       </div>
+
+      {/* Send Email Dialog */}
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Send Email to {userData?.firstName} {userData?.lastName}
+            </DialogTitle>
+            <DialogDescription>
+              Compose and send an email message to this caregiver. The email will be sent from the system.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="email-subject">Subject</Label>
+              <Input
+                id="email-subject"
+                placeholder="Enter email subject..."
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-message">Message</Label>
+              <Textarea
+                id="email-message"
+                placeholder="Enter your message here..."
+                value={emailMessage}
+                onChange={(e) => setEmailMessage(e.target.value)}
+                rows={6}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendEmail} disabled={sendEmailMutation.isPending}>
+              {sendEmailMutation.isPending ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send Email
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

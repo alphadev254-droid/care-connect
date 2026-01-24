@@ -50,8 +50,18 @@ api.interceptors.response.use(
       toast.error('Server error. Please try again later.');
     } else if (error.message === 'Network Error') {
       toast.error('Cannot connect to server. Please check your connection.');
-    } else if (error.response?.data?.error) {
-      toast.error(error.response.data.error);
+    } else if (error.response?.data) {
+      const data = error.response.data;
+      
+      // Handle validation errors - show only the detailed errors, not the generic message
+      if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+        const combinedErrors = data.errors.join('\n');
+        toast.error(combinedErrors);
+      } else if (data.error) {
+        toast.error(data.error);
+      } else if (data.message) {
+        toast.error(data.message);
+      }
     } else if (error.message) {
       toast.error(error.message);
     }

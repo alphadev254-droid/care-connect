@@ -524,8 +524,19 @@ const UserManagement = () => {
                             {user.role === 'caregiver' && user.Caregiver ? (
                               // Caregiver-specific actions based on verification status
                               user.Caregiver.verificationStatus === 'pending' ? (
-                                // Show Verify/Reject for pending caregivers
+                                // Show View/Verify/Reject for pending caregivers
                                 <>
+                                  {canViewUserDetails(user.Role?.name) && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1 h-7 text-xs"
+                                      onClick={() => navigate(`/dashboard/user/${user.id}`)}
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                      View
+                                    </Button>
+                                  )}
                                   <Button
                                     variant="default"
                                     size="sm"
@@ -590,8 +601,19 @@ const UserManagement = () => {
                                   )}
                                 </>
                               ) : (
-                                // Show re-verify and reject for rejected caregivers
+                                // Show view, re-verify and reject for rejected caregivers
                                 <>
+                                  {canViewUserDetails(user.Role?.name) && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1 h-7 text-xs"
+                                      onClick={() => navigate(`/dashboard/user/${user.id}`)}
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                      View
+                                    </Button>
+                                  )}
                                   <Button
                                     variant="default"
                                     size="sm"
@@ -769,14 +791,14 @@ const UserManagement = () => {
         </AlertDialog>
 
         <Dialog open={createUserDialog} onOpenChange={setCreateUserDialog}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New User</DialogTitle>
               <DialogDescription>
                 Create a new user account with role assignment
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="firstName">First Name</Label>

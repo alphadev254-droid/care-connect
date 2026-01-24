@@ -127,8 +127,8 @@ const Register = () => {
     // Location fields
     region: "",
     district: "",
-    traditionalAuthority: "",
-    village: "",
+    traditionalAuthority: "" as string | string[], // Single for patients, array for caregivers
+    village: "" as string | string[], // Single for patients, array for caregivers
   });
   const [showCustomRelationship, setShowCustomRelationship] = useState(false);
 
@@ -188,10 +188,209 @@ const Register = () => {
     return true;
   };
 
+  // Validate mandatory fields based on user type
+  const validateMandatoryFields = (): boolean => {
+    // Step 2 validations
+    if (step === 2) {
+      // Common validations for all types
+      if (!formData.firstName.trim()) {
+        toast.error("First name is required");
+        return false;
+      }
+      if (!formData.lastName.trim()) {
+        toast.error("Last name is required");
+        return false;
+      }
+      if (!formData.email.trim()) {
+        toast.error("Email is required");
+        return false;
+      }
+      if (!formData.phone.trim()) {
+        toast.error("Phone number is required");
+        return false;
+      }
+      if (!formData.dateOfBirth) {
+        toast.error("Date of birth is required");
+        return false;
+      }
+
+      // Caregiver-specific validations - ALL fields mandatory including images
+      if (formData.userType === 'caregiver') {
+        if (!formData.idNumber.trim()) {
+          toast.error("National ID number is required for caregivers");
+          return false;
+        }
+        if (!formData.licensingInstitution.trim()) {
+          toast.error("Licensing institution is required");
+          return false;
+        }
+        if (!formData.licenseNumber.trim()) {
+          toast.error("License number is required");
+          return false;
+        }
+        if (!formData.experience) {
+          toast.error("Years of experience is required");
+          return false;
+        }
+        if (!formData.qualifications.trim()) {
+          toast.error("Qualifications are required");
+          return false;
+        }
+        if (formData.specialties.length === 0) {
+          toast.error("Please select at least one specialty");
+          return false;
+        }
+        if (!formData.profilePicture) {
+          toast.error("Profile picture is required for caregivers");
+          return false;
+        }
+        if (!formData.idDocuments || formData.idDocuments.length === 0) {
+          toast.error("ID documents are required for caregivers");
+          return false;
+        }
+        if (!formData.supportingDocuments || formData.supportingDocuments.length === 0) {
+          toast.error("Supporting documents (certificates/licenses) are required");
+          return false;
+        }
+      }
+
+      // Patient Adult - ALL fields mandatory
+      if (formData.userType === 'patient') {
+        if (!formData.idNumber.trim()) {
+          toast.error("National ID number is required");
+          return false;
+        }
+        if (!formData.address.trim()) {
+          toast.error("Address is required");
+          return false;
+        }
+        if (!formData.emergencyContact.trim()) {
+          toast.error("Emergency contact is required");
+          return false;
+        }
+      }
+
+      // Patient Child - Only name and age mandatory, guardian fields ALL mandatory
+      if (formData.userType === 'child_patient') {
+        // Name and DOB already validated above
+        if (!formData.address.trim()) {
+          toast.error("Address is required");
+          return false;
+        }
+        if (!formData.emergencyContact.trim()) {
+          toast.error("Emergency contact is required");
+          return false;
+        }
+        // Guardian fields mandatory
+        if (!formData.guardianFirstName.trim()) {
+          toast.error("Guardian first name is required");
+          return false;
+        }
+        if (!formData.guardianLastName.trim()) {
+          toast.error("Guardian last name is required");
+          return false;
+        }
+        if (!formData.guardianPhone.trim()) {
+          toast.error("Guardian phone is required");
+          return false;
+        }
+        if (!formData.guardianEmail.trim()) {
+          toast.error("Guardian email is required");
+          return false;
+        }
+        if (!formData.guardianRelationship) {
+          toast.error("Guardian relationship is required");
+          return false;
+        }
+        if (!formData.guardianIdNumber.trim()) {
+          toast.error("Guardian ID number is required");
+          return false;
+        }
+      }
+
+      // Patient Elderly - Only name and age mandatory, guardian fields ALL mandatory
+      if (formData.userType === 'elderly_patient') {
+        // Name and DOB already validated above
+        if (!formData.address.trim()) {
+          toast.error("Address is required");
+          return false;
+        }
+        if (!formData.emergencyContact.trim()) {
+          toast.error("Emergency contact is required");
+          return false;
+        }
+        // Guardian fields mandatory
+        if (!formData.guardianFirstName.trim()) {
+          toast.error("Guardian first name is required");
+          return false;
+        }
+        if (!formData.guardianLastName.trim()) {
+          toast.error("Guardian last name is required");
+          return false;
+        }
+        if (!formData.guardianPhone.trim()) {
+          toast.error("Guardian phone is required");
+          return false;
+        }
+        if (!formData.guardianEmail.trim()) {
+          toast.error("Guardian email is required");
+          return false;
+        }
+        if (!formData.guardianRelationship) {
+          toast.error("Guardian relationship is required");
+          return false;
+        }
+        if (!formData.guardianIdNumber.trim()) {
+          toast.error("Guardian ID number is required");
+          return false;
+        }
+      }
+    }
+
+    // Step 3 validations - Location mandatory for ALL users
+    if (step === 3) {
+      if (!formData.region) {
+        toast.error("Region is required");
+        return false;
+      }
+      if (!formData.district) {
+        toast.error("District is required");
+        return false;
+      }
+      // For caregivers, check if arrays have at least one item
+      if (formData.userType === 'caregiver') {
+        if (!Array.isArray(formData.traditionalAuthority) || formData.traditionalAuthority.length === 0) {
+          toast.error("Please select at least one Traditional Authority");
+          return false;
+        }
+        if (!Array.isArray(formData.village) || formData.village.length === 0) {
+          toast.error("Please select at least one Village");
+          return false;
+        }
+      } else {
+        // For patients, check single values
+        if (!formData.traditionalAuthority) {
+          toast.error("Traditional Authority is required");
+          return false;
+        }
+        if (!formData.village) {
+          toast.error("Village is required");
+          return false;
+        }
+      }
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (step < 3) {
+      // Validate mandatory fields before proceeding
+      if (!validateMandatoryFields()) {
+        return;
+      }
       // Validate age before moving to step 3 if we're on step 2
       if (step === 2) {
         if (!validateAge()) {
@@ -199,6 +398,11 @@ const Register = () => {
         }
       }
       setStep(step + 1);
+      return;
+    }
+
+    // Validate step 3 fields
+    if (!validateMandatoryFields()) {
       return;
     }
 
@@ -388,7 +592,13 @@ const Register = () => {
                     <Label className="text-sm">I am a...</Label>
                     <RadioGroup
                       value={formData.userType}
-                      onValueChange={(value) => setFormData({ ...formData, userType: value })}
+                      onValueChange={(value) => {
+                        // Initialize arrays for caregivers, reset to empty strings for patients
+                        const locationDefaults = value === 'caregiver'
+                          ? { traditionalAuthority: [], village: [] }
+                          : { traditionalAuthority: "", village: "" };
+                        setFormData({ ...formData, userType: value, ...locationDefaults });
+                      }}
                       className="grid gap-3"
                     >
                       {userTypes.map((type) => (
@@ -510,7 +720,7 @@ const Register = () => {
                       </div>
                       {formData.userType === 'caregiver' && (
                         <div className="space-y-2">
-                          <Label htmlFor="profilePicture">Profile Picture</Label>
+                          <Label htmlFor="profilePicture">Profile Picture <span className="text-destructive">*</span></Label>
                           <Input
                             id="profilePicture"
                             type="file"
@@ -740,7 +950,7 @@ const Register = () => {
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="idDocuments">ID Documents</Label>
+                            <Label htmlFor="idDocuments">ID Documents <span className="text-destructive">*</span></Label>
                             <Input
                               id="idDocuments"
                               type="file"
@@ -759,7 +969,7 @@ const Register = () => {
                             <p className="text-xs text-muted-foreground">Upload ID documents (max 3 files: PDF, JPG, PNG)</p>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="supportingDocuments">Supporting Documents</Label>
+                            <Label htmlFor="supportingDocuments">Supporting Documents (Certificates, Licenses) <span className="text-destructive">*</span></Label>
                             <Input
                               id="supportingDocuments"
                               type="file"
@@ -788,7 +998,7 @@ const Register = () => {
                     {/* Location Fields */}
                     <div className="grid md:grid-cols-2 gap-3 pb-3 border-b">
                       <div className="space-y-2">
-                        <Label htmlFor="region">Region</Label>
+                        <Label htmlFor="region">Region <span className="text-destructive">*</span></Label>
                         <Select
                           value={formData.region}
                           onValueChange={(value) => {
@@ -807,7 +1017,7 @@ const Register = () => {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="district">District</Label>
+                        <Label htmlFor="district">District <span className="text-destructive">*</span></Label>
                         <Select
                           value={formData.district}
                           onValueChange={(value) => {
@@ -827,41 +1037,116 @@ const Register = () => {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="traditionalAuthority">Traditional Authority</Label>
-                        <Select
-                          value={formData.traditionalAuthority}
-                          onValueChange={(value) => {
-                            setFormData({ ...formData, traditionalAuthority: value, village: "" });
-                            fetchVillages(formData.region, formData.district, value);
-                          }}
-                          disabled={!formData.district}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select TA" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {traditionalAuthorities.map((ta: string) => (
-                              <SelectItem key={ta} value={ta}>{ta}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="traditionalAuthority">
+                          Traditional Authority <span className="text-destructive">*</span>
+                          {formData.userType === 'caregiver' && <span className="text-xs text-muted-foreground ml-2">(Select multiple)</span>}
+                        </Label>
+                        {formData.userType === 'caregiver' ? (
+                          // Multi-select for caregivers
+                          <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
+                            {!formData.district ? (
+                              <p className="text-sm text-muted-foreground">Select a district first</p>
+                            ) : traditionalAuthorities.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">No TAs available</p>
+                            ) : (
+                              traditionalAuthorities.map((ta: string) => (
+                                <div key={ta} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`ta-${ta}`}
+                                    checked={Array.isArray(formData.traditionalAuthority) && formData.traditionalAuthority.includes(ta)}
+                                    onCheckedChange={(checked) => {
+                                      const currentTAs = Array.isArray(formData.traditionalAuthority) ? formData.traditionalAuthority : [];
+                                      const newTAs = checked
+                                        ? [...currentTAs, ta]
+                                        : currentTAs.filter(t => t !== ta);
+                                      setFormData({ ...formData, traditionalAuthority: newTAs, village: [] });
+                                      // Fetch villages for all selected TAs
+                                      if (newTAs.length > 0) {
+                                        Promise.all(newTAs.map(selectedTa =>
+                                          api.get(`/locations/villages/${encodeURIComponent(formData.region)}/${encodeURIComponent(formData.district)}/${encodeURIComponent(selectedTa)}`)
+                                        )).then(responses => {
+                                          const allVillages = [...new Set(responses.flatMap(r => r.data.data || []))];
+                                          setVillages(allVillages);
+                                        });
+                                      } else {
+                                        setVillages([]);
+                                      }
+                                    }}
+                                  />
+                                  <label htmlFor={`ta-${ta}`} className="text-sm cursor-pointer">{ta}</label>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        ) : (
+                          // Single select for patients
+                          <Select
+                            value={formData.traditionalAuthority as string}
+                            onValueChange={(value) => {
+                              setFormData({ ...formData, traditionalAuthority: value, village: "" });
+                              fetchVillages(formData.region, formData.district, value);
+                            }}
+                            disabled={!formData.district}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select TA" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {traditionalAuthorities.map((ta: string) => (
+                                <SelectItem key={ta} value={ta}>{ta}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="village">Village</Label>
-                        <Select
-                          value={formData.village}
-                          onValueChange={(value) => setFormData({ ...formData, village: value })}
-                          disabled={!formData.traditionalAuthority}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select village" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {villages.map((village: string) => (
-                              <SelectItem key={village} value={village}>{village}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="village">
+                          Village <span className="text-destructive">*</span>
+                          {formData.userType === 'caregiver' && <span className="text-xs text-muted-foreground ml-2">(Select multiple)</span>}
+                        </Label>
+                        {formData.userType === 'caregiver' ? (
+                          // Multi-select for caregivers
+                          <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
+                            {(!Array.isArray(formData.traditionalAuthority) || formData.traditionalAuthority.length === 0) ? (
+                              <p className="text-sm text-muted-foreground">Select at least one TA first</p>
+                            ) : villages.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">No villages available</p>
+                            ) : (
+                              villages.map((village: string) => (
+                                <div key={village} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`village-${village}`}
+                                    checked={Array.isArray(formData.village) && formData.village.includes(village)}
+                                    onCheckedChange={(checked) => {
+                                      const currentVillages = Array.isArray(formData.village) ? formData.village : [];
+                                      const newVillages = checked
+                                        ? [...currentVillages, village]
+                                        : currentVillages.filter(v => v !== village);
+                                      setFormData({ ...formData, village: newVillages });
+                                    }}
+                                  />
+                                  <label htmlFor={`village-${village}`} className="text-sm cursor-pointer">{village}</label>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        ) : (
+                          // Single select for patients
+                          <Select
+                            value={formData.village as string}
+                            onValueChange={(value) => setFormData({ ...formData, village: value })}
+                            disabled={!formData.traditionalAuthority}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select village" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {villages.map((village: string) => (
+                                <SelectItem key={village} value={village}>{village}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                     </div>
 

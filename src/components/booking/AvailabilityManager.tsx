@@ -3,7 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Plus, Trash2, Edit2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Clock, Plus, Trash2, Edit2, AlertTriangle } from 'lucide-react';
 import { availabilityService, AvailabilitySlot, CaregiverAvailability } from '@/services/availabilityService';
 import { timeSlotService } from '@/services/timeSlotService';
 import { toast } from 'sonner';
@@ -26,8 +34,11 @@ export const AvailabilityManager = () => {
   const [savedAvailability, setSavedAvailability] = useState<CaregiverAvailability[]>([]);
   const [caregiverId, setCaregiverId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const [generatingSlotId, setGeneratingSlotId] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteAction, setDeleteAction] = useState<'single' | 'all' | null>(null);
+  const [slotToDelete, setSlotToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -51,9 +62,10 @@ export const AvailabilityManager = () => {
 
   const loadAvailability = async (id: number) => {
     try {
-      const data = await availabilityService.getAvailability(id);
-      setSavedAvailability(data);
-      setAvailability(data.map((item: any) => ({
+      const response = await availabilityService.getAvailability(id);
+      const availabilityData = response.availability || [];
+      setSavedAvailability(availabilityData);
+      setAvailability(availabilityData.map((item: any) => ({
         dayOfWeek: item.dayOfWeek,
         startTime: item.startTime,
         endTime: item.endTime,
@@ -61,6 +73,8 @@ export const AvailabilityManager = () => {
     } catch (error) {
       console.error('Failed to load availability:', error);
       toast.error('Failed to load availability');
+      setSavedAvailability([]);
+      setAvailability([]);
     }
   };
 
@@ -81,11 +95,6 @@ export const AvailabilityManager = () => {
   };
 
   const saveAvailability = async () => {
-    // if (!caregiverId || caregiverId === 0) {
-    //   toast.error('Caregiver ID not found');
-    //   return;
-    // }
-
     setLoading(true);
     try {
       const response = await availabilityService.setAvailability(availability);
@@ -99,8 +108,7 @@ export const AvailabilityManager = () => {
       }
     } catch (error: any) {
       console.error('Failed to save availability:', error);
-      const errorMessage = error?.response?.data?.error || error?.response?.data?.errors?.join(', ') || 'Failed to save availability';
-      toast.error(errorMessage);
+      // Error messages are handled by api interceptor
     } finally {
       setLoading(false);
     }
@@ -113,72 +121,82 @@ export const AvailabilityManager = () => {
   const cancelEditing = () => {
     setEditing(false);
     // Reset to saved availability
-    setAvailability(savedAvailability.map((item: any) => ({
+    setAvailability((savedAvailability || []).map((item: any) => ({
       dayOfWeek: item.dayOfWeek,
       startTime: item.startTime,
       endTime: item.endTime,
     })));
   };
 
-  const deleteIndividualSlot = async (slotId: number) => {
+  const openDeleteDialog = (slotId: number) => {
+    setSlotToDelete(slotId);
+    setDeleteAction('single');
+    setDeleteDialogOpen(true);
+  };
+
+  const openClearAllDialog = () => {
+    setDeleteAction('all');
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
     if (!caregiverId) {
       toast.error('Caregiver ID not found');
+      setDeleteDialogOpen(false);
       return;
     }
 
     setLoading(true);
     try {
-      await availabilityService.deleteSlot(slotId);
-      await loadAvailability(caregiverId);
-      toast.success('Availability slot deleted');
+      if (deleteAction === 'single' && slotToDelete) {
+        await availabilityService.deleteSlot(slotToDelete);
+        await loadAvailability(caregiverId);
+        toast.success('Availability slot and related time slots deleted');
+      } else if (deleteAction === 'all') {
+        const response = await availabilityService.clearAll();
+        await loadAvailability(caregiverId);
+        setAvailability([]);
+        setEditing(false);
+        toast.success(`All availability cleared (${response.deleted} slots deleted)`);
+      }
     } catch (error: any) {
-      console.error('Failed to delete slot:', error);
-      toast.error(error?.response?.data?.error || 'Failed to delete availability slot');
+      console.error('Failed to delete:', error);
     } finally {
       setLoading(false);
+      setDeleteDialogOpen(false);
+      setSlotToDelete(null);
+      setDeleteAction(null);
     }
   };
 
-  const clearAllAvailability = async () => {
-    if (!caregiverId) {
-      toast.error('Caregiver ID not found');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await availabilityService.clearAll();
-      await loadAvailability(caregiverId);
-      setAvailability([]);
-      setEditing(false);
-      toast.success(`All availability cleared (${response.deleted} slots deleted)`);
-    } catch (error: any) {
-      console.error('Failed to clear availability:', error);
-      toast.error(error?.response?.data?.error || 'Failed to clear availability');
-    } finally {
-      setLoading(false);
-    }
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setSlotToDelete(null);
+    setDeleteAction(null);
   };
 
-  const generateTimeSlots = async () => {
+
+  const generateTimeSlotsForSlot = async (availabilityId: number) => {
     if (!caregiverId) return;
-    
-    setGenerating(true);
+
+    setGeneratingSlotId(availabilityId);
     try {
       const startDate = new Date().toISOString().split('T')[0];
       const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      
-      await timeSlotService.generateTimeSlots({
-        caregiverId,
+
+      await timeSlotService.generateTimeSlotsForAvailability({
+        availabilityId,
         startDate,
         endDate,
       });
-      
+
+      // Reload availability to update hasTimeSlots flags
+      await loadAvailability(caregiverId);
       toast.success('Time slots generated for next 30 days');
     } catch (error) {
       toast.error('Failed to generate time slots');
     } finally {
-      setGenerating(false);
+      setGeneratingSlotId(null);
     }
   };
 
@@ -191,16 +209,12 @@ export const AvailabilityManager = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!editing && savedAvailability.length > 0 && (
+        {!editing && savedAvailability && savedAvailability.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h4 className="font-semibold">Current Schedule</h4>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={startEditing}>
-                  <Edit2 className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button variant="destructive" size="sm" onClick={clearAllAvailability}>
+                <Button variant="destructive" size="sm" onClick={openClearAllDialog}>
                   <Trash2 className="h-4 w-4 mr-2" />
                   Clear All
                 </Button>
@@ -209,29 +223,46 @@ export const AvailabilityManager = () => {
             <div className="grid gap-2">
               {savedAvailability.map((slot, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 flex-1">
                     <Badge variant="secondary">
                       {DAYS.find(d => d.value === slot.dayOfWeek)?.label}
                     </Badge>
-                    <span className="text-sm">{slot.startTime.slice(0,5)} - {slot.endTime.slice(0,5)}</span>
+                    <span className="text-sm">{slot.startTime?.slice(0,5)} - {slot.endTime?.slice(0,5)}</span>
+                    {slot.hasTimeSlots && (
+                      <Badge variant="outline" className="text-xs">
+                        {slot.timeSlotCount} slots generated
+                      </Badge>
+                    )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => deleteIndividualSlot(slot.id)}
-                    disabled={loading}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {!slot.hasTimeSlots && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => generateTimeSlotsForSlot(slot.id)}
+                        disabled={generatingSlotId === slot.id || loading}
+                      >
+                        {generatingSlotId === slot.id ? 'Generating...' : 'Generate Slots'}
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openDeleteDialog(slot.id)}
+                      disabled={loading}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {(editing || savedAvailability.length === 0) && (
+        {(editing || (savedAvailability && savedAvailability.length === 0)) && (
           <>
-            {availability.map((slot, index) => (
+            {availability && availability.map((slot, index) => (
               <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
                 <select
                   value={slot.dayOfWeek}
@@ -273,21 +304,21 @@ export const AvailabilityManager = () => {
           </>
         )}
 
-        {(editing || savedAvailability.length === 0) && (
+        {(editing || (savedAvailability && savedAvailability.length === 0)) && (
           <div className="flex gap-2">
             <Button variant="outline" onClick={addAvailabilitySlot}>
               <Plus className="h-4 w-4 mr-2" />
               Add Time Slot
             </Button>
-            
+
             <Button
               onClick={saveAvailability}
-              disabled={loading || availability.length === 0}
+              disabled={loading || !availability || availability.length === 0}
               className="bg-primary hover:bg-primary/90"
             >
-              {loading ? 'Saving...' : `Save Availability (${availability.length})`}
+              {loading ? 'Saving...' : `Save Availability (${availability?.length || 0})`}
             </Button>
-            
+
             {editing && (
               <Button variant="outline" onClick={cancelEditing}>
                 Cancel
@@ -296,13 +327,30 @@ export const AvailabilityManager = () => {
           </div>
         )}
 
-        {savedAvailability.length > 0 && (
-          <div className="pt-4 border-t">
-            <Button onClick={generateTimeSlots} disabled={generating} className="w-full">
-              {generating ? 'Generating...' : 'Generate Time Slots (Next 30 Days)'}
-            </Button>
-          </div>
-        )}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+                Confirm Deletion
+              </DialogTitle>
+              <DialogDescription>
+                {deleteAction === 'single'
+                  ? 'Deleting this availability will also remove all related time slots. Are you sure you want to continue?'
+                  : 'This will clear all availability and delete all related time slots. Are you sure you want to continue?'
+                }
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCancelDelete} disabled={loading}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleConfirmDelete} disabled={loading}>
+                {loading ? 'Deleting...' : 'Delete'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

@@ -21,6 +21,12 @@ export interface GenerateTimeSlotsData {
   endDate: string;
 }
 
+export interface GenerateTimeSlotsForAvailabilityData {
+  availabilityId: number;
+  startDate: string;
+  endDate: string;
+}
+
 export const timeSlotService = {
   getAvailableSlots: async (params?: { caregiverId?: number; date?: string }) => {
     const response = await api.get('/timeslots/available', { params });
@@ -29,6 +35,11 @@ export const timeSlotService = {
 
   generateTimeSlots: async (data: GenerateTimeSlotsData) => {
     const response = await api.post('/timeslots/generate', data);
+    return response.data;
+  },
+
+  generateTimeSlotsForAvailability: async (data: GenerateTimeSlotsForAvailabilityData) => {
+    const response = await api.post('/timeslots/generate-for-availability', data);
     return response.data;
   },
 

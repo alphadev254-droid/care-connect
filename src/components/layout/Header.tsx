@@ -25,12 +25,12 @@ const Header = () => {
       <div className="w-full bg-slate-800 text-white/80 text-xs py-2">
         <div className="container flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <span>📧 info@careconnect.mw</span>
+            <span>🏠 Quality Home Healthcare Services</span>
             <span>📞 +265 1 234 567</span>
           </div>
           <div className="hidden md:flex items-center gap-4">
             <span>🕒 Mon-Fri: 8AM-6PM</span>
-            <span>Emergency: 24/7</span>
+            <span>📍 Serving All Regions of Malawi</span>
           </div>
         </div>
       </div>

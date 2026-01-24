@@ -13,6 +13,8 @@ export interface CaregiverAvailability {
   startTime: string;
   endTime: string;
   isActive: boolean;
+  hasTimeSlots?: boolean;
+  timeSlotCount?: number;
 }
 
 export const availabilityService = {
@@ -25,7 +27,7 @@ export const availabilityService = {
   // READ - Get all availability for a caregiver
   getAvailability: async (caregiverId: number) => {
     const response = await api.get(`/availability/${caregiverId}`);
-    return response.data.availability;
+    return response.data;
   },
 
   // UPDATE - Update single availability slot

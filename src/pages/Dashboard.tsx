@@ -935,15 +935,12 @@ const Dashboard = () => {
                         </div>
                         <div>
                           <p className="font-semibold text-sm">{caregiver.firstName} {caregiver.lastName}</p>
-                          <div className="flex items-center gap-1 text-xs text-accent">
-                            <Star className="h-3 w-3 fill-current" />
-                            <span>4.9</span>
-                          </div>
+                          <p className="text-xs text-muted-foreground">{caregiver.Caregiver?.qualifications || 'Healthcare Pro'}</p>
                         </div>
                       </div>
-                      <Badge variant="secondary" className="mb-2 text-xs">{caregiver.Caregiver?.qualifications || 'Healthcare Pro'}</Badge>
+                      <Badge variant="secondary" className="mb-2 text-xs">{caregiver.Caregiver?.experience || 0} years experience</Badge>
                       <p className="text-xs text-muted-foreground mb-3">
-                        {caregiver.Caregiver?.experience || 0} years exp • MWK {caregiver.Caregiver?.hourlyRate || 50}/hr
+                        {caregiver.Caregiver?.Specialties?.[0]?.name || 'General Care'}
                       </p>
                       <Link to="/dashboard/caregivers">
                         <Button variant="outline" size="sm" className="w-full h-7 text-xs">
@@ -962,10 +959,7 @@ const Dashboard = () => {
                         </div>
                         <div>
                           <p className="font-semibold text-sm">Caregiver {i}</p>
-                          <div className="flex items-center gap-1 text-xs text-accent">
-                            <Star className="h-3 w-3 fill-current" />
-                            <span>4.9</span>
-                          </div>
+                          <p className="text-xs text-muted-foreground">Healthcare Professional</p>
                         </div>
                       </div>
                       <Badge variant="secondary" className="mb-2 text-xs">Nursing Care</Badge>

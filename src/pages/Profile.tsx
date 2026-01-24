@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
@@ -50,9 +51,10 @@ const Profile = () => {
     bio: "",
     region: "",
     district: "",
-    traditionalAuthority: "",
-    village: ""
+    traditionalAuthority: [] as string[],
+    village: [] as string[]
   });
+  const [allVillages, setAllVillages] = useState<string[]>([]);
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [passwordData, setPasswordData] = useState({
@@ -102,15 +104,28 @@ const Profile = () => {
     enabled: !!formData.district
   });
 
-  const { data: villages } = useQuery({
-    queryKey: ["villages-list", formData.region, formData.district, formData.traditionalAuthority],
-    queryFn: async () => {
-      if (!formData.traditionalAuthority) return [];
-      const response = await api.get(`/locations/villages/${formData.region}/${formData.district}/${formData.traditionalAuthority}`);
-      return response.data.data || [];
-    },
-    enabled: !!formData.traditionalAuthority
-  });
+  // Fetch villages for all selected TAs
+  useEffect(() => {
+    const fetchAllVillages = async () => {
+      if (!formData.region || !formData.district || formData.traditionalAuthority.length === 0) {
+        setAllVillages([]);
+        return;
+      }
+      try {
+        const responses = await Promise.all(
+          formData.traditionalAuthority.map(ta =>
+            api.get(`/locations/villages/${encodeURIComponent(formData.region)}/${encodeURIComponent(formData.district)}/${encodeURIComponent(ta)}`)
+          )
+        );
+        const villages = [...new Set(responses.flatMap(r => r.data.data || []))];
+        setAllVillages(villages);
+      } catch (error) {
+        console.error('Failed to fetch villages:', error);
+        setAllVillages([]);
+      }
+    };
+    fetchAllVillages();
+  }, [formData.region, formData.district, formData.traditionalAuthority]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -150,36 +165,55 @@ const Profile = () => {
 
   useEffect(() => {
     if (profileData) {
+      // Handle traditionalAuthority - ensure it's an array
+      let taValue = profileData.Caregiver?.traditionalAuthority || [];
+      if (typeof taValue === 'string') {
+        taValue = taValue ? [taValue] : [];
+      }
+
+      // Handle village - ensure it's an array
+      let villageValue = profileData.Caregiver?.village || [];
+      if (typeof villageValue === 'string') {
+        villageValue = villageValue ? [villageValue] : [];
+      }
+
       setFormData({
         firstName: profileData.firstName || "",
         lastName: profileData.lastName || "",
         phone: profileData.phone || "",
-        dateOfBirth: profileData.Patient?.dateOfBirth ? 
+        dateOfBirth: profileData.Patient?.dateOfBirth ?
           new Date(profileData.Patient.dateOfBirth).toISOString().split('T')[0] : "",
         address: profileData.Patient?.address || "",
         emergencyContact: profileData.Patient?.emergencyContact || "",
         bio: profileData.Caregiver?.bio || "",
         region: profileData.Caregiver?.region || "",
         district: profileData.Caregiver?.district || "",
-        traditionalAuthority: profileData.Caregiver?.traditionalAuthority || "",
-        village: profileData.Caregiver?.village || ""
+        traditionalAuthority: taValue,
+        village: villageValue
       });
     }
   }, [profileData]);
 
   const handleSave = () => {
     const formDataToSend = new FormData();
-    
+
     // Add text fields
     Object.entries(formData).forEach(([key, value]) => {
-      if (value) formDataToSend.append(key, value);
+      if (value !== null && value !== undefined) {
+        // Handle arrays (TA and village)
+        if (Array.isArray(value)) {
+          formDataToSend.append(key, JSON.stringify(value));
+        } else if (value) {
+          formDataToSend.append(key, value);
+        }
+      }
     });
-    
+
     // Add profile image if selected
     if (profileImage) {
       formDataToSend.append('profileImage', profileImage);
     }
-    
+
     updateProfileMutation.mutate(formDataToSend);
   };
 
@@ -200,19 +234,30 @@ const Profile = () => {
     setProfileImage(null);
     setImagePreview(null);
     if (profileData) {
+      // Handle traditionalAuthority - ensure it's an array
+      let taValue = profileData.Caregiver?.traditionalAuthority || [];
+      if (typeof taValue === 'string') {
+        taValue = taValue ? [taValue] : [];
+      }
+      // Handle village - ensure it's an array
+      let villageValue = profileData.Caregiver?.village || [];
+      if (typeof villageValue === 'string') {
+        villageValue = villageValue ? [villageValue] : [];
+      }
+
       setFormData({
         firstName: profileData.firstName || "",
         lastName: profileData.lastName || "",
         phone: profileData.phone || "",
-        dateOfBirth: profileData.Patient?.dateOfBirth ? 
+        dateOfBirth: profileData.Patient?.dateOfBirth ?
           new Date(profileData.Patient.dateOfBirth).toISOString().split('T')[0] : "",
         address: profileData.Patient?.address || "",
         emergencyContact: profileData.Patient?.emergencyContact || "",
         bio: profileData.Caregiver?.bio || "",
         region: profileData.Caregiver?.region || "",
         district: profileData.Caregiver?.district || "",
-        traditionalAuthority: profileData.Caregiver?.traditionalAuthority || "",
-        village: profileData.Caregiver?.village || ""
+        traditionalAuthority: taValue,
+        village: villageValue
       });
     }
   };
@@ -254,29 +299,21 @@ const Profile = () => {
 
   // Location change handlers
   const handleRegionChange = (value: string) => {
-    setFormData({ 
-      ...formData, 
-      region: value, 
-      district: "", 
-      traditionalAuthority: "", 
-      village: "" 
+    setFormData({
+      ...formData,
+      region: value,
+      district: "",
+      traditionalAuthority: [],
+      village: []
     });
   };
 
   const handleDistrictChange = (value: string) => {
-    setFormData({ 
-      ...formData, 
-      district: value, 
-      traditionalAuthority: "", 
-      village: "" 
-    });
-  };
-
-  const handleTAChange = (value: string) => {
-    setFormData({ 
-      ...formData, 
-      traditionalAuthority: value, 
-      village: "" 
+    setFormData({
+      ...formData,
+      district: value,
+      traditionalAuthority: [],
+      village: []
     });
   };
 
@@ -733,34 +770,60 @@ const Profile = () => {
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="traditionalAuthority" className="text-sm font-medium text-muted-foreground">Traditional Authority</Label>
-                          <Select value={formData.traditionalAuthority} onValueChange={handleTAChange} disabled={!formData.district}>
-                            <SelectTrigger className="transition-all duration-200">
-                              <SelectValue placeholder="Select TA" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {traditionalAuthorities?.map((ta: string) => (
-                                <SelectItem key={ta} value={ta}>
-                                  {ta}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Label className="text-sm font-medium text-muted-foreground">
+                            Traditional Authorities <span className="text-xs text-muted-foreground">(Select multiple)</span>
+                          </Label>
+                          <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
+                            {!formData.district ? (
+                              <p className="text-sm text-muted-foreground">Select a district first</p>
+                            ) : !traditionalAuthorities || traditionalAuthorities.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">No TAs available</p>
+                            ) : (
+                              traditionalAuthorities.map((ta: string) => (
+                                <div key={ta} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`profile-ta-${ta}`}
+                                    checked={formData.traditionalAuthority.includes(ta)}
+                                    onCheckedChange={(checked) => {
+                                      const newTAs = checked
+                                        ? [...formData.traditionalAuthority, ta]
+                                        : formData.traditionalAuthority.filter(t => t !== ta);
+                                      setFormData({ ...formData, traditionalAuthority: newTAs, village: [] });
+                                    }}
+                                  />
+                                  <label htmlFor={`profile-ta-${ta}`} className="text-sm cursor-pointer">{ta}</label>
+                                </div>
+                              ))
+                            )}
+                          </div>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="village" className="text-sm font-medium text-muted-foreground">Village</Label>
-                          <Select value={formData.village} onValueChange={(value) => setFormData({ ...formData, village: value })} disabled={!formData.traditionalAuthority}>
-                            <SelectTrigger className="transition-all duration-200">
-                              <SelectValue placeholder="Select Village" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {villages?.map((village: string) => (
-                                <SelectItem key={village} value={village}>
-                                  {village}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Label className="text-sm font-medium text-muted-foreground">
+                            Villages <span className="text-xs text-muted-foreground">(Select multiple)</span>
+                          </Label>
+                          <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
+                            {formData.traditionalAuthority.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">Select at least one TA first</p>
+                            ) : allVillages.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">No villages available</p>
+                            ) : (
+                              allVillages.map((village: string) => (
+                                <div key={village} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`profile-village-${village}`}
+                                    checked={formData.village.includes(village)}
+                                    onCheckedChange={(checked) => {
+                                      const newVillages = checked
+                                        ? [...formData.village, village]
+                                        : formData.village.filter(v => v !== village);
+                                      setFormData({ ...formData, village: newVillages });
+                                    }}
+                                  />
+                                  <label htmlFor={`profile-village-${village}`} className="text-sm cursor-pointer">{village}</label>
+                                </div>
+                              ))
+                            )}
+                          </div>
                         </div>
                       </div>
                     ) : (
@@ -781,24 +844,39 @@ const Profile = () => {
                             </p>
                           </div>
                         )}
-                        {profileData.Caregiver.traditionalAuthority && (
+                        {profileData.Caregiver.traditionalAuthority && (Array.isArray(profileData.Caregiver.traditionalAuthority) ? profileData.Caregiver.traditionalAuthority.length > 0 : true) && (
                           <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Traditional Authority</Label>
-                            <p className="text-base font-semibold p-2 rounded-md bg-muted/30">
-                              {profileData.Caregiver.traditionalAuthority}
-                            </p>
+                            <Label className="text-xs text-muted-foreground">Traditional Authorities</Label>
+                            <div className="p-2 rounded-md bg-muted/30">
+                              {Array.isArray(profileData.Caregiver.traditionalAuthority)
+                                ? profileData.Caregiver.traditionalAuthority.map((ta: string, idx: number) => (
+                                    <span key={ta} className="text-base font-semibold">
+                                      {ta}{idx < profileData.Caregiver.traditionalAuthority.length - 1 ? ', ' : ''}
+                                    </span>
+                                  ))
+                                : <span className="text-base font-semibold">{profileData.Caregiver.traditionalAuthority}</span>
+                              }
+                            </div>
                           </div>
                         )}
-                        {profileData.Caregiver.village && (
+                        {profileData.Caregiver.village && (Array.isArray(profileData.Caregiver.village) ? profileData.Caregiver.village.length > 0 : true) && (
                           <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Village</Label>
-                            <p className="text-base font-semibold p-2 rounded-md bg-muted/30">
-                              {profileData.Caregiver.village}
-                            </p>
+                            <Label className="text-xs text-muted-foreground">Villages</Label>
+                            <div className="p-2 rounded-md bg-muted/30">
+                              {Array.isArray(profileData.Caregiver.village)
+                                ? profileData.Caregiver.village.map((v: string, idx: number) => (
+                                    <span key={v} className="text-base font-semibold">
+                                      {v}{idx < profileData.Caregiver.village.length - 1 ? ', ' : ''}
+                                    </span>
+                                  ))
+                                : <span className="text-base font-semibold">{profileData.Caregiver.village}</span>
+                              }
+                            </div>
                           </div>
                         )}
                         {!profileData.Caregiver.region && !profileData.Caregiver.district &&
-                         !profileData.Caregiver.traditionalAuthority && !profileData.Caregiver.village && (
+                         (!profileData.Caregiver.traditionalAuthority || (Array.isArray(profileData.Caregiver.traditionalAuthority) && profileData.Caregiver.traditionalAuthority.length === 0)) &&
+                         (!profileData.Caregiver.village || (Array.isArray(profileData.Caregiver.village) && profileData.Caregiver.village.length === 0)) && (
                           <p className="text-base font-semibold p-3 rounded-md bg-muted/30 col-span-2">
                             Location not provided
                           </p>
