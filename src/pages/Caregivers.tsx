@@ -392,7 +392,7 @@ const Caregivers = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-sm truncate">{name}</h3>
-                            {caregiverData.verificationStatus === 'verified' && (
+                            {caregiverData.verificationStatus === 'APPROVED' && (
                               <Shield className="h-3 w-3 text-success flex-shrink-0" />
                             )}
                           </div>
@@ -400,10 +400,17 @@ const Caregivers = () => {
                             {caregiverData.qualifications || 'Healthcare Professional'}
                           </p>
                           <Badge
-                            variant={caregiverData.verificationStatus === 'verified' ? 'default' : 'secondary'}
+                            variant={
+                              caregiverData.verificationStatus === 'APPROVED' ? 'default' :
+                              caregiverData.verificationStatus === 'REJECTED' ? 'destructive' :
+                              'secondary'
+                            }
                             className="mt-1 text-xs h-5"
                           >
-                            {caregiverData.verificationStatus === 'verified' ? 'Verified' : 'Pending'}
+                            {caregiverData.verificationStatus === 'APPROVED' && 'Verified'}
+                            {caregiverData.verificationStatus === 'PENDING' && 'Pending Verification'}
+                            {caregiverData.verificationStatus === 'REJECTED' && 'Rejected'}
+                            {!caregiverData.verificationStatus && 'Pending'}
                           </Badge>
                         </div>
                       </div>
@@ -546,13 +553,25 @@ const Caregivers = () => {
                   <h3 className="text-xl font-semibold">
                     {profileDialog.caregiver.firstName} {profileDialog.caregiver.lastName}
                   </h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    {profileDialog.caregiver.Caregiver?.verificationStatus === 'verified' && (
-                      <Badge className="gap-1">
-                        <Shield className="h-3 w-3" />
-                        Verified Professional
-                      </Badge>
-                    )}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <Badge
+                      variant={
+                        profileDialog.caregiver.Caregiver?.verificationStatus === 'APPROVED' ? 'default' :
+                        profileDialog.caregiver.Caregiver?.verificationStatus === 'REJECTED' ? 'destructive' :
+                        'secondary'
+                      }
+                      className="gap-1"
+                    >
+                      {profileDialog.caregiver.Caregiver?.verificationStatus === 'APPROVED' && (
+                        <>
+                          <Shield className="h-3 w-3" />
+                          Verified Professional
+                        </>
+                      )}
+                      {profileDialog.caregiver.Caregiver?.verificationStatus === 'PENDING' && 'Pending Verification'}
+                      {profileDialog.caregiver.Caregiver?.verificationStatus === 'REJECTED' && 'Verification Rejected'}
+                      {!profileDialog.caregiver.Caregiver?.verificationStatus && 'Pending Verification'}
+                    </Badge>
                     {profileDialog.caregiver.Caregiver?.Specialties?.map((specialty: any) => (
                       <Badge key={specialty.id} variant="outline">
                         {specialty.name}
@@ -593,6 +612,28 @@ const Caregivers = () => {
                   </div>
                   <div className="space-y-3">
                     <div>
+                      <Label className="text-xs text-muted-foreground">Verification Status</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge
+                          variant={
+                            profileDialog.caregiver.Caregiver?.verificationStatus === 'APPROVED' ? 'default' :
+                            profileDialog.caregiver.Caregiver?.verificationStatus === 'REJECTED' ? 'destructive' :
+                            'secondary'
+                          }
+                        >
+                          {profileDialog.caregiver.Caregiver?.verificationStatus === 'APPROVED' && (
+                            <>
+                              <Shield className="h-3 w-3 mr-1" />
+                              Verified
+                            </>
+                          )}
+                          {profileDialog.caregiver.Caregiver?.verificationStatus === 'PENDING' && 'Pending'}
+                          {profileDialog.caregiver.Caregiver?.verificationStatus === 'REJECTED' && 'Rejected'}
+                          {!profileDialog.caregiver.Caregiver?.verificationStatus && 'Pending'}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
                       <Label className="text-xs text-muted-foreground">Qualifications</Label>
                       <p className="text-sm mt-1">{profileDialog.caregiver.Caregiver?.qualifications || 'Not specified'}</p>
                     </div>
@@ -600,7 +641,6 @@ const Caregivers = () => {
                       <Label className="text-xs text-muted-foreground">Licensing Institution</Label>
                       <p className="text-sm mt-1">{profileDialog.caregiver.Caregiver?.licensingInstitution || 'Not specified'}</p>
                     </div>
-                   
                   </div>
                 </CardContent>
               </Card>

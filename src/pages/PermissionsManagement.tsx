@@ -87,7 +87,7 @@ const PermissionsManagement = () => {
         categories['Caregiver Management'].push(permission);
       } else if (permission.name.includes('patient')) {
         categories['Patient Management'].push(permission);
-      } else if (permission.name.includes('accountant')) {
+      } else if (permission.name.includes('accountant') || permission.name.includes('Accountant')) {
         categories['Accountant Management'].push(permission);
       } else if (permission.name.includes('regional_manager')) {
         categories['Regional Manager Management'].push(permission);

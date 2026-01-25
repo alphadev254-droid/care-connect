@@ -263,7 +263,7 @@ const UserManagement = () => {
     if (role === 'patient') {
       return isActive ? hasPermission('deactivate_patients') : hasPermission('activate_patients');
     }
-    if (role === 'accountant') {
+    if (role === 'accountant' || role === 'Accountant') {
       return isActive ? hasPermission('deactivate_accountants') : hasPermission('activate_accountants');
     }
     if (role === 'regional_manager') {
@@ -280,7 +280,7 @@ const UserManagement = () => {
     !['patient', 'caregiver', 'system_manager'].includes(role.name)
   );
 
-  const requiresRegion = ['regional_manager', 'accountant'].includes(
+  const requiresRegion = ['regional_manager', 'accountant','Accountant'].includes(
     roles.find((r: any) => r.id.toString() === createUserForm.roleId)?.name
   );
 
