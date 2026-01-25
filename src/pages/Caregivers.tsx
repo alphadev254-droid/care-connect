@@ -357,8 +357,8 @@ const Caregivers = () => {
           <div className="lg:col-span-3">
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm text-muted-foreground">
-                {filteredCaregivers.length} caregiver{filteredCaregivers.length !== 1 ? 's' : ''} found
-                {currentPage > 1 && ` (Page ${currentPage})`}
+                {isFetching ? 'Loading...' : `${filteredCaregivers.length} caregiver${filteredCaregivers.length !== 1 ? 's' : ''} found`}
+                {!isFetching && currentPage > 1 && ` (Page ${currentPage})`}
               </p>
               {isFetching && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -368,7 +368,29 @@ const Caregivers = () => {
               )}
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-3">
+            {isFetching && currentPage === 1 ? (
+              <div className="grid sm:grid-cols-2 gap-3">
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="h-12 w-12 bg-muted rounded-full" />
+                        <div className="flex-1">
+                          <div className="h-4 bg-muted rounded mb-2" />
+                          <div className="h-3 bg-muted rounded mb-1" />
+                          <div className="h-5 bg-muted rounded w-16" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-muted rounded" />
+                        <div className="h-3 bg-muted rounded w-3/4" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-3">
               {filteredCaregivers.map((caregiver: any) => {
                 const caregiverData = caregiver.Caregiver || {};
                 const name = `${caregiver.firstName || ''} ${caregiver.lastName || ''}`.trim();
@@ -481,7 +503,7 @@ const Caregivers = () => {
                 );
               })}
 
-              {filteredCaregivers.length === 0 && !isLoading && (
+              {filteredCaregivers.length === 0 && !isLoading && !isFetching && (
                 <div className="col-span-2 text-center py-12">
                   <Heart className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
                   <h3 className="font-semibold mb-1">No caregivers found</h3>
@@ -494,6 +516,8 @@ const Caregivers = () => {
                 </div>
               )}
             </div>
+            )}
+
             
             {/* Load More Button */}
             {hasMore && filteredCaregivers.length > 0 && (
