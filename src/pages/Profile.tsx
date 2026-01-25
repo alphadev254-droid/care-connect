@@ -317,29 +317,9 @@ const Profile = () => {
     });
   };
 
-  // Map backend roles to frontend role types
-  const mapUserRole = (role: string): "patient" | "caregiver" | "physician" | "admin" => {
-    switch (role) {
-      case 'primary_physician':
-        return 'physician';
-      case 'system_manager':
-      case 'regional_manager':
-      case 'Accountant':
-        return 'admin';
-      case 'caregiver':
-        return 'caregiver';
-      case 'patient':
-      case 'child_patient':
-      case 'elderly_patient':
-        return 'patient';
-      default:
-        return 'patient';
-    }
-  };
-
   if (isLoading) {
     return (
-      <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
+      <DashboardLayout userRole={user?.role || 'patient'}>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
@@ -348,7 +328,7 @@ const Profile = () => {
   }
 
   return (
-    <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
+    <DashboardLayout userRole={user?.role || 'patient'}>
       <div className="space-y-6">
         {/* Header Section */}
         <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary via-primary/90 to-primary/80 p-8 shadow-lg">

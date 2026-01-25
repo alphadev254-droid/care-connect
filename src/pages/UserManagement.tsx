@@ -45,6 +45,7 @@ import {
   ChevronRight,
   Pencil,
   Plus,
+  Trash2,
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -174,6 +175,15 @@ const UserManagement = () => {
     reason: string;
   }>({ open: false, userId: "", reason: "" });
 
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    userId: string;
+    userName: string;
+  }>({ open: false, userId: "", userName: "" });
+
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [bulkDeleteDialog, setBulkDeleteDialog] = useState(false);
+
   const toggleUserMutation = useMutation({
     mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
       await api.put(`/admin/users/${userId}/toggle-status`, { isActive });
@@ -210,6 +220,21 @@ const UserManagement = () => {
     }
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await api.delete(`/admin/users/${userId}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
+      toast.success('User deleted successfully');
+      setDeleteDialog({ open: false, userId: "", userName: "" });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to delete user');
+    }
+  });
+
   const handleRejectCaregiver = (userId: string) => {
     setRejectDialog({ open: true, userId, reason: "" });
   };
@@ -231,6 +256,18 @@ const UserManagement = () => {
 
   const handleCreateUser = () => {
     createUserMutation.mutate(createUserForm);
+  };
+
+  const handleDeleteUser = (user: any) => {
+    setDeleteDialog({
+      open: true,
+      userId: user.id,
+      userName: `${user.firstName} ${user.lastName}`
+    });
+  };
+
+  const confirmDeleteUser = () => {
+    deleteUserMutation.mutate(deleteDialog.userId);
   };
 
   // Helper function to check if current user can view details of a specific user role
@@ -425,6 +462,7 @@ const UserManagement = () => {
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -509,7 +547,7 @@ const UserManagement = () => {
                             } 
                             className="text-xs"
                           >
-                            {user.Caregiver.verificationStatus === 'pending' ? 'Awaiting Verification' : user.Caregiver.verificationStatus}
+                            {user.Caregiver.verificationStatus === 'PENDING' ? 'Awaiting Verification' : user.Caregiver.verificationStatus}
                           </Badge>
                         ) : (
                           <span className="text-xs text-muted-foreground">N/A</span>
@@ -523,20 +561,9 @@ const UserManagement = () => {
                           <div className="flex items-center justify-end gap-1">
                             {user.role === 'caregiver' && user.Caregiver ? (
                               // Caregiver-specific actions based on verification status
-                              user.Caregiver.verificationStatus === 'pending' ? (
-                                // Show View/Verify/Reject for pending caregivers
+                              user.Caregiver.verificationStatus === 'PENDING' ? (
+                                // Show Verify, Reject, View, Edit, Activate/Deactivate for pending caregivers
                                 <>
-                                  {canViewUserDetails(user.Role?.name) && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="gap-1 h-7 text-xs"
-                                      onClick={() => navigate(`/dashboard/user/${user.id}`)}
-                                    >
-                                      <Eye className="h-3 w-3" />
-                                      View
-                                    </Button>
-                                  )}
                                   <Button
                                     variant="default"
                                     size="sm"
@@ -561,6 +588,40 @@ const UserManagement = () => {
                                     <UserX className="h-3 w-3" />
                                     Reject
                                   </Button>
+                                  {canViewUserDetails(user.Role?.name) && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1 h-7 text-xs"
+                                      onClick={() => navigate(`/dashboard/user/${user.id}`)}
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                      View
+                                    </Button>
+                                  )}
+                                  {canEditUser(user.Role?.name) && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1 h-7 text-xs"
+                                      onClick={() => navigate(`/dashboard/users/edit/${user.id}`)}
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                      Edit
+                                    </Button>
+                                  )}
+                                  {canActivateDeactivateUser(user.Role?.name, user.isActive) && (
+                                    <Button
+                                      variant={user.isActive ? "outline" : "default"}
+                                      size="sm"
+                                      className="gap-1 h-7 text-xs"
+                                      onClick={() => handleToggleUser(user)}
+                                      disabled={toggleUserMutation.isPending}
+                                    >
+                                      {user.isActive ? <UserX className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
+                                      {user.isActive ? 'Deactivate' : 'Activate'}
+                                    </Button>
+                                  )}
                                 </>
                               ) : user.Caregiver.verificationStatus === 'APPROVED' ? (
                                 // Show standard actions for approved caregivers
@@ -601,19 +662,8 @@ const UserManagement = () => {
                                   )}
                                 </>
                               ) : (
-                                // Show view, re-verify and reject for rejected caregivers
+                                // Show Re-verify, Delete, Edit, View, Activate/Deactivate for rejected caregivers
                                 <>
-                                  {canViewUserDetails(user.Role?.name) && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="gap-1 h-7 text-xs"
-                                      onClick={() => navigate(`/dashboard/user/${user.id}`)}
-                                    >
-                                      <Eye className="h-3 w-3" />
-                                      View
-                                    </Button>
-                                  )}
                                   <Button
                                     variant="default"
                                     size="sm"
@@ -632,12 +682,46 @@ const UserManagement = () => {
                                     variant="destructive"
                                     size="sm"
                                     className="gap-1 h-7 text-xs"
-                                    onClick={() => handleRejectCaregiver(user.id)}
-                                    disabled={rejectCaregiver.isPending}
+                                    onClick={() => handleDeleteUser(user)}
+                                    disabled={deleteUserMutation.isPending}
                                   >
-                                    <UserX className="h-3 w-3" />
-                                    Reject
+                                    <Trash2 className="h-3 w-3" />
+                                    Delete
                                   </Button>
+                                  {canEditUser(user.Role?.name) && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1 h-7 text-xs"
+                                      onClick={() => navigate(`/dashboard/users/edit/${user.id}`)}
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                      Edit
+                                    </Button>
+                                  )}
+                                  {canViewUserDetails(user.Role?.name) && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1 h-7 text-xs"
+                                      onClick={() => navigate(`/dashboard/user/${user.id}`)}
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                      View
+                                    </Button>
+                                  )}
+                                  {canActivateDeactivateUser(user.Role?.name, user.isActive) && (
+                                    <Button
+                                      variant={user.isActive ? "outline" : "default"}
+                                      size="sm"
+                                      className="gap-1 h-7 text-xs"
+                                      onClick={() => handleToggleUser(user)}
+                                      disabled={toggleUserMutation.isPending}
+                                    >
+                                      {user.isActive ? <UserX className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
+                                      {user.isActive ? 'Deactivate' : 'Activate'}
+                                    </Button>
+                                  )}
                                 </>
                               )
                             ) : (
@@ -930,14 +1014,14 @@ const UserManagement = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setRejectDialog({ open: false, userId: "", reason: "" })}
                 disabled={rejectCaregiver.isPending}
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 variant="destructive"
                 onClick={handleConfirmReject}
                 disabled={rejectCaregiver.isPending || !rejectDialog.reason.trim()}
@@ -947,6 +1031,41 @@ const UserManagement = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={deleteDialog.open} onOpenChange={(open) => {
+          if (!deleteUserMutation.isPending) {
+            setDeleteDialog(prev => ({ ...prev, open }));
+          }
+        }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Rejected User</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to permanently delete <strong>{deleteDialog.userName}</strong>?
+                This action cannot be undone and will remove all user data from the system.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleteUserMutation.isPending}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDeleteUser}
+                disabled={deleteUserMutation.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteUserMutation.isPending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete User"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
     </ProtectedRoute>
