@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, DollarSign } from 'lucide-react';
+import { Calendar, Clock, DollarSign, Video, MapPin } from 'lucide-react';
 import { timeSlotService, TimeSlot } from '@/services/timeSlotService';
 import { appointmentService } from '@/services/appointmentService';
 import { api } from '@/lib/api';
@@ -25,6 +25,7 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('+265 ');
+  const [sessionType, setSessionType] = useState<'teleconference' | 'in_person'>('teleconference');
   const [specialty, setSpecialty] = useState<any>(null);
   const { isAuthenticated } = useAuth();
 
@@ -91,7 +92,7 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
       const paymentResponse = await appointmentService.createAppointment({
         timeSlotId: selectedSlot.id,
         specialtyId,
-        sessionType: 'in_person',
+        sessionType,
         phoneNumber: phoneNumber
       });
 
@@ -211,6 +212,43 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
                           <p className="text-sm font-medium text-primary">{specialty.name}</p>
                         </div>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Session Type Selection */}
+                  <div className="space-y-3">
+                    <h5 className="font-semibold text-base">Session Type</h5>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setSessionType('teleconference')}
+                        className={`p-3 rounded-lg border-2 transition-colors ${
+                          sessionType === 'teleconference'
+                            ? 'border-primary bg-primary/5'
+                            : 'border-muted hover:border-primary/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Video className="h-4 w-4" />
+                          <span className="text-sm font-medium">Teleconference</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Video call session</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSessionType('in_person')}
+                        className={`p-3 rounded-lg border-2 transition-colors ${
+                          sessionType === 'in_person'
+                            ? 'border-primary bg-primary/5'
+                            : 'border-muted hover:border-primary/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          <span className="text-sm font-medium">In-Person</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Face-to-face session</p>
+                      </button>
                     </div>
                   </div>
 

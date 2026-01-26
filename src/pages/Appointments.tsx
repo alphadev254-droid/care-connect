@@ -300,7 +300,7 @@ const Appointments = () => {
           </div>
         </div>
 
-        {(appointment.jitsiRoomName || appointment.patientMeetingToken) && (
+        {(appointment.jitsiRoomName || appointment.patientMeetingToken) && appointment.sessionType === "teleconference" && (
           <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-900">
             <div className="space-y-2">
               {appointment.jitsiRoomName && (
@@ -329,6 +329,21 @@ const Appointments = () => {
                   </Button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {appointment.sessionType === "in_person" && appointment.Location && (
+          <div className="mt-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-900">
+            <div className="flex items-center gap-2 text-[13px]">
+              <MapPin className="h-4 w-4 text-green-600 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-green-900 dark:text-green-100">Location</p>
+                <p className="text-xs text-green-700 dark:text-green-300">{appointment.Location.name}</p>
+                {appointment.Location.address && (
+                  <p className="text-xs text-green-600 dark:text-green-400">{appointment.Location.address}</p>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -499,7 +514,7 @@ const Appointments = () => {
           </div>
         </div>
 
-        {(appointment.jitsiRoomName || appointment.caregiverMeetingToken) && (
+        {(appointment.jitsiRoomName || appointment.caregiverMeetingToken) && appointment.sessionType === "teleconference" && (
           <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-900">
             <div className="space-y-2">
               {appointment.jitsiRoomName && (
@@ -528,6 +543,21 @@ const Appointments = () => {
                   </Button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {appointment.sessionType === "in_person" && appointment.Location && (
+          <div className="mt-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-900">
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="h-4 w-4 text-green-600 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-green-900 dark:text-green-100">Location</p>
+                <p className="text-xs text-green-700 dark:text-green-300">{appointment.Location.name}</p>
+                {appointment.Location.address && (
+                  <p className="text-xs text-green-600 dark:text-green-400">{appointment.Location.address}</p>
+                )}
+              </div>
             </div>
           </div>
         )}
