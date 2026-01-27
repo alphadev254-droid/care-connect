@@ -317,11 +317,6 @@ const Dashboard = () => {
           </div>
           {user?.role === 'patient' && (
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-2 h-9">
-                <Bell className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs">Notifications</span>
-                <Badge variant="destructive" className="ml-1 text-xs">3</Badge>
-              </Button>
               <Link to="/dashboard/caregivers">
                 <Button size="sm" className="gap-2 bg-gradient-primary h-9 text-xs">
                   <Search className="h-4 w-4" />

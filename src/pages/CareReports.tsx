@@ -241,7 +241,7 @@ const CareReports = () => {
     if (!includeReportData) {
       return [
         { header: "Session Date", accessor: (row: Record<string, any>) => new Date(row.scheduledDate).toLocaleDateString() },
-        { header: "Session Time", accessor: (row: Record<string, any>) => row.scheduledTime || 'N/A' },
+        { header: "Session Time", accessor: (row: Record<string, any>) => row.TimeSlot ? `${row.TimeSlot.startTime.slice(0,5)} - ${row.TimeSlot.endTime.slice(0,5)}` : 'N/A' },
         { header: "Patient Name", accessor: (row: Record<string, any>) => `${row.Patient?.User?.firstName || ''} ${row.Patient?.User?.lastName || ''}` },
         { header: "Caregiver Name", accessor: (row: Record<string, any>) => `${row.Caregiver?.User?.firstName || ''} ${row.Caregiver?.User?.lastName || ''}` },
         { header: "Specialty", accessor: (row: Record<string, any>) => row.Specialty?.name || 'General Care' },
@@ -254,7 +254,7 @@ const CareReports = () => {
     return [
       { header: "Session ID", accessor: (row: Record<string, any>) => row.id },
       { header: "Session Date", accessor: (row: Record<string, any>) => new Date(row.scheduledDate).toLocaleDateString() },
-      { header: "Session Time", accessor: (row: Record<string, any>) => row.scheduledTime || 'N/A' },
+      { header: "Session Time", accessor: (row: Record<string, any>) => row.TimeSlot ? `${row.TimeSlot.startTime.slice(0,5)} - ${row.TimeSlot.endTime.slice(0,5)}` : 'N/A' },
       { header: "Patient Name", accessor: (row: Record<string, any>) => `${row.Patient?.User?.firstName || ''} ${row.Patient?.User?.lastName || ''}` },
       { header: "Patient Email", accessor: (row: Record<string, any>) => row.Patient?.User?.email || 'N/A' },
       { header: "Patient Phone", accessor: (row: Record<string, any>) => row.Patient?.User?.phone || 'N/A' },
@@ -1259,7 +1259,7 @@ const CareReports = () => {
                                       {new Date(appointment.scheduledDate).toLocaleDateString()}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                      {appointment.scheduledTime || 'N/A'}
+                                      {appointment.TimeSlot ? `${appointment.TimeSlot.startTime.slice(0,5)} - ${appointment.TimeSlot.endTime.slice(0,5)}` : 'N/A'}
                                     </p>
                                   </div>
                                 </div>
@@ -1400,7 +1400,7 @@ const CareReports = () => {
                                       {new Date(appointment.scheduledDate).toLocaleDateString()}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                      {appointment.scheduledTime || 'N/A'}
+                                      {appointment.TimeSlot ? `${appointment.TimeSlot.startTime.slice(0,5)} - ${appointment.TimeSlot.endTime.slice(0,5)}` : 'N/A'}
                                     </p>
                                   </div>
                                 </div>
