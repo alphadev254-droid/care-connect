@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { BookingModal } from "@/components/booking/BookingModal";
+import { RatingDisplay } from "@/components/RatingDisplay";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { mapUserRole } from "@/lib/roleMapper";
@@ -446,6 +447,11 @@ const Caregivers = () => {
                           <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
                           <span className="line-clamp-1">{location}</span>
                         </div>
+                        <RatingDisplay 
+                          averageRating={caregiverData.averageRating}
+                          totalRatings={caregiverData.totalRatings}
+                          size="sm"
+                        />
                       </div>
 
                       {/* Specialties with Fees */}

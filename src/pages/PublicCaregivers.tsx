@@ -12,6 +12,7 @@ import { Heart, Search, Clock, DollarSign, LogIn, MapPin, Award, User, Filter, C
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { BookingModal } from "@/components/booking/BookingModal";
+import { RatingDisplay } from "@/components/RatingDisplay";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -457,6 +458,11 @@ const PublicCaregivers = () => {
                           <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
                           <span className="line-clamp-1">{location}</span>
                         </div>
+                        <RatingDisplay 
+                          averageRating={caregiverData.averageRating}
+                          totalRatings={caregiverData.totalRatings}
+                          size="sm"
+                        />
                       </div>
 
                       {/* Specialties with Fees */}

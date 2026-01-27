@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { ExportButton } from "@/components/shared/ExportButton";
+import { RatingModal } from "@/components/RatingModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { mapUserRole } from "@/lib/roleMapper";
@@ -34,6 +36,7 @@ import {
   Filter,
   X,
   MapPin,
+  Star,
 } from "lucide-react";
 
 const CareReports = () => {
@@ -276,28 +279,25 @@ const CareReports = () => {
 
   console.log('Appointments with reports:', appointmentsWithReports);
 
+  // Use refs for form inputs to prevent focus loss
+  const observationsRef = useRef<HTMLTextAreaElement>(null);
+  const interventionsRef = useRef<HTMLTextAreaElement>(null);
+  const sessionSummaryRef = useRef<HTMLTextAreaElement>(null);
+  const patientStatusRef = useRef<HTMLSelectElement>(null);
+  const recommendationsRef = useRef<HTMLTextAreaElement>(null);
+  const followUpDateRef = useRef<HTMLInputElement>(null);
+  const medicationsRef = useRef<HTMLTextAreaElement>(null);
+  const activitiesRef = useRef<HTMLTextAreaElement>(null);
+  const notesRef = useRef<HTMLTextAreaElement>(null);
+  const bloodPressureRef = useRef<HTMLInputElement>(null);
+  const heartRateRef = useRef<HTMLInputElement>(null);
+  const temperatureRef = useRef<HTMLInputElement>(null);
+  const respiratoryRateRef = useRef<HTMLInputElement>(null);
+  const oxygenSaturationRef = useRef<HTMLInputElement>(null);
+  const bloodSugarRef = useRef<HTMLInputElement>(null);
+  const attachmentsRef = useRef<HTMLInputElement>(null);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [reportForm, setReportForm] = useState({
-    observations: '',
-    interventions: '',
-    sessionSummary: '',
-    patientStatus: 'stable',
-    recommendations: '',
-    followUpDate: '',
-    medications: '',
-    activities: '',
-    notes: '',
-    vitals: {
-      bloodPressure: '',
-      heartRate: '',
-      temperature: '',
-      oxygenLevel: '',
-      respiratoryRate: '',
-      oxygenSaturation: '',
-      bloodSugar: ''
-    },
-    attachments: []
-  });
+  const [showRatingModal, setShowRatingModal] = useState(false);
 
   useEffect(() => {
     if (appointmentId && completedAppointments.length > 0) {
@@ -305,27 +305,24 @@ const CareReports = () => {
       if (appointment) {
         setSelectedAppointment(appointment);
         if (appointment.report) {
-          setReportForm({
-            observations: appointment.report.observations || '',
-            interventions: appointment.report.interventions || '',
-            sessionSummary: appointment.report.sessionSummary || '',
-            patientStatus: appointment.report.patientStatus || 'stable',
-            recommendations: appointment.report.recommendations || '',
-            followUpDate: appointment.report.followUpDate || '',
-            medications: appointment.report.medications || '',
-            activities: appointment.report.activities || '',
-            notes: appointment.report.notes || '',
-            vitals: appointment.report.vitals || {
-              bloodPressure: '',
-              heartRate: '',
-              temperature: '',
-              oxygenLevel: '',
-              respiratoryRate: '',
-              oxygenSaturation: '',
-              bloodSugar: ''
-            },
-            attachments: appointment.report.attachments || []
-          });
+          // Set form values using refs
+          if (observationsRef.current) observationsRef.current.value = appointment.report.observations || '';
+          if (interventionsRef.current) interventionsRef.current.value = appointment.report.interventions || '';
+          if (sessionSummaryRef.current) sessionSummaryRef.current.value = appointment.report.sessionSummary || '';
+          if (patientStatusRef.current) patientStatusRef.current.value = appointment.report.patientStatus || 'stable';
+          if (recommendationsRef.current) recommendationsRef.current.value = appointment.report.recommendations || '';
+          if (followUpDateRef.current) followUpDateRef.current.value = appointment.report.followUpDate || '';
+          if (medicationsRef.current) medicationsRef.current.value = appointment.report.medications || '';
+          if (activitiesRef.current) activitiesRef.current.value = appointment.report.activities || '';
+          if (notesRef.current) notesRef.current.value = appointment.report.notes || '';
+          if (appointment.report.vitals) {
+            if (bloodPressureRef.current) bloodPressureRef.current.value = appointment.report.vitals.bloodPressure || '';
+            if (heartRateRef.current) heartRateRef.current.value = appointment.report.vitals.heartRate || '';
+            if (temperatureRef.current) temperatureRef.current.value = appointment.report.vitals.temperature || '';
+            if (respiratoryRateRef.current) respiratoryRateRef.current.value = appointment.report.vitals.respiratoryRate || '';
+            if (oxygenSaturationRef.current) oxygenSaturationRef.current.value = appointment.report.vitals.oxygenSaturation || '';
+            if (bloodSugarRef.current) bloodSugarRef.current.value = appointment.report.vitals.bloodSugar || '';
+          }
         }
       }
     }
@@ -335,10 +332,10 @@ const CareReports = () => {
     mutationFn: async (reportData: any) => {
       const formData = new FormData();
       
-      // Add text fields
-      formData.append('appointmentId', reportData.appointmentId);
-      formData.append('patientId', reportData.patientId);
-      formData.append('caregiverId', reportData.caregiverId);
+      // Add text fields with validation
+      formData.append('appointmentId', reportData.appointmentId.toString());
+      formData.append('patientId', reportData.patientId.toString());
+      formData.append('caregiverId', reportData.caregiverId.toString());
       formData.append('observations', reportData.observations);
       formData.append('interventions', reportData.interventions);
       formData.append('sessionSummary', reportData.sessionSummary);
@@ -357,35 +354,131 @@ const CareReports = () => {
         });
       }
       
+      console.log('Submitting report data:', {
+        appointmentId: reportData.appointmentId,
+        patientId: reportData.patientId,
+        caregiverId: reportData.caregiverId,
+        observations: reportData.observations,
+        interventions: reportData.interventions,
+        sessionSummary: reportData.sessionSummary,
+        patientStatus: reportData.patientStatus,
+        vitals: reportData.vitals,
+        attachments: reportData.attachments ? reportData.attachments.length : 0
+      });
+      
       const response = await api.post('/reports', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
+      
+      console.log('Report creation response:', response.data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Report created successfully:', data);
       toast.success('Report created successfully');
       queryClient.invalidateQueries({ queryKey: ['care-reports'] });
       queryClient.invalidateQueries({ queryKey: ['appointments-reports'] });
       // Mark appointment as completed
       api.patch(`/appointments/${selectedAppointment.id}/status`, { status: 'session_attended' });
-      navigate('/dashboard/reports');
+      // Close the form and go back to sessions list
+      setSelectedAppointment(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Report creation error:', error);
-      toast.error('Failed to create report');
+      console.error('Error response:', error.response?.data);
+      toast.error(error.response?.data?.message || 'Failed to create report');
     }
   });
 
   const handleSubmitReport = () => {
     if (!selectedAppointment) return;
     
+    // Get form values
+    const observations = observationsRef.current?.value?.trim() || '';
+    const interventions = interventionsRef.current?.value?.trim() || '';
+    const sessionSummary = sessionSummaryRef.current?.value?.trim() || '';
+    const patientStatus = patientStatusRef.current?.value || 'stable';
+    
+    // Validate required fields
+    if (!observations) {
+      toast.error('Observations field is required');
+      observationsRef.current?.focus();
+      return;
+    }
+    
+    if (!interventions) {
+      toast.error('Interventions field is required');
+      interventionsRef.current?.focus();
+      return;
+    }
+    
+    if (!sessionSummary) {
+      toast.error('Session Summary field is required');
+      sessionSummaryRef.current?.focus();
+      return;
+    }
+    
+    // Get file attachments
+    const files = attachmentsRef.current?.files ? Array.from(attachmentsRef.current.files) : [];
+    
+    const formData = {
+      observations,
+      interventions,
+      sessionSummary,
+      patientStatus,
+      recommendations: recommendationsRef.current?.value?.trim() || '',
+      followUpDate: followUpDateRef.current?.value || '',
+      medications: medicationsRef.current?.value?.trim() || '',
+      activities: activitiesRef.current?.value?.trim() || '',
+      notes: notesRef.current?.value?.trim() || '',
+      vitals: {
+        bloodPressure: bloodPressureRef.current?.value?.trim() || '',
+        heartRate: heartRateRef.current?.value?.trim() || '',
+        temperature: temperatureRef.current?.value?.trim() || '',
+        respiratoryRate: respiratoryRateRef.current?.value?.trim() || '',
+        oxygenSaturation: oxygenSaturationRef.current?.value?.trim() || '',
+        bloodSugar: bloodSugarRef.current?.value?.trim() || ''
+      },
+      attachments: files
+    };
+    
     createReportMutation.mutate({
       appointmentId: selectedAppointment.id,
       patientId: selectedAppointment.patientId,
       caregiverId: selectedAppointment.caregiverId,
-      ...reportForm
+      ...formData
+    });
+  };
+
+  // Rating submission mutation
+  const submitRatingMutation = useMutation({
+    mutationFn: async ({ appointmentId, rating, feedback }: { appointmentId: number; rating: number; feedback: string }) => {
+      const response = await api.post('/appointments/submit-feedback', {
+        appointmentId,
+        rating,
+        feedback
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Rating submitted successfully!');
+      setShowRatingModal(false);
+      queryClient.invalidateQueries({ queryKey: ['appointments-reports'] });
+    },
+    onError: (error) => {
+      console.error('Rating submission error:', error);
+      toast.error('Failed to submit rating');
+    }
+  });
+
+  const handleRatingSubmit = (rating: number, feedback: string) => {
+    if (!selectedAppointment) return;
+    submitRatingMutation.mutate({
+      appointmentId: selectedAppointment.id,
+      rating,
+      feedback
     });
   };
 
@@ -737,11 +830,9 @@ const CareReports = () => {
                     <div>
                       <Label htmlFor="observations" className="text-xs">Observations *</Label>
                       <Textarea
-                        id="observations"
+                        ref={observationsRef}
                         placeholder="Enter observations..."
                         className="text-sm min-h-[80px]"
-                        value={reportForm.observations}
-                        onChange={(e) => setReportForm({...reportForm, observations: e.target.value})}
                         required
                       />
                     </div>
@@ -749,11 +840,9 @@ const CareReports = () => {
                     <div>
                       <Label htmlFor="interventions" className="text-xs">Interventions *</Label>
                       <Textarea
-                        id="interventions"
+                        ref={interventionsRef}
                         placeholder="Enter interventions performed..."
                         className="text-sm min-h-[80px]"
-                        value={reportForm.interventions}
-                        onChange={(e) => setReportForm({...reportForm, interventions: e.target.value})}
                         required
                       />
                     </div>
@@ -761,11 +850,9 @@ const CareReports = () => {
                     <div>
                       <Label htmlFor="sessionSummary" className="text-xs">Session Summary *</Label>
                       <Textarea
-                        id="sessionSummary"
+                        ref={sessionSummaryRef}
                         placeholder="Enter session summary..."
                         className="text-sm min-h-[80px]"
-                        value={reportForm.sessionSummary}
-                        onChange={(e) => setReportForm({...reportForm, sessionSummary: e.target.value})}
                         required
                       />
                     </div>
@@ -773,10 +860,9 @@ const CareReports = () => {
                     <div>
                       <Label htmlFor="patientStatus" className="text-xs">Patient Status *</Label>
                       <select
-                        id="patientStatus"
+                        ref={patientStatusRef}
                         className="w-full p-2 border rounded-md text-sm"
-                        value={reportForm.patientStatus}
-                        onChange={(e) => setReportForm({...reportForm, patientStatus: e.target.value})}
+                        defaultValue="stable"
                         required
                       >
                         <option value="stable">Stable</option>
@@ -793,55 +879,45 @@ const CareReports = () => {
                     <div>
                       <Label htmlFor="recommendations" className="text-xs">Recommendations</Label>
                       <Textarea
-                        id="recommendations"
+                        ref={recommendationsRef}
                         placeholder="Enter recommendations..."
                         className="text-sm min-h-[60px]"
-                        value={reportForm.recommendations}
-                        onChange={(e) => setReportForm({...reportForm, recommendations: e.target.value})}
                       />
                     </div>
 
                     <div>
                       <Label htmlFor="followUpDate" className="text-xs">Follow-up Date</Label>
                       <Input
-                        id="followUpDate"
+                        ref={followUpDateRef}
                         type="date"
                         className="text-sm"
-                        value={reportForm.followUpDate}
-                        onChange={(e) => setReportForm({...reportForm, followUpDate: e.target.value})}
                       />
                     </div>
 
                     <div>
                       <Label htmlFor="medications" className="text-xs">Medications</Label>
                       <Textarea
-                        id="medications"
+                        ref={medicationsRef}
                         placeholder="Medications prescribed or administered..."
                         className="text-sm min-h-[60px]"
-                        value={reportForm.medications}
-                        onChange={(e) => setReportForm({...reportForm, medications: e.target.value})}
                       />
                     </div>
 
                     <div>
                       <Label htmlFor="activities" className="text-xs">Activities</Label>
                       <Textarea
-                        id="activities"
+                        ref={activitiesRef}
                         placeholder="Activities performed with patient (exercises, therapy, etc.)..."
                         className="text-sm min-h-[60px]"
-                        value={reportForm.activities}
-                        onChange={(e) => setReportForm({...reportForm, activities: e.target.value})}
                       />
                     </div>
 
                     <div>
                       <Label htmlFor="notes" className="text-xs">Additional Notes</Label>
                       <Textarea
-                        id="notes"
+                        ref={notesRef}
                         placeholder="Additional notes..."
                         className="text-sm min-h-[60px]"
-                        value={reportForm.notes}
-                        onChange={(e) => setReportForm({...reportForm, notes: e.target.value})}
                       />
                     </div>
 
@@ -849,40 +925,34 @@ const CareReports = () => {
                       <Label className="text-xs">Vital Signs</Label>
                       <div className="grid grid-cols-2 gap-2 mt-1.5">
                         <Input
+                          ref={bloodPressureRef}
                           placeholder="Blood Pressure (e.g., 120/80)"
                           className="text-sm h-9"
-                          value={reportForm.vitals.bloodPressure}
-                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, bloodPressure: e.target.value}})}
                         />
                         <Input
+                          ref={heartRateRef}
                           placeholder="Heart Rate (bpm)"
                           className="text-sm h-9"
-                          value={reportForm.vitals.heartRate}
-                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, heartRate: e.target.value}})}
                         />
                         <Input
+                          ref={temperatureRef}
                           placeholder="Temperature (°C)"
                           className="text-sm h-9"
-                          value={reportForm.vitals.temperature}
-                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, temperature: e.target.value}})}
                         />
                         <Input
+                          ref={respiratoryRateRef}
                           placeholder="Respiratory Rate"
                           className="text-sm h-9"
-                          value={reportForm.vitals.respiratoryRate}
-                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, respiratoryRate: e.target.value}})}
                         />
                         <Input
+                          ref={oxygenSaturationRef}
                           placeholder="Oxygen Saturation (%)"
                           className="text-sm h-9"
-                          value={reportForm.vitals.oxygenSaturation}
-                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, oxygenSaturation: e.target.value}})}
                         />
                         <Input
+                          ref={bloodSugarRef}
                           placeholder="Blood Sugar (mg/dL)"
                           className="text-sm h-9"
-                          value={reportForm.vitals.bloodSugar}
-                          onChange={(e) => setReportForm({...reportForm, vitals: {...reportForm.vitals, bloodSugar: e.target.value}})}
                         />
                       </div>
                     </div>
@@ -890,23 +960,13 @@ const CareReports = () => {
                     <div>
                       <Label htmlFor="attachments" className="text-xs">File Attachments</Label>
                       <Input
+                        ref={attachmentsRef}
                         id="attachments"
                         type="file"
                         multiple
                         className="text-sm h-9"
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                        onChange={(e) => {
-                          const files = Array.from(e.target.files || []);
-                          setReportForm({...reportForm, attachments: files});
-                        }}
                       />
-                      {reportForm.attachments.length > 0 && (
-                        <div className="mt-1.5">
-                          <p className="text-xs text-muted-foreground">
-                            {reportForm.attachments.length} file(s) selected
-                          </p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1116,7 +1176,7 @@ const CareReports = () => {
                   <Button
                     onClick={handleSubmitReport}
                     className="h-9 text-xs"
-                    disabled={createReportMutation.isPending || !reportForm.observations || !reportForm.interventions || !reportForm.sessionSummary}
+                    disabled={createReportMutation.isPending}
                   >
                     <Save className="h-3 w-3 mr-1" />
                     {createReportMutation.isPending ? 'Saving...' : 'Save Report & Complete Session'}
@@ -1407,15 +1467,36 @@ const CareReports = () => {
                                 </p>
                               </TableCell>
                               <TableCell className="p-3 text-right">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 text-xs"
-                                  onClick={() => setSelectedAppointment(appointment)}
-                                >
-                                  <Eye className="h-3 w-3 mr-1" />
-                                  View Report
-                                </Button>
+                                <div className="flex items-center gap-2 justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-xs"
+                                    onClick={() => setSelectedAppointment(appointment)}
+                                  >
+                                    <Eye className="h-3 w-3 mr-1" />
+                                    View Report
+                                  </Button>
+                                  {isPatient && !appointment.patientRating && (
+                                    <Button
+                                      size="sm"
+                                      className="h-7 text-xs bg-yellow-600 hover:bg-yellow-700"
+                                      onClick={() => {
+                                        setSelectedAppointment(appointment);
+                                        setShowRatingModal(true);
+                                      }}
+                                    >
+                                      <Star className="h-3 w-3 mr-1" />
+                                      Rate
+                                    </Button>
+                                  )}
+                                  {appointment.patientRating && (
+                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                      {appointment.patientRating}/5
+                                    </div>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -1428,6 +1509,15 @@ const CareReports = () => {
           </Tabs>
         )}
       </div>
+      
+      {/* Rating Modal */}
+      <RatingModal
+        isOpen={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        onSubmit={handleRatingSubmit}
+        caregiverName={selectedAppointment ? `${selectedAppointment.Caregiver?.User?.firstName} ${selectedAppointment.Caregiver?.User?.lastName}` : ""}
+        isSubmitting={submitRatingMutation.isPending}
+      />
     </DashboardLayout>
   );
 

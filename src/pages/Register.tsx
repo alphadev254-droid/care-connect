@@ -201,13 +201,38 @@ const Register = () => {
         toast.error("Last name is required");
         return false;
       }
-      if (!formData.email.trim()) {
+      if (!formData.email.trim() && !(formData.userType === 'child_patient' || formData.userType === 'elderly_patient')) {
         toast.error("Email is required");
         return false;
       }
-      if (!formData.phone.trim()) {
+      if (!formData.phone.trim() && !(formData.userType === 'child_patient' || formData.userType === 'elderly_patient')) {
         toast.error("Phone number is required");
         return false;
+      }
+      // For child and elderly patients, check guardian email and phone
+      if ((formData.userType === 'child_patient' || formData.userType === 'elderly_patient')) {
+        if (!formData.guardianEmail.trim()) {
+          toast.error("Guardian email is required");
+          return false;
+        }
+        if (!formData.guardianPhone.trim()) {
+          toast.error("Guardian phone is required");
+          return false;
+        }
+        // Validate guardian phone format (flexible for international numbers)
+        const phoneRegex = /^[+]?[0-9]{9,14}$/;
+        if (!phoneRegex.test(formData.guardianPhone.replace(/\s/g, ''))) {
+          toast.error("Guardian phone must be 9-14 digits (with optional + for country code)");
+          return false;
+        }
+      }
+      // Validate regular phone for other user types
+      if (formData.userType !== 'child_patient' && formData.userType !== 'elderly_patient') {
+        const phoneRegex = /^[+]?[0-9]{9,14}$/;
+        if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
+          toast.error("Phone must be 9-14 digits (with optional + for country code)");
+          return false;
+        }
       }
       if (!formData.dateOfBirth) {
         toast.error("Date of birth is required");
@@ -421,11 +446,11 @@ const Register = () => {
     try {
       const formDataToSend = new FormData();
       
-      formDataToSend.append('email', formData.email);
+      formDataToSend.append('email', (formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? formData.guardianEmail : formData.email);
       formDataToSend.append('password', formData.password);
       formDataToSend.append('firstName', formData.firstName);
       formDataToSend.append('lastName', formData.lastName);
-      formDataToSend.append('phone', formData.phone);
+      formDataToSend.append('phone', (formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? formData.guardianPhone : formData.phone);
       formDataToSend.append('role', formData.userType);
 
       if (formData.region) formDataToSend.append('region', formData.region);
@@ -664,8 +689,14 @@ const Register = () => {
                           id="email"
                           type="email"
                           placeholder="name@example.com"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          value={(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? formData.guardianEmail : formData.email}
+                          onChange={(e) => {
+                            if (formData.userType === 'child_patient' || formData.userType === 'elderly_patient') {
+                              setFormData({ ...formData, guardianEmail: e.target.value });
+                            } else {
+                              setFormData({ ...formData, email: e.target.value });
+                            }
+                          }}
                           required
                         />
                       </div>
@@ -674,11 +705,22 @@ const Register = () => {
                         <Input
                           id="phone"
                           type="tel"
-                          placeholder="+265 xxx xxx xxx"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          placeholder="+265 xxx xxx xxx or 0999 xxx xxx"
+                          value={(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? formData.guardianPhone : formData.phone}
+                          onChange={(e) => {
+                            if (formData.userType === 'child_patient' || formData.userType === 'elderly_patient') {
+                              setFormData({ ...formData, guardianPhone: e.target.value });
+                            } else {
+                              setFormData({ ...formData, phone: e.target.value });
+                            }
+                          }}
+                          minLength={9}
+                          maxLength={15}
                           required
                         />
+                        <p className="text-xs text-muted-foreground">
+                          Enter phone number with country code (+265xxx) or local format (0999xxx)
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="idNumber">{(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? 'Patient ID Number (Optional)' : 'National ID Number (Optional)'}</Label>

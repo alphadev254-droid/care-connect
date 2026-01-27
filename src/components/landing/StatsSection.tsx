@@ -1,8 +1,8 @@
 const stats = [
-  { value: "10,000+", label: "Families Served" },
-  { value: "500+", label: "Verified Caregivers" },
-  { value: "50,000+", label: "Care Sessions" },
-  { value: "4.9/5", label: "Average Rating" },
+  { value: "0", label: "Families Served" },
+  { value: "0", label: "Verified Caregivers" },
+  { value: "0", label: "Care Sessions" },
+  { value: "0/5", label: "Average Rating" },
 ];
 
 const StatsSection = () => {

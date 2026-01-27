@@ -10,6 +10,8 @@ export interface Caregiver {
   availability?: any;
   verificationStatus: 'pending' | 'verified' | 'rejected';
   rating?: number;
+  averageRating?: string;
+  totalRatings?: number;
   User?: any;
   Specialties?: any[];
 }
