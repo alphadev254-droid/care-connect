@@ -4,6 +4,7 @@ export interface WithdrawalRequest {
   amount: number;
   recipientType: 'mobile_money' | 'bank';
   recipientNumber: string;
+  token: string;
 }
 
 export interface Withdrawal {
@@ -22,7 +23,19 @@ export interface Withdrawal {
 }
 
 export const withdrawalService = {
-  // Request withdrawal using PayChangu
+  // Request withdrawal token
+  requestWithdrawalToken: async () => {
+    const response = await api.post('/withdrawals/request-token');
+    return response.data;
+  },
+
+  // Verify withdrawal token
+  verifyWithdrawalToken: async (token: string, amount: number) => {
+    const response = await api.post('/withdrawals/verify-token', { token, amount });
+    return response.data;
+  },
+
+  // Request withdrawal using PayChangu with token
   requestWithdrawal: async (withdrawalData: WithdrawalRequest) => {
     const response = await api.post('/withdrawals/request', {
       ...withdrawalData,

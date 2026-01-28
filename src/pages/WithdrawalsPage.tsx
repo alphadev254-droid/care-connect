@@ -20,6 +20,9 @@ const WithdrawalsPage = () => {
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [recipientType, setRecipientType] = useState('mobile_money');
   const [recipientNumber, setRecipientNumber] = useState('');
+  const [withdrawalToken, setWithdrawalToken] = useState('');
+  const [tokenSent, setTokenSent] = useState(false);
+  const [tokenExpiry, setTokenExpiry] = useState<Date | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Fetch balance using React Query
@@ -36,14 +39,42 @@ const WithdrawalsPage = () => {
     enabled: !!user?.id
   });
 
+  // Token request mutation
+  const tokenMutation = useMutation({
+    mutationFn: withdrawalService.requestWithdrawalToken,
+    onSuccess: () => {
+      setTokenSent(true);
+      setTokenExpiry(new Date(Date.now() + 3 * 60 * 1000)); // 3 minutes
+      toast.success('Withdrawal token sent to your email');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to send token');
+    }
+  });
+
   // Withdrawal request mutation
   const withdrawalMutation = useMutation({
     mutationFn: withdrawalService.requestWithdrawal,
-    onSuccess: () => {
-      toast.success('Withdrawal request submitted successfully');
+    onSuccess: (data) => {
+      toast.success(
+        <div className="space-y-2">
+          <div className="font-semibold">Withdrawal Successful!</div>
+          <div className="text-sm space-y-1">
+            <div>Amount: {data.currency} {data.requestedAmount}</div>
+            <div>Fee: {data.currency} {data.withdrawalFee}</div>
+            <div>Net Payout: {data.currency} {data.netPayout}</div>
+            <div>Reference: {data.paymentReference}</div>
+            <div>Recipient: {data.recipientNumber}</div>
+          </div>
+        </div>,
+        { duration: 8000 }
+      );
       setIsDialogOpen(false);
       setWithdrawalAmount('');
       setRecipientNumber('');
+      setWithdrawalToken('');
+      setTokenSent(false);
+      setTokenExpiry(null);
       // Invalidate and refetch data
       queryClient.invalidateQueries({ queryKey: ['caregiver-balance'] });
       queryClient.invalidateQueries({ queryKey: ['withdrawal-history'] });
@@ -52,6 +83,19 @@ const WithdrawalsPage = () => {
       toast.error(error.response?.data?.error || 'Failed to submit withdrawal request');
     }
   });
+
+  // Check if token is expired
+  const isTokenExpired = tokenExpiry && new Date() > tokenExpiry;
+
+  // Reset token state when dialog closes
+  const handleDialogClose = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setTokenSent(false);
+      setTokenExpiry(null);
+      setWithdrawalToken('');
+    }
+  };
 
   const withdrawals = withdrawalsData?.withdrawals || [];
   const loading = balanceLoading || withdrawalsLoading;
@@ -126,7 +170,7 @@ const WithdrawalsPage = () => {
               </p>
             </div>
             <div className="flex items-center justify-center">
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
                 <DialogTrigger asChild>
                   <Button 
                     className="w-full"
@@ -144,69 +188,149 @@ const WithdrawalsPage = () => {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="amount">Amount ({balance?.currency})</Label>
-                      <Input
-                        id="amount"
-                        type="number"
-                        placeholder="Enter amount"
-                        value={withdrawalAmount}
-                        onChange={(e) => setWithdrawalAmount(e.target.value)}
-                        max={balance?.availableBalance}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Available: {balance?.currency} {balance?.availableBalance}
-                      </p>
-                    </div>
-                    <div>
-                      <Label htmlFor="recipientType">Recipient Type</Label>
-                      <Select value={recipientType} onValueChange={setRecipientType}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                          <SelectItem value="bank">Bank Account</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="recipientNumber">
-                        {recipientType === 'mobile_money' ? 'Phone Number' : 'Account Number'}
-                      </Label>
-                      <Input
-                        id="recipientNumber"
-                        placeholder={recipientType === 'mobile_money' ? 'e.g., 265998123456' : 'Account number'}
-                        value={recipientNumber}
-                        onChange={(e) => setRecipientNumber(e.target.value)}
-                      />
-                    </div>
+                    {!tokenSent ? (
+                      <>
+                        <div>
+                          <Label htmlFor="amount">Amount ({balance?.currency})</Label>
+                          <Input
+                            id="amount"
+                            type="number"
+                            placeholder="Enter amount"
+                            value={withdrawalAmount}
+                            onChange={(e) => setWithdrawalAmount(e.target.value)}
+                            max={balance?.availableBalance}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Available: {balance?.currency} {balance?.availableBalance}
+                          </p>
+                        </div>
+                        <div>
+                          <Label htmlFor="recipientType">Recipient Type</Label>
+                          <Select value={recipientType} onValueChange={setRecipientType}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                              <SelectItem value="bank">Bank Account</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="recipientNumber">
+                            {recipientType === 'mobile_money' ? 'Phone Number' : 'Account Number'}
+                          </Label>
+                          <Input
+                            id="recipientNumber"
+                            placeholder={recipientType === 'mobile_money' ? 'e.g., 265998123456' : 'Account number'}
+                            value={recipientNumber}
+                            onChange={(e) => setRecipientNumber(e.target.value)}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-center py-4">
+                          <div className="text-green-600 mb-2">
+                            ✓ Token sent to your email
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Check your email and enter the 6-digit token below
+                          </p>
+                          {tokenExpiry && (
+                            <p className="text-xs text-orange-600 mt-1">
+                              Token expires in {Math.max(0, Math.ceil((tokenExpiry.getTime() - Date.now()) / 1000))} seconds
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="token">Withdrawal Token</Label>
+                          <Input
+                            id="token"
+                            placeholder="Enter 6-digit token"
+                            value={withdrawalToken}
+                            onChange={(e) => setWithdrawalToken(e.target.value)}
+                            maxLength={6}
+                            className="text-center text-lg tracking-widest"
+                          />
+                        </div>
+                        {isTokenExpired && (
+                          <div className="text-center">
+                            <p className="text-sm text-red-600 mb-2">Token expired</p>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setTokenSent(false);
+                                setTokenExpiry(null);
+                                setWithdrawalToken('');
+                              }}
+                            >
+                              Request New Token
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    <Button variant="outline" onClick={() => handleDialogClose(false)}>
                       Cancel
                     </Button>
-                    <Button 
-                      onClick={() => {
-                        const amount = parseFloat(withdrawalAmount);
-                        if (!amount || amount <= 0) {
-                          toast.error('Please enter a valid amount');
-                          return;
-                        }
-                        if (amount > parseFloat(balance?.availableBalance || '0')) {
-                          toast.error('Amount exceeds available balance');
-                          return;
-                        }
-                        if (!recipientNumber) {
-                          toast.error('Please enter recipient details');
-                          return;
-                        }
-                        withdrawalMutation.mutate({ amount, recipientType, recipientNumber });
-                      }} 
-                      disabled={withdrawalMutation.isPending}
-                    >
-                      {withdrawalMutation.isPending ? 'Processing...' : 'Submit Request'}
-                    </Button>
+                    {!tokenSent ? (
+                      <Button 
+                        onClick={() => {
+                          const amount = parseFloat(withdrawalAmount);
+                          if (!amount || amount <= 0) {
+                            toast.error('Please enter a valid amount');
+                            return;
+                          }
+                          if (amount > parseFloat(balance?.availableBalance || '0')) {
+                            toast.error('Amount exceeds available balance');
+                            return;
+                          }
+                          if (!recipientNumber) {
+                            toast.error('Please enter recipient details');
+                            return;
+                          }
+                          tokenMutation.mutate();
+                        }}
+                        disabled={tokenMutation.isPending}
+                      >
+                        {tokenMutation.isPending ? 'Sending...' : 'Send Token'}
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={() => {
+                          if (!withdrawalToken || withdrawalToken.length !== 6) {
+                            toast.error('Please enter the 6-digit token');
+                            return;
+                          }
+                          if (isTokenExpired) {
+                            toast.error('Token has expired. Please request a new one.');
+                            return;
+                          }
+                          
+                          // First verify token with amount
+                          withdrawalService.verifyWithdrawalToken(withdrawalToken, parseFloat(withdrawalAmount))
+                            .then(() => {
+                              // If verification succeeds, proceed with withdrawal
+                              withdrawalMutation.mutate({
+                                amount: parseFloat(withdrawalAmount),
+                                recipientType: recipientType as 'mobile_money' | 'bank',
+                                recipientNumber,
+                                token: withdrawalToken
+                              });
+                            })
+                            .catch((error) => {
+                              toast.error(error.response?.data?.error || 'Token verification failed');
+                            });
+                        }}
+                        disabled={withdrawalMutation.isPending || isTokenExpired}
+                      >
+                        {withdrawalMutation.isPending ? 'Processing...' : 'Confirm Withdrawal'}
+                      </Button>
+                    )}
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
