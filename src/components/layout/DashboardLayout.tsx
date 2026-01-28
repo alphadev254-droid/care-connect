@@ -47,6 +47,7 @@ import {
   ChevronDown,
   UserCheck,
   Key,
+  Wallet,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -146,6 +147,7 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
       { icon: Users, label: "My Patients", href: "/dashboard/patients" },
       { icon: FileText, label: "Care Reports", href: "/dashboard/reports" },
       { icon: CreditCard, label: "Earnings", href: "/dashboard/earnings" },
+      { icon: Wallet, label: "Withdrawals", href: "/dashboard/withdrawals" },
     ],
     physician: [
       { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },

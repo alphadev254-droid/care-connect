@@ -25,6 +25,7 @@ import Settings from "./pages/Settings";
 import Schedule from "./pages/Schedule";
 import Patients from "./pages/Patients";
 import Earnings from "./pages/Earnings";
+import WithdrawalsPage from "./pages/WithdrawalsPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserManagement from "./pages/UserManagement";
 import AdminReports from "./pages/AdminReports";
@@ -146,6 +147,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Earnings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/withdrawals"
+              element={
+                <ProtectedRoute>
+                  <WithdrawalsPage />
                 </ProtectedRoute>
               }
             />
