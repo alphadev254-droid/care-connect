@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Wallet, ArrowDownToLine, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { api } from '@/lib/api';
+import { withdrawalService } from '@/services/withdrawalService';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 
 const WithdrawalsPage = () => {
@@ -25,29 +25,20 @@ const WithdrawalsPage = () => {
   // Fetch balance using React Query
   const { data: balance, isLoading: balanceLoading } = useQuery({
     queryKey: ['caregiver-balance', user?.id],
-    queryFn: async () => {
-      const response = await api.get('/withdrawals/balance');
-      return response.data;
-    },
+    queryFn: () => withdrawalService.getBalance(),
     enabled: !!user?.id
   });
 
   // Fetch withdrawal history using React Query
   const { data: withdrawalsData, isLoading: withdrawalsLoading } = useQuery({
     queryKey: ['withdrawal-history', user?.id],
-    queryFn: async () => {
-      const response = await api.get('/withdrawals/history');
-      return response.data;
-    },
+    queryFn: () => withdrawalService.getHistory(),
     enabled: !!user?.id
   });
 
   // Withdrawal request mutation
   const withdrawalMutation = useMutation({
-    mutationFn: async (withdrawalData: { amount: number; recipientType: string; recipientNumber: string }) => {
-      const response = await api.post('/withdrawals/request', withdrawalData);
-      return response.data;
-    },
+    mutationFn: withdrawalService.requestWithdrawal,
     onSuccess: () => {
       toast.success('Withdrawal request submitted successfully');
       setIsDialogOpen(false);
