@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, Mail, Lock, Eye, EyeOff, User, Phone, ArrowRight, ArrowLeft, Check, CreditCard } from "lucide-react";
+import { Heart, Mail, Lock, Eye, EyeOff, User, Phone, ArrowRight, ArrowLeft, Check, CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/layout/Header";
@@ -36,49 +36,69 @@ const Register = () => {
 
   const fetchSpecialties = async () => {
     try {
+      setLoadingSpecialties(true);
       const response = await api.get('/specialties');
       setSpecialties(response.data.specialties || []);
     } catch (error) {
       console.error('Failed to fetch specialties:', error);
+      toast.error('Failed to load specialties. Please refresh the page.');
+    } finally {
+      setLoadingSpecialties(false);
     }
   };
 
   const fetchRegions = async () => {
     try {
+      setLoadingRegions(true);
       const response = await api.get('/locations/regions');
       setRegions(response.data.data || []);
     } catch (error) {
       console.error('Failed to fetch regions:', error);
+      toast.error('Failed to load regions. Please refresh the page.');
+    } finally {
+      setLoadingRegions(false);
     }
   };
 
   const fetchDistricts = async (region: string) => {
     try {
+      setLoadingDistricts(true);
       const response = await api.get(`/locations/districts/${encodeURIComponent(region)}`);
       setDistricts(response.data.data || []);
       setTraditionalAuthorities([]);
       setVillages([]);
     } catch (error) {
       console.error('Failed to fetch districts:', error);
+      toast.error('Failed to load districts for this region.');
+    } finally {
+      setLoadingDistricts(false);
     }
   };
 
   const fetchTraditionalAuthorities = async (region: string, district: string) => {
     try {
+      setLoadingTAs(true);
       const response = await api.get(`/locations/traditional-authorities/${encodeURIComponent(region)}/${encodeURIComponent(district)}`);
       setTraditionalAuthorities(response.data.data || []);
       setVillages([]);
     } catch (error) {
       console.error('Failed to fetch traditional authorities:', error);
+      toast.error('Failed to load traditional authorities.');
+    } finally {
+      setLoadingTAs(false);
     }
   };
 
   const fetchVillages = async (region: string, district: string, ta: string) => {
     try {
+      setLoadingVillages(true);
       const response = await api.get(`/locations/villages/${encodeURIComponent(region)}/${encodeURIComponent(district)}/${encodeURIComponent(ta)}`);
       setVillages(response.data.data || []);
     } catch (error) {
       console.error('Failed to fetch villages:', error);
+      toast.error('Failed to load villages.');
+    } finally {
+      setLoadingVillages(false);
     }
   };
 
@@ -94,6 +114,12 @@ const Register = () => {
   const [districts, setDistricts] = useState([]);
   const [traditionalAuthorities, setTraditionalAuthorities] = useState([]);
   const [villages, setVillages] = useState([]);
+  // Loading states for dropdown data
+  const [loadingSpecialties, setLoadingSpecialties] = useState(false);
+  const [loadingRegions, setLoadingRegions] = useState(false);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [loadingTAs, setLoadingTAs] = useState(false);
+  const [loadingVillages, setLoadingVillages] = useState(false);
   const [formData, setFormData] = useState({
     userType: "patient",
     firstName: "",
@@ -965,30 +991,41 @@ const Register = () => {
                               </Button>
                             </div>
                             <div className="max-h-24 overflow-y-auto border rounded-md p-2">
-                              {specialties.map((specialty: any) => (
-                                <div key={specialty.id} className="flex items-center space-x-2 py-1">
-                                  <Checkbox
-                                    id={`specialty-${specialty.id}`}
-                                    checked={formData.specialties.includes(specialty.id.toString())}
-                                    onCheckedChange={(checked) => {
-                                      if (checked) {
-                                        setFormData({
-                                          ...formData,
-                                          specialties: [...formData.specialties, specialty.id.toString()]
-                                        });
-                                      } else {
-                                        setFormData({
-                                          ...formData,
-                                          specialties: formData.specialties.filter(id => id !== specialty.id.toString())
-                                        });
-                                      }
-                                    }}
-                                  />
-                                  <Label htmlFor={`specialty-${specialty.id}`} className="text-sm">
-                                    {specialty.name}
-                                  </Label>
+                              {loadingSpecialties ? (
+                                <div className="flex items-center justify-center py-4 text-muted-foreground">
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  <span className="text-sm">Loading specialties...</span>
                                 </div>
-                              ))}
+                              ) : specialties.length === 0 ? (
+                                <div className="flex items-center justify-center py-4 text-muted-foreground">
+                                  <span className="text-sm">No specialties available</span>
+                                </div>
+                              ) : (
+                                specialties.map((specialty: any) => (
+                                  <div key={specialty.id} className="flex items-center space-x-2 py-1">
+                                    <Checkbox
+                                      id={`specialty-${specialty.id}`}
+                                      checked={formData.specialties.includes(specialty.id.toString())}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setFormData({
+                                            ...formData,
+                                            specialties: [...formData.specialties, specialty.id.toString()]
+                                          });
+                                        } else {
+                                          setFormData({
+                                            ...formData,
+                                            specialties: formData.specialties.filter(id => id !== specialty.id.toString())
+                                          });
+                                        }
+                                      }}
+                                    />
+                                    <Label htmlFor={`specialty-${specialty.id}`} className="text-sm">
+                                      {specialty.name}
+                                    </Label>
+                                  </div>
+                                ))
+                              )}
                             </div>
                           </div>
                           <div className="space-y-2">
@@ -1047,14 +1084,25 @@ const Register = () => {
                             setFormData({ ...formData, region: value, district: "", traditionalAuthority: "", village: "" });
                             fetchDistricts(value);
                           }}
+                          disabled={loadingRegions}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select region" />
+                            <SelectValue placeholder={loadingRegions ? "Loading regions..." : "Select region"} />
+                            {loadingRegions && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
                           </SelectTrigger>
                           <SelectContent>
-                            {regions.map((region: string) => (
-                              <SelectItem key={region} value={region}>{region}</SelectItem>
-                            ))}
+                            {loadingRegions ? (
+                              <div className="flex items-center justify-center py-4 text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                <span className="text-sm">Loading...</span>
+                              </div>
+                            ) : regions.length === 0 ? (
+                              <div className="py-4 text-center text-sm text-muted-foreground">No regions available</div>
+                            ) : (
+                              regions.map((region: string) => (
+                                <SelectItem key={region} value={region}>{region}</SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
@@ -1066,15 +1114,27 @@ const Register = () => {
                             setFormData({ ...formData, district: value, traditionalAuthority: "", village: "" });
                             fetchTraditionalAuthorities(formData.region, value);
                           }}
-                          disabled={!formData.region}
+                          disabled={!formData.region || loadingDistricts}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select district" />
+                            <SelectValue placeholder={loadingDistricts ? "Loading districts..." : !formData.region ? "Select a region first" : "Select district"} />
+                            {loadingDistricts && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
                           </SelectTrigger>
                           <SelectContent>
-                            {districts.map((district: string) => (
-                              <SelectItem key={district} value={district}>{district}</SelectItem>
-                            ))}
+                            {loadingDistricts ? (
+                              <div className="flex items-center justify-center py-4 text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                <span className="text-sm">Loading...</span>
+                              </div>
+                            ) : districts.length === 0 ? (
+                              <div className="py-4 text-center text-sm text-muted-foreground">
+                                {!formData.region ? "Select a region first" : "No districts available"}
+                              </div>
+                            ) : (
+                              districts.map((district: string) => (
+                                <SelectItem key={district} value={district}>{district}</SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
@@ -1086,7 +1146,12 @@ const Register = () => {
                         {formData.userType === 'caregiver' ? (
                           // Multi-select for caregivers
                           <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
-                            {!formData.district ? (
+                            {loadingTAs ? (
+                              <div className="flex items-center justify-center py-4 text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                <span className="text-sm">Loading TAs...</span>
+                              </div>
+                            ) : !formData.district ? (
                               <p className="text-sm text-muted-foreground">Select a district first</p>
                             ) : traditionalAuthorities.length === 0 ? (
                               <p className="text-sm text-muted-foreground">No TAs available</p>
@@ -1104,11 +1169,17 @@ const Register = () => {
                                       setFormData({ ...formData, traditionalAuthority: newTAs, village: [] });
                                       // Fetch villages for all selected TAs
                                       if (newTAs.length > 0) {
+                                        setLoadingVillages(true);
                                         Promise.all(newTAs.map(selectedTa =>
                                           api.get(`/locations/villages/${encodeURIComponent(formData.region)}/${encodeURIComponent(formData.district)}/${encodeURIComponent(selectedTa)}`)
                                         )).then(responses => {
                                           const allVillages = [...new Set(responses.flatMap(r => r.data.data || []))];
                                           setVillages(allVillages);
+                                        }).catch(error => {
+                                          console.error('Failed to fetch villages:', error);
+                                          toast.error('Failed to load villages.');
+                                        }).finally(() => {
+                                          setLoadingVillages(false);
                                         });
                                       } else {
                                         setVillages([]);
@@ -1128,15 +1199,27 @@ const Register = () => {
                               setFormData({ ...formData, traditionalAuthority: value, village: "" });
                               fetchVillages(formData.region, formData.district, value);
                             }}
-                            disabled={!formData.district}
+                            disabled={!formData.district || loadingTAs}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select TA" />
+                              <SelectValue placeholder={loadingTAs ? "Loading TAs..." : !formData.district ? "Select a district first" : "Select TA"} />
+                              {loadingTAs && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
                             </SelectTrigger>
                             <SelectContent>
-                              {traditionalAuthorities.map((ta: string) => (
-                                <SelectItem key={ta} value={ta}>{ta}</SelectItem>
-                              ))}
+                              {loadingTAs ? (
+                                <div className="flex items-center justify-center py-4 text-muted-foreground">
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  <span className="text-sm">Loading...</span>
+                                </div>
+                              ) : traditionalAuthorities.length === 0 ? (
+                                <div className="py-4 text-center text-sm text-muted-foreground">
+                                  {!formData.district ? "Select a district first" : "No TAs available"}
+                                </div>
+                              ) : (
+                                traditionalAuthorities.map((ta: string) => (
+                                  <SelectItem key={ta} value={ta}>{ta}</SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                         )}
@@ -1149,7 +1232,12 @@ const Register = () => {
                         {formData.userType === 'caregiver' ? (
                           // Multi-select for caregivers
                           <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
-                            {(!Array.isArray(formData.traditionalAuthority) || formData.traditionalAuthority.length === 0) ? (
+                            {loadingVillages ? (
+                              <div className="flex items-center justify-center py-4 text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                <span className="text-sm">Loading villages...</span>
+                              </div>
+                            ) : (!Array.isArray(formData.traditionalAuthority) || formData.traditionalAuthority.length === 0) ? (
                               <p className="text-sm text-muted-foreground">Select at least one TA first</p>
                             ) : villages.length === 0 ? (
                               <p className="text-sm text-muted-foreground">No villages available</p>
@@ -1177,15 +1265,27 @@ const Register = () => {
                           <Select
                             value={formData.village as string}
                             onValueChange={(value) => setFormData({ ...formData, village: value })}
-                            disabled={!formData.traditionalAuthority}
+                            disabled={!formData.traditionalAuthority || loadingVillages}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select village" />
+                              <SelectValue placeholder={loadingVillages ? "Loading villages..." : !formData.traditionalAuthority ? "Select a TA first" : "Select village"} />
+                              {loadingVillages && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
                             </SelectTrigger>
                             <SelectContent>
-                              {villages.map((village: string) => (
-                                <SelectItem key={village} value={village}>{village}</SelectItem>
-                              ))}
+                              {loadingVillages ? (
+                                <div className="flex items-center justify-center py-4 text-muted-foreground">
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  <span className="text-sm">Loading...</span>
+                                </div>
+                              ) : villages.length === 0 ? (
+                                <div className="py-4 text-center text-sm text-muted-foreground">
+                                  {!formData.traditionalAuthority ? "Select a TA first" : "No villages available"}
+                                </div>
+                              ) : (
+                                villages.map((village: string) => (
+                                  <SelectItem key={village} value={village}>{village}</SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                         )}
