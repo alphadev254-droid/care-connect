@@ -522,8 +522,8 @@ const PublicCaregivers = () => {
                             className="flex-1 gap-1 h-8 text-xs"
                             onClick={() => navigate('/login')}
                           >
-                            <LogIn className="h-3 w-3" />
-                            Login
+                            <Calendar className="h-3 w-3" />
+                            Book Now
                           </Button>
                         )}
                       </div>

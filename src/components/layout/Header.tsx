@@ -39,8 +39,8 @@ const Header = () => {
       <header className="sticky top-0 z-50 w-full bg-primary backdrop-blur supports-[backdrop-filter]:bg-primary/95 shadow-lg">
       <div className="container flex h-20 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary">
-            <Heart className="h-5 w-5 text-primary-foreground" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-700">
+            <Heart className="h-5 w-5 text-white" />
           </div>
           <span className="font-display text-xl font-bold text-white">
             Care<span className="text-white">Connect</span>
@@ -55,7 +55,7 @@ const Header = () => {
               to={link.href}
               className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 isActive(link.href)
-                  ? "text-white bg-white/20"
+                  ? "text-white bg-slate-700 shadow-inner"
                   : "text-white/80 hover:text-white hover:bg-white/10"
               }`}
             >
@@ -76,7 +76,7 @@ const Header = () => {
             </Button>
           </Link>
           <Link to="/register">
-            <Button size="sm" className="bg-white text-primary hover:bg-white/90">
+            <Button variant="outline" size="sm" className="border-white/30 hover:bg-white/10">
               Get Started
             </Button>
           </Link>

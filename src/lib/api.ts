@@ -8,6 +8,8 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 seconds for slow mobile networks
+  withCredentials: true, // Ensure credentials are sent
 });
 
 // Request interceptor to add auth token
@@ -49,7 +51,12 @@ api.interceptors.response.use(
     } else if (error.response?.status >= 500) {
       toast.error('Server error. Please try again later.');
     } else if (error.message === 'Network Error') {
-      toast.error('Cannot connect to server. Please check your connection.');
+      // CORS or network connectivity issue
+      if (!error.response) {
+        toast.error('Connection failed. This may be a network or firewall issue. Please check your connection or try a different network.');
+      } else {
+        toast.error('Cannot connect to server. Please check your connection.');
+      }
     } else if (error.response?.data) {
       const data = error.response.data;
       

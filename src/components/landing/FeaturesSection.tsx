@@ -7,7 +7,10 @@ import {
   Bell,
   Users,
   HeadphonesIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 const features = [
   {
@@ -47,12 +50,6 @@ const features = [
       "Automated reminders for appointments, medication schedules, and important health updates.",
   },
   {
-    icon: Users,
-    title: "Physician Recommendations",
-    description:
-      "Get caregiver recommendations from your primary physician based on your health needs.",
-  },
-  {
     icon: HeadphonesIcon,
     title: "Dedicated Support",
     description:
@@ -61,6 +58,57 @@ const features = [
 ];
 
 const FeaturesSection = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [itemsPerView, setItemsPerView] = useState(1);
+  const totalItems = features.length;
+  
+  // Auto-rotation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      nextSlide();
+    }, 10000); // Auto-advance every 10 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  // Update items per view based on screen size
+  useEffect(() => {
+    const updateItemsPerView = () => {
+      if (window.innerWidth >= 1024) {
+        setItemsPerView(3);
+      } else if (window.innerWidth >= 768) {
+        setItemsPerView(2);
+      } else {
+        setItemsPerView(1);
+      }
+    };
+    
+    updateItemsPerView();
+    window.addEventListener('resize', updateItemsPerView);
+    return () => window.removeEventListener('resize', updateItemsPerView);
+  }, []);
+  
+  // Create extended array for infinite loop
+  const extendedFeatures = [...features, ...features, ...features];
+  const startIndex = totalItems; // Start from the middle set
+
+  const nextSlide = () => {
+    setCurrentIndex((prev) => prev + 1);
+  };
+
+  const prevSlide = () => {
+    setCurrentIndex((prev) => prev - 1);
+  };
+
+  // Reset position when reaching boundaries for infinite effect
+  const handleTransitionEnd = () => {
+    if (currentIndex >= totalItems) {
+      setCurrentIndex(0);
+    } else if (currentIndex <= -totalItems) {
+      setCurrentIndex(0);
+    }
+  };
+
   return (
     <section className="py-8 lg:py-14 bg-background relative overflow-hidden">
       {/* Background Elements */}
@@ -84,28 +132,68 @@ const FeaturesSection = () => {
           </p>
         </div>
 
-        {/* Features Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-          {features.map((feature, index) => (
-            <div
-              key={feature.title}
-              className="group text-center p-6 rounded-2xl hover:bg-card hover:shadow-lg hover:border border-transparent hover:border-border transition-all duration-300"
-              style={{ animationDelay: `${index * 75}ms` }}
-            >
-              {/* Icon */}
-              <div className="h-16 w-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-gradient-primary group-hover:shadow-lg group-hover:shadow-primary/20 transition-all duration-300">
-                <feature.icon className="h-8 w-8 text-primary group-hover:text-primary-foreground transition-colors" />
-              </div>
+        {/* Carousel Container */}
+        <div className="relative">
+          {/* Navigation Buttons */}
+          <button
+            onClick={prevSlide}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow"
+          >
+            <ChevronLeft className="h-5 w-5 text-gray-600" />
+          </button>
+          <button
+            onClick={nextSlide}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow"
+          >
+            <ChevronRight className="h-5 w-5 text-gray-600" />
+          </button>
 
-              {/* Content */}
-              <h3 className="font-display text-lg font-bold mb-2">
-                {feature.title}
-              </h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                {feature.description}
-              </p>
+          {/* Carousel Content */}
+          <div className="overflow-hidden mx-12">
+            <div 
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{ transform: `translateX(-${currentIndex * (100 / itemsPerView)}%)` }}
+              onTransitionEnd={handleTransitionEnd}
+            >
+              {extendedFeatures.map((feature, index) => (
+                <div
+                  key={`${feature.title}-${index}`}
+                  className={`flex-shrink-0 px-3 ${
+                    itemsPerView === 1 ? 'w-full' : 
+                    itemsPerView === 2 ? 'w-1/2' : 'w-1/3'
+                  }`}
+                >
+                  <div className="text-center p-6 rounded-2xl hover:bg-gray-50 hover:shadow-sm border border-transparent hover:border-gray-200 transition-all duration-300">
+                    {/* Icon */}
+                    <div className="h-16 w-16 mx-auto rounded-2xl bg-blue-100 flex items-center justify-center mb-4 hover:bg-blue-200 transition-all duration-300">
+                      <feature.icon className="h-8 w-8 text-blue-600 transition-colors" />
+                    </div>
+
+                    {/* Content */}
+                    <h3 className="font-display text-lg font-bold mb-2">
+                      {feature.title}
+                    </h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          {/* Dots Indicator */}
+          <div className="flex justify-center mt-8 space-x-2">
+            {features.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentIndex(index)}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  Math.abs(currentIndex) % totalItems === index ? 'bg-blue-600' : 'bg-gray-300'
+                }`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>

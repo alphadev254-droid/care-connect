@@ -29,55 +29,39 @@ const steps = [
 
 const HowItWorksSection = () => {
   return (
-    <section className="py-8 lg:py-13 bg-background">
+    <section className="py-16 bg-gray-50">
       <div className="container">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16 animate-fade-in">
-          <span className="text-primary font-semibold text-sm uppercase tracking-wider">
-            Simple Process
-          </span>
-          <h2 className="font-display text-3xl md:text-4xl font-bold mt-4 mb-6">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
             How CareConnect Works
           </h2>
-          <p className="text-muted-foreground text-lg">
-            Getting quality home healthcare has never been easier. Follow these 
-            simple steps to connect with your perfect caregiver.
+          <p className="text-gray-600">
+            Getting quality home healthcare has never been easier. Follow these simple steps to connect with your perfect caregiver.
           </p>
         </div>
 
         {/* Steps */}
-        <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+        <div className="grid md:grid-cols-3 gap-8">
           {steps.map((item, index) => (
-            <div
-              key={item.step}
-              className="relative group"
-              style={{ animationDelay: `${index * 150}ms` }}
-            >
-              {/* Connector Line */}
-              {index < steps.length - 1 && (
-                <div className="hidden md:block absolute top-16 left-[60%] w-[80%] h-[2px] bg-gradient-to-r from-border to-transparent">
-                  <ArrowRight className="absolute -right-2 -top-2 h-4 w-4 text-muted-foreground" />
-                </div>
-              )}
-
-              <div className="relative bg-card rounded-2xl p-8 border shadow-sm hover:shadow-lg transition-all duration-300 group-hover:-translate-y-1">
-                {/* Step Number */}
-                <span className="absolute -top-4 -right-4 h-10 w-10 rounded-full bg-muted flex items-center justify-center font-display font-bold text-sm">
-                  {item.step}
-                </span>
-
+            <div key={item.step} className="text-center">
+              <div className="bg-white rounded-lg p-8 hover:shadow-md transition-shadow">
                 {/* Icon */}
-                <div
-                  className={`h-16 w-16 rounded-2xl bg-${item.color}/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}
-                >
-                  <item.icon className={`h-8 w-8 text-${item.color}`} />
+                <div className={`h-16 w-16 rounded-lg flex items-center justify-center mx-auto mb-6 ${
+                  index === 0 ? 'bg-blue-100' :
+                  index === 1 ? 'bg-green-100' : 'bg-purple-100'
+                }`}>
+                  <item.icon className={`h-8 w-8 ${
+                    index === 0 ? 'text-blue-600' :
+                    index === 1 ? 'text-green-600' : 'text-purple-600'
+                  }`} />
                 </div>
 
                 {/* Content */}
-                <h3 className="font-display text-xl font-bold mb-3">
+                <h3 className="text-xl font-bold text-gray-900 mb-3">
                   {item.title}
                 </h3>
-                <p className="text-muted-foreground leading-relaxed">
+                <p className="text-gray-600 leading-relaxed">
                   {item.description}
                 </p>
               </div>

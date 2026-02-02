@@ -5,18 +5,19 @@ import { ArrowRight, Play, Shield, Clock, Users, Star } from "lucide-react";
 
 const HeroSection = () => {
   return (
-    <section className="relative overflow-hidden bg-white lg:py-18">
+    <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-green-50 lg:py-18">
       {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/20 rounded-full blur-3xl" />
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200/30 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-green-200/30 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-teal-200/20 rounded-full blur-3xl" />
       </div>
 
       <div className="container relative">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Content */}
           <div className="space-y-8 animate-fade-in">
-            <Badge variant="secondary" className="gap-2 px-4 py-2 bg-primary/10 text-primary border-primary/20">
+            <Badge variant="secondary" className="gap-2 px-4 py-2 bg-blue-100 text-blue-800 border-blue-200">
               <Shield className="h-4 w-4" />
               Trusted by 10,000+ Families
             </Badge>
@@ -36,7 +37,7 @@ const HeroSection = () => {
 
             <div className="flex flex-wrap gap-4">
               <Link to="/register">
-                <Button size="lg" className="gap-2 bg-gradient-primary hover:opacity-90 shadow-lg shadow-primary/25">
+                <Button size="lg" className="gap-2 bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white shadow-lg shadow-blue-500/25">
                   Get Started Free
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -51,7 +52,7 @@ const HeroSection = () => {
                   {[1, 2, 3, 4].map((i) => (
                     <div
                       key={i}
-                      className="h-10 w-10 rounded-full bg-gradient-primary border-2 border-background flex items-center justify-center text-primary-foreground text-xs font-bold"
+                      className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 border-2 border-white flex items-center justify-center text-white text-xs font-bold shadow-sm"
                     >
                       {String.fromCharCode(64 + i)}
                     </div>
@@ -91,26 +92,26 @@ const HeroSection = () => {
               </div>
 
               {/* Floating Cards */}
-              <div className="absolute top-6 -left-12 bg-card rounded-2xl shadow-lg p-4 border ">
+              <div className="absolute top-6 -left-12 bg-white rounded-2xl shadow-xl p-4 border border-green-100">
                 <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full bg-success/20 flex items-center justify-center">
-                    <Shield className="h-6 w-6 text-success" />
+                  <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                    <Shield className="h-6 w-6 text-green-600" />
                   </div>
                   <div>
-                    <p className="font-semibold text-sm">Verified & Licensed</p>
-                    <p className="text-xs text-muted-foreground">100% Background Checked</p>
+                    <p className="font-semibold text-sm text-gray-800">Verified & Licensed</p>
+                    <p className="text-xs text-gray-600">100% Background Checked</p>
                   </div>
                 </div>
               </div>
 
-              <div className="absolute -bottom-4 -right-4 bg-card rounded-2xl shadow-lg p-4 border">
+              <div className="absolute -bottom-4 -right-4 bg-white rounded-2xl shadow-xl p-4 border border-blue-100">
                 <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Clock className="h-6 w-6 text-primary" />
+                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Clock className="h-6 w-6 text-blue-600" />
                   </div>
                   <div>
-                    <p className="font-semibold text-sm">24/7 Available</p>
-                    <p className="text-xs text-muted-foreground">Round-the-clock care</p>
+                    <p className="font-semibold text-sm text-gray-800">24/7 Available</p>
+                    <p className="text-xs text-gray-600">Round-the-clock care</p>
                   </div>
                 </div>
               </div>
