@@ -749,7 +749,7 @@ const Register = () => {
                         </p>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="idNumber">{(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? 'Patient ID Number (Optional)' : 'National ID Number (Optional)'}</Label>
+                        <Label htmlFor="idNumber">{(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? 'Patient ID Number (Optional)' : 'National ID Number'} <span className="text-destructive">*</span></Label>
                         <Input
                           id="idNumber"
                           placeholder="National ID number"
