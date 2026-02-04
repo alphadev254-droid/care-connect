@@ -177,7 +177,11 @@ const PublicCaregivers = () => {
       {/* Hero Section */}
       <section 
         className="py-4 lg:py-6 relative bg-cover bg-no-repeat rounded-b-3xl overflow-hidden"
-        style={{ backgroundImage: 'url(/caregivers.png)', backgroundPosition: '0 45%' }}
+        style={{ 
+          backgroundImage: 'url(/caregivers.png)', 
+          backgroundPosition: '0 45%',
+          backgroundSize: 'cover'
+        }}
       >
         <div className="absolute inset-0 bg-black/40"></div>
         <div className="container mx-auto px-4 relative z-10">
@@ -420,9 +424,16 @@ const PublicCaregivers = () => {
                   <Card key={caregiver.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3 mb-3">
-                        <div className="h-12 w-12 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-lg font-bold flex-shrink-0">
-                          {name.charAt(0) || 'C'}
-                        </div>
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage 
+                            src={caregiverData.profileImage} 
+                            loading="lazy"
+                            className="object-cover"
+                          />
+                          <AvatarFallback className="bg-gradient-primary text-primary-foreground text-lg font-bold">
+                            {name.charAt(0) || 'C'}
+                          </AvatarFallback>
+                        </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-sm truncate">{name}</h3>
@@ -614,7 +625,11 @@ const PublicCaregivers = () => {
               {/* Profile Header */}
               <div className="flex items-start gap-4">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={profileDialog.caregiver.Caregiver?.profileImage} />
+                  <AvatarImage 
+                    src={profileDialog.caregiver.Caregiver?.profileImage} 
+                    loading="lazy"
+                    className="object-cover"
+                  />
                   <AvatarFallback className="text-2xl bg-gradient-primary text-primary-foreground">
                     {profileDialog.caregiver.firstName?.charAt(0)}{profileDialog.caregiver.lastName?.charAt(0)}
                   </AvatarFallback>
@@ -656,6 +671,44 @@ const PublicCaregivers = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Specialties */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Heart className="h-5 w-5 text-primary" />
+                    <h4 className="font-semibold">Specialties & Services</h4>
+                  </div>
+                  <div className="grid gap-3">
+                    {profileDialog.caregiver.Caregiver?.Specialties?.map((specialty: any) => (
+                      <div key={specialty.id} className="p-3 rounded-lg border bg-muted/30">
+                        <div className="flex items-center justify-between mb-2">
+                          <h5 className="font-medium text-sm">{specialty.name}</h5>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                          {specialty.description}
+                        </p>
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div className="flex items-center justify-between p-2 bg-background rounded">
+                            <span className="text-muted-foreground">Session Fee:</span>
+                            <span className="font-semibold text-primary">
+                              MWK {specialty.sessionFee ? Number(specialty.sessionFee).toFixed(0) : '0'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between p-2 bg-background rounded">
+                            <span className="text-muted-foreground">Booking Fee:</span>
+                            <span className="font-semibold text-secondary">
+                              MWK {specialty.bookingFee ? Number(specialty.bookingFee).toFixed(0) : '0'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )) || (
+                      <p className="text-sm text-muted-foreground">No specialties listed</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Bio */}
               {profileDialog.caregiver.Caregiver?.bio && (
@@ -807,7 +860,7 @@ const PublicCaregivers = () => {
           onClose={() => setBookingModal({ open: false, caregiver: null })}
           caregiverId={bookingModal.caregiver.Caregiver?.id || bookingModal.caregiver.id}
           caregiverName={`${bookingModal.caregiver.firstName || ''} ${bookingModal.caregiver.lastName || ''}`.trim() || 'Caregiver'}
-          specialtyId={bookingModal.caregiver.Caregiver?.Specialties?.[0]?.id || 1}
+          specialties={bookingModal.caregiver.Caregiver?.Specialties || []}
         />
       )}
     </div>

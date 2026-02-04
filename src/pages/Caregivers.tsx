@@ -555,7 +555,7 @@ const Caregivers = () => {
           onClose={() => setBookingModal({ open: false, caregiver: null })}
           caregiverId={bookingModal.caregiver.Caregiver.id}
           caregiverName={`${bookingModal.caregiver.firstName || ''} ${bookingModal.caregiver.lastName || ''}`.trim() || 'Caregiver'}
-          specialtyId={bookingModal.caregiver.Caregiver?.Specialties?.[0]?.id || 1}
+          specialties={bookingModal.caregiver.Caregiver?.Specialties || []}
         />
       )}
 

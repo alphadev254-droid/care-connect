@@ -6,7 +6,7 @@ const Footer = () => {
 
   const footerLinks = {
     services: [
-      { label: "Find Caregivers", href: "/dashboard" },
+      { label: "Find Caregivers", href: "/caregivers" },
       { label: "Book Appointment", href: "/dashboard" },
       { label: "About Us", href: "/about" },
       { label: "Contact Us", href: "/contact" },
@@ -15,7 +15,6 @@ const Footer = () => {
     ],
     legal: [
       { label: "Terms of Service", href: "/terms/patient/pdf", external: true },
-      { label: "Privacy Policy", href: "/terms/patient/pdf", external: true },
     ],
   };
 

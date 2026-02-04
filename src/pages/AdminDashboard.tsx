@@ -37,6 +37,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [pendingPage, setPendingPage] = useState(1);
   const [showActiveUsers, setShowActiveUsers] = useState(true);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -45,13 +46,16 @@ const AdminDashboard = () => {
     action: () => void;
   }>({ open: false, title: "", description: "", action: () => {} });
 
-  const { data: pendingVerification, isLoading } = useQuery({
-    queryKey: ["admin", "pending-verification"],
+  const { data: pendingData, isLoading } = useQuery({
+    queryKey: ["admin", "pending-verification", pendingPage],
     queryFn: async () => {
-      const response = await api.get("/admin/caregivers/pending-verification");
-      return response.data.caregivers || [];
+      const response = await api.get(`/admin/caregivers/pending-verification?page=${pendingPage}&limit=100`);
+      return response.data;
     },
   });
+
+  const pendingVerification = pendingData?.caregivers || [];
+  const pendingPagination = pendingData?.pagination || {};
 
   const { data: allUsers } = useQuery({
     queryKey: ["admin", "users"],
@@ -180,7 +184,7 @@ const AdminDashboard = () => {
   const stats = [
     {
       title: "Pending Verification",
-      value: pendingVerification?.length || 0,
+      value: pendingPagination.totalRecords || 0,
       icon: Clock,
       color: "bg-warning/10 text-warning",
     },
@@ -339,6 +343,17 @@ const AdminDashboard = () => {
                     </div>
                   </Card>
                 ))}
+                {pendingPagination.totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-2">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {(pendingPage - 1) * 100 + 1}–{Math.min(pendingPage * 100, pendingPagination.totalRecords)} of {pendingPagination.totalRecords}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setPendingPage(p => p - 1)} disabled={pendingPage <= 1}>Previous</Button>
+                      <Button variant="outline" size="sm" onClick={() => setPendingPage(p => p + 1)} disabled={pendingPage >= pendingPagination.totalPages}>Next</Button>
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <Card>

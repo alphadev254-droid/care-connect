@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, DollarSign, Video, MapPin } from 'lucide-react';
 import { timeSlotService, TimeSlot } from '@/services/timeSlotService';
 import { appointmentService } from '@/services/appointmentService';
-import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -16,34 +15,25 @@ interface BookingModalProps {
   onClose: () => void;
   caregiverId: number;
   caregiverName: string;
-  specialtyId: number;
+  specialties: any[];
 }
 
-export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specialtyId }: BookingModalProps) => {
+export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specialties }: BookingModalProps) => {
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('+265 ');
   const [sessionType, setSessionType] = useState<'teleconference' | 'in_person'>('teleconference');
-  const [specialty, setSpecialty] = useState<any>(null);
+  const [specialty, setSpecialty] = useState<any>(specialties?.[0] || null);
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     if (open && caregiverId) {
       fetchAvailableSlots();
-      fetchSpecialty();
+      setSpecialty(specialties?.[0] || null);
     }
-  }, [open, caregiverId, specialtyId]);
-
-  const fetchSpecialty = async () => {
-    try {
-      const response = await api.get(`/specialties/${specialtyId}`);
-      setSpecialty(response.data.specialty);
-    } catch (error) {
-      toast.error('Failed to load specialty details');
-    }
-  };
+  }, [open, caregiverId, specialties]);
 
   const fetchAvailableSlots = async () => {
     setLoading(true);
@@ -91,7 +81,7 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
       toast.info('Initiating payment...');
       const paymentResponse = await appointmentService.createAppointment({
         timeSlotId: selectedSlot.id,
-        specialtyId,
+        specialtyId: specialty.id,
         sessionType,
         phoneNumber: phoneNumber
       });
@@ -173,6 +163,33 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
                   </Card>
                 ))}
               </div>
+
+              {/* Specialty Selector — shown only when caregiver has multiple specialties */}
+              {specialties.length > 1 && (
+                <div className="border-t pt-4 space-y-3">
+                  <h5 className="font-semibold text-base">Select Specialty</h5>
+                  <div className="grid grid-cols-2 gap-3">
+                    {specialties.map((sp: any) => (
+                      <button
+                        key={sp.id}
+                        type="button"
+                        onClick={() => { setSpecialty(sp); setSelectedSlot(null); }}
+                        className={`text-left p-3 rounded-lg border-2 transition-colors ${
+                          specialty?.id === sp.id
+                            ? 'border-primary bg-primary/5'
+                            : 'border-muted hover:border-primary/50'
+                        }`}
+                      >
+                        <p className="text-sm font-semibold">{sp.name}</p>
+                        <div className="flex gap-3 mt-1.5">
+                          <p className="text-xs text-muted-foreground">Book: <span className="font-medium text-foreground">MWK {Number(sp.bookingFee || 0).toLocaleString()}</span></p>
+                          <p className="text-xs text-muted-foreground">Session: <span className="font-medium text-foreground">MWK {Number(sp.sessionFee || 0).toLocaleString()}</span></p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {selectedSlot && specialty && (
                 <div className="border-t pt-6 space-y-5">

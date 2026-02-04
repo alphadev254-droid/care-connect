@@ -26,6 +26,8 @@ import Schedule from "./pages/Schedule";
 import Patients from "./pages/Patients";
 import Earnings from "./pages/Earnings";
 import WithdrawalsPage from "./pages/WithdrawalsPage";
+import AdminWithdrawalsPage from "./pages/AdminWithdrawalsPage";
+import AdminWithdrawalDetailPage from "./pages/AdminWithdrawalDetailPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserManagement from "./pages/UserManagement";
 import AdminReports from "./pages/AdminReports";
@@ -163,6 +165,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/withdrawals"
+              element={
+                <ProtectedRoute>
+                  <AdminWithdrawalsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/withdrawals/:caregiverId"
+              element={
+                <ProtectedRoute>
+                  <AdminWithdrawalDetailPage />
                 </ProtectedRoute>
               }
             />
