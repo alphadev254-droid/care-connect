@@ -97,7 +97,7 @@ const PermissionsManagement = () => {
         categories['Role & Permission Management'].push(permission);
       } else if (permission.name.includes('specialt')) {
         categories['Specialty Management'].push(permission);
-      } else if (permission.name.includes('financial') || permission.name.includes('care_plan')) {
+      } else if (permission.name.includes('financial') || permission.name.includes('care_plan') || permission.name.includes('withdrawal')) {
         categories['Financial & Reports'].push(permission);
       }
     });

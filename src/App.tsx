@@ -171,7 +171,7 @@ const App = () => (
             <Route
               path="/dashboard/admin/withdrawals"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredPermission="view_withdrawal_requests">
                   <AdminWithdrawalsPage />
                 </ProtectedRoute>
               }
@@ -179,7 +179,7 @@ const App = () => (
             <Route
               path="/dashboard/admin/withdrawals/:caregiverId"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredPermission="view_withdrawal_requests">
                   <AdminWithdrawalDetailPage />
                 </ProtectedRoute>
               }

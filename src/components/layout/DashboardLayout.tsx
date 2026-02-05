@@ -162,7 +162,7 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
       ...(hasPermission('view_permissions') ? [{ icon: Key, label: "Permissions", href: "/dashboard/permissions" }] : []),
       ...(hasPermission('view_specialties') ? [{ icon: Heart, label: "Specialties", href: "/dashboard/specialties" }] : []),
       { icon: Video, label: "Teleconference", href: "/dashboard/admin/teleconference" },
-      ...((hasPermission('view_caregivers') || hasPermission('view_users')) ? [{ icon: Wallet, label: "Withdrawals", href: "/dashboard/admin/withdrawals" }] : []),
+      ...(hasPermission('view_withdrawal_requests') ? [{ icon: Wallet, label: "Withdrawals", href: "/dashboard/admin/withdrawals" }] : []),
       ...(hasPermission('view_financial_reports') ? [{ icon: CreditCard, label: "Earnings", href: "/dashboard/earnings" }] : []),
       ...(hasPermission('view_care_plans') ? [{ icon: FileText, label: "Reports", href: "/dashboard/reports" }] : []),
     ],
