@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +19,8 @@ import { api } from "@/lib/api";
 const Register = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
+  const [searchParams] = useSearchParams();
+  const referralCodeFromUrl = searchParams.get('ref');
 
   useEffect(() => {
     fetchSpecialties();
@@ -134,6 +137,7 @@ const Register = () => {
     dateOfBirth: "",
     address: "",
     emergencyContact: "",
+    referralCode: referralCodeFromUrl || "",
     // Guardian fields for child/elderly patients
     guardianFirstName: "",
     guardianLastName: "",
@@ -489,7 +493,8 @@ const Register = () => {
         formDataToSend.append('dateOfBirth', formData.dateOfBirth);
         formDataToSend.append('address', formData.address);
         formDataToSend.append('emergencyContact', formData.emergencyContact);
-        
+        if (formData.referralCode) formDataToSend.append('referralCode', formData.referralCode);
+
         if (formData.userType === 'child_patient' || formData.userType === 'elderly_patient') {
           formDataToSend.append('guardianFirstName', formData.guardianFirstName);
           formDataToSend.append('guardianLastName', formData.guardianLastName);
@@ -533,6 +538,11 @@ const Register = () => {
             formDataToSend.append('idDocuments', file);
           });
         }
+
+        // Add referral code for caregiver-to-caregiver referrals
+        if (formData.referralCode) {
+          formDataToSend.append('referralCode', formData.referralCode);
+        }
       }
 
       const result = await register(formDataToSend);
@@ -546,6 +556,37 @@ const Register = () => {
       }
     } catch (error: any) {
       console.error("Registration error:", error);
+
+      // Handle specific error messages from backend
+      if (error.response?.data) {
+        const errorData = error.response.data;
+
+        // Check for specific error codes
+        if (errorData.code === 'FILE_TOO_LARGE') {
+          toast.error(`File too large! Maximum file size is ${errorData.maxSize}. Please use smaller files.`, {
+            duration: 5000
+          });
+        } else if (errorData.code === 'INVALID_FILE_TYPE') {
+          toast.error(errorData.error || 'Invalid file type. Only JPEG, PNG, PDF, DOC, and DOCX files are allowed.', {
+            duration: 5000
+          });
+        } else if (errorData.code === 'TOO_MANY_FILES') {
+          toast.error('Too many files uploaded. Please check the file limits.', {
+            duration: 5000
+          });
+        } else if (errorData.error) {
+          // Generic error message from backend
+          toast.error(errorData.error, { duration: 5000 });
+        } else if (errorData.message) {
+          toast.error(errorData.message, { duration: 5000 });
+        } else {
+          toast.error('Registration failed. Please check your information and try again.');
+        }
+      } else if (error.message) {
+        toast.error(error.message);
+      } else {
+        toast.error('Registration failed. Please check your internet connection and try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -828,6 +869,24 @@ const Register = () => {
                               required
                             />
                           </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="referralCode" className="flex items-center gap-2">
+                              Referral Code (Optional)
+                              {referralCodeFromUrl && (
+                                <Badge variant="secondary" className="text-xs">Auto-filled</Badge>
+                              )}
+                            </Label>
+                            <Input
+                              id="referralCode"
+                              placeholder="Enter referral code if you have one"
+                              value={formData.referralCode}
+                              onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
+                              className="uppercase"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Have a referral code from a caregiver? Enter it here to support them!
+                            </p>
+                          </div>
                           {(formData.userType === 'child_patient' || formData.userType === 'elderly_patient') ? (
                             <>
                               <div className="space-y-2">
@@ -1065,6 +1124,24 @@ const Register = () => {
                               </div>
                             )}
                             <p className="text-xs text-muted-foreground">Upload certificates, licenses (max 5 files)</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="caregiverReferralCode" className="flex items-center gap-2">
+                              Referral Code (Optional)
+                              {referralCodeFromUrl && (
+                                <Badge variant="secondary" className="text-xs">Auto-filled</Badge>
+                              )}
+                            </Label>
+                            <Input
+                              id="caregiverReferralCode"
+                              placeholder="Enter referral code if you have one"
+                              value={formData.referralCode}
+                              onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
+                              className="uppercase"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Have a referral code from another caregiver? Enter it here to support them!
+                            </p>
                           </div>
                         </>
                       )}

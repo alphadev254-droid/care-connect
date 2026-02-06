@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { ReferralSection } from "@/components/referral/ReferralSection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -367,9 +368,11 @@ const Profile = () => {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Profile Sidebar */}
-          <Card className="lg:col-span-1 shadow-md hover:shadow-lg transition-shadow duration-300">
+        <div className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Profile Sidebar Column */}
+          <div className="xl:col-span-1 space-y-6">
+          <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="text-center pb-6 relative">
               {/* Profile Avatar Section */}
               <div className="relative inline-block">
@@ -488,7 +491,14 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          <div className="lg:col-span-2 space-y-6">
+          {/* Referral Section - Only for verified caregivers in sidebar */}
+          {profileData?.role === 'caregiver' &&
+           profileData?.Caregiver?.verificationStatus === 'APPROVED' && (
+            <ReferralSection />
+          )}
+          </div>
+
+          <div className="xl:col-span-2 space-y-6">
             {/* Basic Information Card */}
             <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
               <CardHeader className="bg-gradient-to-r from-muted/50 to-transparent pb-4">
@@ -1101,6 +1111,7 @@ const Profile = () => {
               </CardContent>
             </Card>
           </div>
+        </div>
         </div>
       </div>
     </DashboardLayout>

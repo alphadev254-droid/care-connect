@@ -1,135 +1,64 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
-import { api } from "@/lib/api";
-import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import {
-  Bell,
-  Mail,
-  MessageSquare,
+  User,
   Shield,
-  Globe,
-  Moon,
-  Sun,
-  Volume2,
-  Smartphone,
-  Clock,
-  Eye,
-  Download,
+  Bell,
+  Lock,
+  HelpCircle,
+  ExternalLink,
+  Mail,
   Trash2
 } from "lucide-react";
 
 const Settings = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  // Fetch settings from backend
-  const { data: settingsData, isLoading } = useQuery({
-    queryKey: ["settings"],
-    queryFn: async () => {
-      const response = await api.get("/users/settings");
-      return response.data.settings;
+  const settingsSections = [
+    {
+      icon: User,
+      title: "Profile Settings",
+      description: "Update your personal information, contact details, and professional credentials",
+      action: () => navigate('/dashboard/profile'),
+      buttonText: "Edit Profile",
+      color: "text-blue-600"
     },
-  });
-
-  // Update settings mutation
-  const updateSettingsMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await api.put("/users/settings", data);
-      return response.data;
+    {
+      icon: Lock,
+      title: "Password & Security",
+      description: "Change your password and manage account security settings",
+      action: () => navigate('/dashboard/profile'),
+      buttonText: "Go to Profile",
+      color: "text-green-600"
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    {
+      icon: Bell,
+      title: "Notifications",
+      description: "Email notifications are automatically sent for appointments and important updates",
+      info: "Notifications are managed automatically by the system",
+      color: "text-purple-600"
     },
-  });
-
-  const settings = settingsData || {
-    notifications: {
-      email: true,
-      sms: true,
-      push: true,
-      appointments: true,
-      reminders: true,
-      marketing: false
+    {
+      icon: Shield,
+      title: "Privacy & Data",
+      description: "Your data is protected according to healthcare privacy regulations",
+      info: "We follow strict HIPAA-compliant data protection policies",
+      color: "text-amber-600"
     },
-    privacy: {
-      profileVisibility: "private",
-      dataSharing: false,
-      analytics: true
-    },
-    preferences: {
-      language: "en",
-      timezone: "Africa/Blantyre",
-      theme: "system",
-      soundEnabled: true
+    {
+      icon: HelpCircle,
+      title: "Help & Support",
+      description: "Need assistance? Contact our support team",
+      action: () => window.location.href = 'mailto:support@careconnect.mw',
+      buttonText: "Contact Support",
+      color: "text-red-600"
     }
-  };
-
-  const handleNotificationChange = (key: string, value: boolean) => {
-    const updatedSettings = {
-      ...settings,
-      notifications: {
-        ...settings.notifications,
-        [key]: value
-      }
-    };
-    updateSettingsMutation.mutate(updatedSettings, {
-      onSuccess: () => toast.success("Notification settings updated"),
-      onError: () => toast.error("Failed to update settings")
-    });
-  };
-
-  const handlePrivacyChange = (key: string, value: boolean | string) => {
-    const updatedSettings = {
-      ...settings,
-      privacy: {
-        ...settings.privacy,
-        [key]: value
-      }
-    };
-    updateSettingsMutation.mutate(updatedSettings, {
-      onSuccess: () => toast.success("Privacy settings updated"),
-      onError: () => toast.error("Failed to update settings")
-    });
-  };
-
-  const handlePreferenceChange = (key: string, value: string | boolean) => {
-    const updatedSettings = {
-      ...settings,
-      preferences: {
-        ...settings.preferences,
-        [key]: value
-      }
-    };
-    updateSettingsMutation.mutate(updatedSettings, {
-      onSuccess: () => toast.success("Preferences updated"),
-      onError: () => toast.error("Failed to update settings")
-    });
-  };
-
-  const exportData = () => {
-    toast.success("Data export initiated. You'll receive an email when ready.");
-  };
-
-  const deleteAccount = () => {
-    toast.error("Account deletion requires email verification. Check your inbox.");
-  };
-
-  if (isLoading) {
-    return (
-      <DashboardLayout userRole={user?.role || 'patient'}>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  ];
 
   return (
     <DashboardLayout userRole={user?.role || 'patient'}>
@@ -140,302 +69,132 @@ const Settings = () => {
             Settings
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage your account preferences and privacy settings
+            Manage your account and preferences
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Notifications */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-display flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Notifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <Label htmlFor="email-notifications">Email Notifications</Label>
+        {/* Settings Cards */}
+        <div className="grid md:grid-cols-2 gap-4">
+          {settingsSections.map((section, index) => {
+            const Icon = section.icon;
+            return (
+              <Card key={index} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <CardTitle className="font-display flex items-center gap-3">
+                    <div className={`h-10 w-10 rounded-lg bg-muted flex items-center justify-center ${section.color}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <span>{section.title}</span>
+                  </CardTitle>
+                  <CardDescription className="ml-[52px]">
+                    {section.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="ml-[52px]">
+                  {section.info ? (
+                    <div className="p-3 bg-muted/50 rounded-md">
                       <p className="text-sm text-muted-foreground">
-                        Receive updates via email
+                        ℹ️ {section.info}
                       </p>
                     </div>
-                  </div>
-                  <Switch
-                    id="email-notifications"
-                    checked={settings.notifications.email}
-                    onCheckedChange={(checked) => handleNotificationChange('email', checked)}
-                  />
-                </div>
+                  ) : (
+                    <Button
+                      onClick={section.action}
+                      variant="outline"
+                      className="gap-2"
+                    >
+                      {section.buttonText}
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <Label htmlFor="sms-notifications">SMS Notifications</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Receive text messages
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="sms-notifications"
-                    checked={settings.notifications.sms}
-                    onCheckedChange={(checked) => handleNotificationChange('sms', checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Smartphone className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <Label htmlFor="push-notifications">Push Notifications</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Browser and app notifications
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="push-notifications"
-                    checked={settings.notifications.push}
-                    onCheckedChange={(checked) => handleNotificationChange('push', checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <Label htmlFor="appointment-reminders">Appointment Reminders</Label>
-                      <p className="text-sm text-muted-foreground">
-                        24h and 1h before appointments
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="appointment-reminders"
-                    checked={settings.notifications.reminders}
-                    onCheckedChange={(checked) => handleNotificationChange('reminders', checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Volume2 className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <Label htmlFor="marketing-emails">Marketing Communications</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Health tips and service updates
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="marketing-emails"
-                    checked={settings.notifications.marketing}
-                    onCheckedChange={(checked) => handleNotificationChange('marketing', checked)}
-                  />
-                </div>
+        {/* Account Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-display">Account Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Name</p>
+                <p className="text-base">{user?.firstName} {user?.lastName}</p>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Privacy & Security */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-display flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Privacy & Security
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Profile Visibility</Label>
-                  <Select
-                    value={settings.privacy.profileVisibility}
-                    onValueChange={(value) => handlePrivacyChange('profileVisibility', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="private">Private</SelectItem>
-                      <SelectItem value="caregivers">Visible to Caregivers</SelectItem>
-                      <SelectItem value="public">Public</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-muted-foreground">
-                    Control who can see your profile information
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <Label htmlFor="data-sharing">Data Sharing</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Share anonymized data for research
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="data-sharing"
-                    checked={settings.privacy.dataSharing}
-                    onCheckedChange={(checked) => handlePrivacyChange('dataSharing', checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <Label htmlFor="analytics">Usage Analytics</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Help improve our services
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="analytics"
-                    checked={settings.privacy.analytics}
-                    onCheckedChange={(checked) => handlePrivacyChange('analytics', checked)}
-                  />
-                </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Email</p>
+                <p className="text-base">{user?.email}</p>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Preferences */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-display flex items-center gap-2">
-                <Globe className="h-5 w-5" />
-                Preferences
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Language</Label>
-                  <Select
-                    value={settings.preferences.language}
-                    onValueChange={(value) => handlePreferenceChange('language', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="ny">Chichewa</SelectItem>
-                      <SelectItem value="sw">Swahili</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Timezone</Label>
-                  <Select
-                    value={settings.preferences.timezone}
-                    onValueChange={(value) => handlePreferenceChange('timezone', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Africa/Blantyre">Malawi Time (CAT)</SelectItem>
-                      <SelectItem value="Africa/Johannesburg">South Africa Time</SelectItem>
-                      <SelectItem value="UTC">UTC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Theme</Label>
-                  <Select
-                    value={settings.preferences.theme}
-                    onValueChange={(value) => handlePreferenceChange('theme', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">
-                        <div className="flex items-center gap-2">
-                          <Sun className="h-4 w-4" />
-                          Light
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="dark">
-                        <div className="flex items-center gap-2">
-                          <Moon className="h-4 w-4" />
-                          Dark
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="system">System</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Volume2 className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <Label htmlFor="sound-enabled">Sound Effects</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Play sounds for notifications
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="sound-enabled"
-                    checked={settings.preferences.soundEnabled}
-                    onCheckedChange={(checked) => handlePreferenceChange('soundEnabled', checked)}
-                  />
-                </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Account Type</p>
+                <p className="text-base capitalize">{user?.role}</p>
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Phone</p>
+                <p className="text-base">{user?.phone || 'Not provided'}</p>
+              </div>
+            </div>
+            <div className="pt-4 border-t">
+              <Button
+                onClick={() => navigate('/dashboard/profile')}
+                variant="default"
+                className="gap-2"
+              >
+                <User className="h-4 w-4" />
+                View Full Profile
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Data Management */}
-          <Card>
+        {/* Delete Account - Only for Patients and Caregivers */}
+        {(user?.role === 'patient' || user?.role === 'caregiver') && (
+          <Card className="border-destructive/50">
             <CardHeader>
-              <CardTitle className="font-display flex items-center gap-2">
-                <Download className="h-5 w-5" />
-                Data Management
+              <CardTitle className="font-display flex items-center gap-2 text-destructive">
+                <Trash2 className="h-5 w-5" />
+                Delete Account
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               <div className="space-y-4">
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-2">Export Your Data</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Download a copy of all your data including appointments, reports, and profile information.
-                  </p>
-                  <Button variant="outline" onClick={exportData} className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Export Data
-                  </Button>
-                </div>
-
-                <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/20">
-                  <h4 className="font-medium mb-2 text-destructive">Delete Account</h4>
+                <div className="p-4 bg-destructive/10 rounded-lg">
                   <p className="text-sm text-muted-foreground mb-3">
                     Permanently delete your account and all associated data. This action cannot be undone.
                   </p>
-                  <Button variant="destructive" onClick={deleteAccount} className="gap-2">
+                  <p className="text-sm font-medium text-destructive mb-4">
+                    ⚠️ Warning: This will delete all your appointments, medical records, and profile information.
+                  </p>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+                        window.location.href = 'mailto:support@careconnect.mw?subject=Account Deletion Request&body=I would like to delete my account. Please process this request.';
+                      }
+                    }}
+                    className="gap-2"
+                  >
                     <Trash2 className="h-4 w-4" />
-                    Delete Account
+                    Request Account Deletion
                   </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </div>
+        )}
+
+        {/* System Information */}
+        <Card className="bg-muted/50">
+          <CardContent className="pt-6">
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>CareConnect Health Management System</p>
+              <p>For technical support: <a href="mailto:support@careconnect.mw" className="text-primary hover:underline">support@careconnect.mw</a></p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
