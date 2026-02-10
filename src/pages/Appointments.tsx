@@ -395,8 +395,8 @@ const Appointments = () => {
                 <span>MWK {Number(appointment.sessionFee || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span>Tax ({appointment.Specialty?.taxRate || 16.5}%):</span>
-                <span>MWK {Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 16.5) / 100)).toLocaleString()}</span>
+                <span>Tax ({appointment.Specialty?.taxRate || 17.5}%):</span>
+                <span>MWK {Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 17.5) / 100)).toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span>Processing ({appointment.Specialty?.convenienceFeePercentage || 2}%):</span>
@@ -406,7 +406,7 @@ const Appointments = () => {
                 <span>Total:</span>
                 <span>MWK {(
                   Number(appointment.sessionFee || 0) +
-                  Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 16.5) / 100)) +
+                  Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 17.5) / 100)) +
                   Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.convenienceFeePercentage || 2) / 100))
                 ).toLocaleString()}</span>
               </div>
@@ -422,7 +422,7 @@ const Appointments = () => {
               <DollarSign className="h-4 w-4" />
               {paySessionFeeMutation.isPending ? 'Processing...' : `Pay Session Fee - MWK ${(
                 Number(appointment.sessionFee || 0) +
-                Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 16.5) / 100)) +
+                Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 17.5) / 100)) +
                 Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.convenienceFeePercentage || 2) / 100))
               ).toLocaleString()}`}
             </Button>
@@ -437,8 +437,8 @@ const Appointments = () => {
                 <span>MWK {Number(appointment.sessionFee || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span>Tax ({appointment.Specialty?.taxRate || 16.5}%):</span>
-                <span>MWK {Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 16.5) / 100)).toLocaleString()}</span>
+                <span>Tax ({appointment.Specialty?.taxRate || 17.5}%):</span>
+                <span>MWK {Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 17.5) / 100)).toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span>Processing ({appointment.Specialty?.convenienceFeePercentage || 2}%):</span>
@@ -448,7 +448,7 @@ const Appointments = () => {
                 <span>Total:</span>
                 <span>MWK {(
                   Number(appointment.sessionFee || 0) +
-                  Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 16.5) / 100)) +
+                  Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 17.5) / 100)) +
                   Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.convenienceFeePercentage || 2) / 100))
                 ).toLocaleString()}</span>
               </div>
@@ -461,7 +461,7 @@ const Appointments = () => {
               <DollarSign className="h-4 w-4" />
               Pay Session Fee - MWK {(
                 Number(appointment.sessionFee || 0) +
-                Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 16.5) / 100)) +
+                Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.taxRate || 17.5) / 100)) +
                 Math.round(Number(appointment.sessionFee || 0) * ((appointment.Specialty?.convenienceFeePercentage || 2) / 100))
               ).toLocaleString()}
             </Button>

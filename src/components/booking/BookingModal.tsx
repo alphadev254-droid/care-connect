@@ -343,8 +343,8 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
                             <span className="font-medium">MWK {Number(specialty.sessionFee || 0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Tax ({specialty.taxRate || 16.5}%)</span>
-                            <span className="font-medium">MWK {Math.round(Number(specialty.sessionFee || 0) * ((specialty.taxRate || 16.5) / 100)).toLocaleString()}</span>
+                            <span className="text-muted-foreground">Tax ({specialty.taxRate || 17.5}%)</span>
+                            <span className="font-medium">MWK {Math.round(Number(specialty.sessionFee || 0) * ((specialty.taxRate || 17.5) / 100)).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Processing ({specialty.convenienceFeePercentage || 2}%)</span>
@@ -355,7 +355,7 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
                             <span className="font-bold text-blue-600 dark:text-blue-400">
                               MWK {(
                                 Number(specialty.sessionFee || 0) +
-                                Math.round(Number(specialty.sessionFee || 0) * ((specialty.taxRate || 16.5) / 100)) +
+                                Math.round(Number(specialty.sessionFee || 0) * ((specialty.taxRate || 17.5) / 100)) +
                                 Math.round(Number(specialty.sessionFee || 0) * ((specialty.convenienceFeePercentage || 2) / 100))
                               ).toLocaleString()}
                             </span>
@@ -374,7 +374,7 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
                         <p className="text-2xl font-bold text-primary">
                           MWK {(
                             Number(specialty.bookingFee || 0) + Math.round(Number(specialty.bookingFee || 0) * ((specialty.convenienceFeePercentage || 2) / 100)) +
-                            Number(specialty.sessionFee || 0) + Math.round(Number(specialty.sessionFee || 0) * ((specialty.taxRate || 16.5) / 100)) + Math.round(Number(specialty.sessionFee || 0) * ((specialty.convenienceFeePercentage || 2) / 100))
+                            Number(specialty.sessionFee || 0) + Math.round(Number(specialty.sessionFee || 0) * ((specialty.taxRate || 17.5) / 100)) + Math.round(Number(specialty.sessionFee || 0) * ((specialty.convenienceFeePercentage || 2) / 100))
                           ).toLocaleString()}
                         </p>
                       </div>

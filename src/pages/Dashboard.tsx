@@ -365,7 +365,7 @@ const Dashboard = () => {
                           .toLocaleString()}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        VAT @ 16.5%
+                        VAT @ 17.5%
                       </p>
                     </div>
                     <div className="h-10 w-10 rounded-lg bg-secondary/10 flex items-center justify-center">
@@ -917,6 +917,40 @@ const Dashboard = () => {
                       <p className="text-xl font-bold">{adminData?.users?.filter((u: Record<string, unknown>) => u.Role?.name === 'caregiver' && u.isActive)?.length || 0}</p>
                     </div>
                   </>
+                ) : user?.role === 'caregiver' ? (
+                  // Show caregiver's recent patients
+                  patientsData && patientsData.length > 0 ? (
+                    patientsData.slice(0, 3).map((patient: Record<string, unknown>) => (
+                      <div
+                        key={patient.id}
+                        className="p-3 rounded-lg border hover:border-primary/30 hover:shadow-md transition-all"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs">
+                            {patient.User?.firstName?.charAt(0) || 'P'}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm">{patient.User?.firstName} {patient.User?.lastName}</p>
+                            <p className="text-xs text-muted-foreground">{patient.patientType || 'Patient'}</p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {patient.User?.email}
+                        </p>
+                        <Link to={`/dashboard/patients`}>
+                          <Button variant="outline" size="sm" className="w-full h-7 text-xs">
+                            View Details
+                          </Button>
+                        </Link>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-8">
+                      <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
+                      <p className="text-sm text-muted-foreground">No patients yet</p>
+                      <p className="text-xs text-muted-foreground">Patients will appear here after appointments</p>
+                    </div>
+                  )
                 ) : (
                   // Show real caregivers - Compact
                   caregiversData?.slice(0, 3).map((caregiver: Record<string, unknown>) => (
