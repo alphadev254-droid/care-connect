@@ -33,19 +33,19 @@ const Footer = () => {
                 Care<span className="text-primary">Connect</span>
               </span>
             </Link>
-            <p className="text-muted-foreground mb-6 max-w-xs">
+            <p className="text-white/80 mb-6 max-w-xs">
               Connecting patients with verified, compassionate caregivers for quality home healthcare services.
             </p>
             <div className="space-y-3">
-              <div className="flex items-center gap-3 text-muted-foreground">
+              <div className="flex items-center gap-3 text-white/80">
                 <Phone className="h-4 w-4 text-primary" />
                 <span>1-800-CARE-NOW</span>
               </div>
-              <div className="flex items-center gap-3 text-muted-foreground">
+              <div className="flex items-center gap-3 text-white/80">
                 <Mail className="h-4 w-4 text-primary" />
                 <span>support@careconnect.com</span>
               </div>
-              <div className="flex items-center gap-3 text-muted-foreground">
+              <div className="flex items-center gap-3 text-white/80">
                 <MapPin className="h-4 w-4 text-primary" />
                 <span>123 Healthcare Ave, Medical City</span>
               </div>
@@ -54,13 +54,13 @@ const Footer = () => {
 
           {/* Services Column */}
           <div>
-            <h4 className="font-display font-semibold mb-4">Services</h4>
+            <h4 className="font-display font-semibold mb-4 text-white">Services</h4>
             <ul className="space-y-3">
               {footerLinks.services.map((link) => (
                 <li key={link.href}>
                   <Link
                     to={link.href}
-                    className="text-muted-foreground hover:text-primary transition-colors"
+                    className="text-white/80 hover:text-primary transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -71,7 +71,7 @@ const Footer = () => {
 
           {/* Legal Column */}
           <div>
-            <h4 className="font-display font-semibold mb-4">Legal</h4>
+            <h4 className="font-display font-semibold mb-4 text-white">Legal</h4>
             <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.href}>
@@ -80,14 +80,14 @@ const Footer = () => {
                       href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${link.href}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-muted-foreground hover:text-primary transition-colors"
+                      className="text-white/80 hover:text-primary transition-colors"
                     >
                       {link.label}
                     </a>
                   ) : (
                     <Link
                       to={link.href}
-                      className="text-muted-foreground hover:text-primary transition-colors"
+                      className="text-white/80 hover:text-primary transition-colors"
                     >
                       {link.label}
                     </Link>
@@ -102,7 +102,7 @@ const Footer = () => {
       {/* Bottom Bar */}
       <div className="border-t border-border/20">
         <div className="container py-6">
-          <p className="text-muted-foreground text-sm text-center">
+          <p className="text-white/80 text-sm text-center">
             © {currentYear} CareConnect. All rights reserved.
           </p>
         </div>
