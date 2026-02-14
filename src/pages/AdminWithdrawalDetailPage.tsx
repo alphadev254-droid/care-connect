@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, CheckCircle, XCircle, Clock, AlertCircle, Wallet, TrendingUp, ArrowDownToLine } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Clock, AlertCircle, Wallet, TrendingUp, ArrowDownToLine, Lock } from 'lucide-react';
 import { api } from '@/lib/api';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 
@@ -113,7 +113,7 @@ const AdminWithdrawalDetailPage = () => {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
@@ -136,6 +136,19 @@ const AdminWithdrawalDetailPage = () => {
                 </div>
                 <div className="h-10 w-10 rounded-xl bg-green-100 flex items-center justify-center">
                   <Wallet className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Locked (Pending Reports)</p>
+                  <p className="text-2xl font-bold text-orange-600">MWK {Number(caregiver.lockedBalance).toLocaleString()}</p>
+                </div>
+                <div className="h-10 w-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                  <Lock className="h-5 w-5 text-orange-600" />
                 </div>
               </div>
             </CardContent>
@@ -313,8 +326,12 @@ const AdminWithdrawalDetailPage = () => {
                       <span className="text-sm font-semibold text-purple-600">MWK {Number(caregiver.totalWithdrawn).toLocaleString()}</span>
                     </div>
                     <div className="border-t pt-3 flex items-center justify-between">
-                      <span className="text-sm font-medium">Current Balance</span>
+                      <span className="text-sm font-medium">Available Balance</span>
                       <span className="text-sm font-bold text-green-600">MWK {Number(caregiver.availableBalance).toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Locked (Pending Reports)</span>
+                      <span className="text-sm font-bold text-orange-600">MWK {Number(caregiver.lockedBalance).toLocaleString()}</span>
                     </div>
                   </div>
                 </CardContent>

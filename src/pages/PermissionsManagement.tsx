@@ -81,7 +81,7 @@ const PermissionsManagement = () => {
     };
     
     permissions.forEach(permission => {
-      if (permission.name.includes('view_users') || permission.name.includes('create_users')) {
+      if (permission.name.includes('view_users') || permission.name.includes('create_users') || permission.name.includes('delete_users')) {
         categories['User Management'].push(permission);
       } else if (permission.name.includes('caregiver')) {
         categories['Caregiver Management'].push(permission);
@@ -97,7 +97,7 @@ const PermissionsManagement = () => {
         categories['Role & Permission Management'].push(permission);
       } else if (permission.name.includes('specialt')) {
         categories['Specialty Management'].push(permission);
-      } else if (permission.name.includes('financial') || permission.name.includes('care_plan') || permission.name.includes('withdrawal')) {
+      } else if (permission.name.includes('financial') || permission.name.includes('care_plan') || permission.name.includes('withdrawal') || permission.name.includes('paychangu')) {
         categories['Financial & Reports'].push(permission);
       }
     });

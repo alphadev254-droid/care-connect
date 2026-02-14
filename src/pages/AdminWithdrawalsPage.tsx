@@ -8,9 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Wallet, Search, Users, TrendingUp, ArrowDownToLine, Eye, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { Wallet, Search, Users, TrendingUp, ArrowDownToLine, Eye, CheckCircle, XCircle, Clock, AlertCircle, Lock, Landmark, Banknote } from 'lucide-react';
 import { api } from '@/lib/api';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -32,6 +33,7 @@ const getStatusIcon = (status: string) => {
 
 const AdminWithdrawalsPage = () => {
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
 
   const [overviewPage, setOverviewPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -47,6 +49,18 @@ const AdminWithdrawalsPage = () => {
       const res = await api.get('/admin/withdrawals/stats');
       return res.data.stats;
     }
+  });
+
+  // PayChangu live balance (only fetch if user has permission)
+  const canViewPaychangu = hasPermission('view_paychangu_balance');
+  const { data: paychanguBalance } = useQuery({
+    queryKey: ['paychangu-balance'],
+    queryFn: async () => {
+      const res = await api.get('/admin/withdrawals/paychangu-balance');
+      return res.data.balance;
+    },
+    refetchInterval: 60000,
+    enabled: canViewPaychangu
   });
 
   // Caregiver balances overview
@@ -92,8 +106,60 @@ const AdminWithdrawalsPage = () => {
           <p className="text-muted-foreground">Monitor all caregiver earnings, balances, and withdrawal activities</p>
         </div>
 
+        {/* PayChangu Live Balance */}
+        {canViewPaychangu && paychanguBalance && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="border-indigo-200 bg-indigo-50/30">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">PayChangu Main Balance</p>
+                    <p className="text-2xl font-bold text-indigo-700">
+                      MWK {Number(paychanguBalance.main_balance || 0).toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Available for payouts</p>
+                  </div>
+                  <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                    <Landmark className="h-5 w-5 text-indigo-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-indigo-200 bg-indigo-50/30">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">PayChangu Collection Balance</p>
+                    <p className="text-2xl font-bold text-indigo-700">
+                      MWK {Number(paychanguBalance.collection_balance || 0).toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Pending settlement</p>
+                  </div>
+                  <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                    <Banknote className="h-5 w-5 text-indigo-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-indigo-200 bg-indigo-50/30">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Environment</p>
+                    <p className="text-2xl font-bold text-indigo-700 capitalize">{paychanguBalance.environment}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{paychanguBalance.currency} account</p>
+                  </div>
+                  <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                    <Wallet className="h-5 w-5 text-indigo-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
@@ -118,6 +184,21 @@ const AdminWithdrawalsPage = () => {
                 </div>
                 <div className="h-10 w-10 rounded-xl bg-green-100 flex items-center justify-center">
                   <Wallet className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Locked (Pending Reports)</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    MWK {Number(statsData?.totalLockedBalance || 0).toLocaleString()}
+                  </p>
+                </div>
+                <div className="h-10 w-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                  <Lock className="h-5 w-5 text-orange-600" />
                 </div>
               </div>
             </CardContent>
@@ -205,7 +286,8 @@ const AdminWithdrawalsPage = () => {
                           <TableHead>Caregiver</TableHead>
                           <TableHead>Location</TableHead>
                           <TableHead className="text-right">Total Earnings</TableHead>
-                          <TableHead className="text-right">Balance</TableHead>
+                          <TableHead className="text-right">Available</TableHead>
+                          <TableHead className="text-right">Locked</TableHead>
                           <TableHead className="text-right">Withdrawn</TableHead>
                           <TableHead className="text-center">Count</TableHead>
                           <TableHead />
@@ -231,6 +313,15 @@ const AdminWithdrawalsPage = () => {
                               <span className={`inline-flex px-2 py-0.5 rounded-full text-sm font-semibold ${Number(cg.availableBalance) > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                                 {Number(cg.availableBalance).toLocaleString()}
                               </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {Number(cg.lockedBalance) > 0 ? (
+                                <span className="inline-flex px-2 py-0.5 rounded-full text-sm font-semibold bg-orange-100 text-orange-800">
+                                  {Number(cg.lockedBalance).toLocaleString()}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-gray-400">0</span>
+                              )}
                             </TableCell>
                             <TableCell className="text-right text-sm">
                               {Number(cg.totalWithdrawn).toLocaleString()}

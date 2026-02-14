@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Wallet, ArrowDownToLine, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Wallet, ArrowDownToLine, Clock, CheckCircle, XCircle, AlertCircle, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { withdrawalService } from '@/services/withdrawalService';
@@ -156,7 +156,7 @@ const WithdrawalsPage = () => {
           <CardDescription>Your current earnings and available balance</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <p className="text-sm text-muted-foreground">Total Earnings</p>
               <p className="text-2xl font-bold text-blue-600">
@@ -167,6 +167,18 @@ const WithdrawalsPage = () => {
               <p className="text-sm text-muted-foreground">Available Balance</p>
               <p className="text-2xl font-bold text-green-600">
                 {balance?.currency} {balance?.availableBalance || '0.00'}
+              </p>
+            </div>
+            <div className="text-center p-4 bg-orange-50 rounded-lg">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Lock className="h-3.5 w-3.5 text-orange-600" />
+                <p className="text-sm text-muted-foreground">Locked (Pending Reports)</p>
+              </div>
+              <p className="text-2xl font-bold text-orange-600">
+                {balance?.currency} {balance?.lockedBalance || '0.00'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Submit care reports to unlock
               </p>
             </div>
             <div className="flex items-center justify-center">
