@@ -64,7 +64,7 @@ const PublicCaregivers = () => {
   const { data: specialtiesData } = useQuery({
     queryKey: ["specialties"],
     queryFn: async () => {
-      const response = await api.get("/specialties");
+      const response = await api.get("/public/specialties");
       return response.data.specialties || [];
     },
   });

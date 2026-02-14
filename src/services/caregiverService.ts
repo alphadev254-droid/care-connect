@@ -30,6 +30,24 @@ export const caregiverService = {
     return response.data;
   },
 
+  getPublicCaregivers: async (params: {
+    page: number;
+    limit: number;
+    search?: string;
+    specialtyId?: string;
+    region?: string;
+    district?: string;
+    traditionalAuthority?: string;
+    village?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) queryParams.append(key, value.toString());
+    });
+    const response = await api.get(`/public/caregivers?${queryParams}`);
+    return response.data || {};
+  },
+
   getCaregiverById: async (id: number) => {
     const response = await api.get(`/caregivers/${id}`);
     return response.data.caregiver;

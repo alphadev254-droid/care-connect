@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, X, Heart, Phone } from "lucide-react";
+import { Menu, X, Heart, Phone, Home, Clock, MapPin } from "lucide-react";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,12 +25,12 @@ const Header = () => {
       <div className="w-full bg-slate-800 text-white/80 text-xs py-2">
         <div className="container flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <span>🏠 Quality Home Healthcare Services</span>
-            <span>📞 +265 1 234 567</span>
+            <span className="flex items-center gap-1.5"><Home className="h-3.5 w-3.5" /> Quality Home Healthcare Services</span>
+            <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> +265986227240</span>
           </div>
           <div className="hidden md:flex items-center gap-4">
-            <span>🕒 Mon-Fri: 8AM-6PM</span>
-            <span>📍 Serving All Regions of Malawi</span>
+            <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Mon-Fri: 8AM-6PM</span>
+            <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Serving All Regions of Malawi</span>
           </div>
         </div>
       </div>
@@ -66,7 +66,7 @@ const Header = () => {
         <div className="hidden lg:flex items-center gap-3">
           <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10">
             <Phone className="h-4 w-4" />
-            <span className="text-sm">1-800-CARE</span>
+            <span className="text-sm">+265986227240</span>
           </Button>
           <Link to="/login">
             <Button variant="outline" size="sm" className="border-white/30 hover:bg-white/10">

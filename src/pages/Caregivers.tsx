@@ -13,8 +13,10 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { BookingModal } from "@/components/booking/BookingModal";
 import { RatingDisplay } from "@/components/RatingDisplay";
 import { useAuth } from "@/contexts/AuthContext";
-import { api } from "@/lib/api";
 import { mapUserRole } from "@/lib/roleMapper";
+import { caregiverService } from "@/services/caregiverService";
+import { specialtyService } from "@/services/specialtyService";
+import { locationService } from "@/services/locationService";
 import {
   Search,
   Filter,
@@ -57,67 +59,57 @@ const Caregivers = () => {
 
   const { data: caregiversData, isLoading, isFetching } = useQuery({
     queryKey: ["caregivers", appliedFilters, currentPage],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: pageSize.toString(),
-        ...(appliedFilters.search && { search: appliedFilters.search }),
-        ...(appliedFilters.specialty !== 'all' && { specialtyId: appliedFilters.specialty }),
-        ...(appliedFilters.region !== 'all' && { region: appliedFilters.region }),
-        ...(appliedFilters.district !== 'all' && { district: appliedFilters.district }),
-        ...(appliedFilters.traditionalAuthority !== 'all' && { traditionalAuthority: appliedFilters.traditionalAuthority }),
-        ...(appliedFilters.village !== 'all' && { village: appliedFilters.village })
-      });
-      const response = await api.get(`/public/caregivers?${params}`);
-      return response.data || {};
-    },
+    queryFn: () => caregiverService.getPublicCaregivers({
+      page: currentPage,
+      limit: pageSize,
+      ...(appliedFilters.search && { search: appliedFilters.search }),
+      ...(appliedFilters.specialty !== 'all' && { specialtyId: appliedFilters.specialty }),
+      ...(appliedFilters.region !== 'all' && { region: appliedFilters.region }),
+      ...(appliedFilters.district !== 'all' && { district: appliedFilters.district }),
+      ...(appliedFilters.traditionalAuthority !== 'all' && { traditionalAuthority: appliedFilters.traditionalAuthority }),
+      ...(appliedFilters.village !== 'all' && { village: appliedFilters.village })
+    }),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const { data: specialtiesData } = useQuery({
     queryKey: ["specialties"],
-    queryFn: async () => {
-      const response = await api.get("/specialties");
-      return response.data.specialties || [];
-    },
+    queryFn: specialtyService.getSpecialties,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   // Fetch location data from API endpoints
   const { data: regions } = useQuery({
     queryKey: ["regions-list"],
-    queryFn: async () => {
-      const response = await api.get('/locations/regions');
-      return response.data.data || [];
-    }
+    queryFn: locationService.getRegions,
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 
   const { data: districts } = useQuery({
     queryKey: ["districts-list", selectedRegion],
-    queryFn: async () => {
-      if (selectedRegion === 'all') return [];
-      const response = await api.get(`/locations/districts/${selectedRegion}`);
-      return response.data.data || [];
-    },
-    enabled: selectedRegion !== 'all'
+    queryFn: () => locationService.getDistricts(selectedRegion),
+    enabled: selectedRegion !== 'all',
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 
   const { data: traditionalAuthorities } = useQuery({
     queryKey: ["ta-list", selectedRegion, selectedDistrict],
-    queryFn: async () => {
-      if (selectedDistrict === 'all') return [];
-      const response = await api.get(`/locations/traditional-authorities/${selectedRegion}/${selectedDistrict}`);
-      return response.data.data || [];
-    },
-    enabled: selectedDistrict !== 'all'
+    queryFn: () => locationService.getTraditionalAuthorities(selectedRegion, selectedDistrict),
+    enabled: selectedDistrict !== 'all',
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 
   const { data: villages } = useQuery({
     queryKey: ["villages-list", selectedRegion, selectedDistrict, selectedTA],
-    queryFn: async () => {
-      if (selectedTA === 'all') return [];
-      const response = await api.get(`/locations/villages/${selectedRegion}/${selectedDistrict}/${selectedTA}`);
-      return response.data.data || [];
-    },
-    enabled: selectedTA !== 'all'
+    queryFn: () => locationService.getVillages(selectedRegion, selectedDistrict, selectedTA),
+    enabled: selectedTA !== 'all',
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 
   // Reset dependent filters when parent changes
@@ -183,16 +175,6 @@ const Caregivers = () => {
     setCurrentPage(1);
   };
 
-  if (isLoading) {
-    return (
-      <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout userRole={mapUserRole(user?.role || 'patient')}>
       <div className="space-y-6">
@@ -207,155 +189,164 @@ const Caregivers = () => {
         </div>
 
         {/* Search and Filters - Compact */}
-        <div className="flex flex-col lg:flex-row gap-3">
-          <div className="flex gap-2 flex-1">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, specialty, or location..."
-                className="pl-10 h-9"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && applyFilters()}
-              />
-            </div>
-            <Button
-              variant="default"
-              size="sm"
-              className="gap-2 h-9 px-4"
-              onClick={applyFilters}
-              disabled={isFetching}
-            >
-              <Search className="h-4 w-4" />
-              Search
-            </Button>
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, specialty, or location..."
+              className="pl-10 h-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && applyFilters()}
+            />
           </div>
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 lg:hidden h-9"
+            type="button"
+            className="gap-2 h-9"
             onClick={() => setShowFilters(!showFilters)}
           >
             <Filter className="h-4 w-4" />
             Filters
             <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? "rotate-180" : ""}`} />
           </Button>
+          <Button
+            variant="default"
+            size="sm"
+            type="button"
+            className="gap-2 h-9 px-4"
+            onClick={applyFilters}
+            disabled={isFetching}
+          >
+            <Search className="h-4 w-4" />
+            Search
+          </Button>
         </div>
 
         <div className="grid lg:grid-cols-4 gap-4">
-          {/* Filters Sidebar - Compact */}
-          <Card className={`lg:block ${showFilters ? "block" : "hidden"}`}>
-            <CardContent className="p-4 space-y-4">
-              <div>
-                <Label className="text-xs font-semibold mb-2 block">Specialty</Label>
-                <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="All Specialties" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Specialties</SelectItem>
-                    {specialties.map((specialty: any) => (
-                      <SelectItem key={specialty.id} value={specialty.id.toString()}>
-                        {specialty.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Filters Dropdown - Shows when button clicked */}
+          {showFilters && (
+            <Card className="lg:col-span-4">
+              <CardContent className="p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  <div>
+                    <Label className="text-xs font-semibold mb-2 block">Specialty</Label>
+                    <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="All Specialties" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Specialties</SelectItem>
+                        {specialties.map((specialty: any) => (
+                          <SelectItem key={specialty.id} value={specialty.id.toString()}>
+                            {specialty.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label className="text-xs font-semibold mb-2 block">Region</Label>
-                <Select value={selectedRegion} onValueChange={handleRegionChange}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="All Regions" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Regions</SelectItem>
-                    {regions?.map((region: string) => (
-                      <SelectItem key={region} value={region}>
-                        {region}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div>
+                    <Label className="text-xs font-semibold mb-2 block">Region</Label>
+                    <Select value={selectedRegion} onValueChange={handleRegionChange}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="All Regions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Regions</SelectItem>
+                        {regions?.map((region: string) => (
+                          <SelectItem key={region} value={region}>
+                            {region}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label className="text-xs font-semibold mb-2 block">District</Label>
-                <Select value={selectedDistrict} onValueChange={handleDistrictChange}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="All Districts" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Districts</SelectItem>
-                    {districts?.map((district: string) => (
-                      <SelectItem key={district} value={district}>
-                        {district}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div>
+                    <Label className="text-xs font-semibold mb-2 block">District</Label>
+                    <Select value={selectedDistrict} onValueChange={handleDistrictChange}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="All Districts" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Districts</SelectItem>
+                        {districts?.map((district: string) => (
+                          <SelectItem key={district} value={district}>
+                            {district}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label className="text-xs font-semibold mb-2 block">Traditional Authority</Label>
-                <Select value={selectedTA} onValueChange={handleTAChange}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="All TAs" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All TAs</SelectItem>
-                    {traditionalAuthorities?.map((ta: string) => (
-                      <SelectItem key={ta} value={ta}>
-                        {ta}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div>
+                    <Label className="text-xs font-semibold mb-2 block">Traditional Authority</Label>
+                    <Select value={selectedTA} onValueChange={handleTAChange}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="All TAs" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All TAs</SelectItem>
+                        {traditionalAuthorities?.map((ta: string) => (
+                          <SelectItem key={ta} value={ta}>
+                            {ta}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label className="text-xs font-semibold mb-2 block">Village</Label>
-                <Select value={selectedVillage} onValueChange={setSelectedVillage}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="All Villages" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Villages</SelectItem>
-                    {villages?.map((village: string) => (
-                      <SelectItem key={village} value={village}>
-                        {village}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div>
+                    <Label className="text-xs font-semibold mb-2 block">Village</Label>
+                    <Select value={selectedVillage} onValueChange={setSelectedVillage}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="All Villages" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Villages</SelectItem>
+                        {villages?.map((village: string) => (
+                          <SelectItem key={village} value={village}>
+                            {village}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="h-9 text-xs"
+                    onClick={() => {
+                      applyFilters();
+                      setShowFilters(false);
+                    }}
+                    disabled={isFetching}
+                  >
+                    Apply Filters
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 h-9 text-xs"
+                    onClick={() => {
+                      clearFilters();
+                      setShowFilters(false);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                    Clear
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-              <div className="flex gap-2">
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="flex-1 h-9 text-xs"
-                  onClick={applyFilters}
-                  disabled={isFetching}
-                >
-                  Apply Filters
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-2 h-9 text-xs"
-                  onClick={clearFilters}
-                >
-                  <X className="h-4 w-4" />
-                  Clear
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Caregivers Grid - Compact & Professional */}
-          <div className="lg:col-span-3">
+          {/* Caregivers Grid */}
+          <div className="lg:col-span-4">
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm text-muted-foreground">
                 {isFetching ? 'Loading...' : `${filteredCaregivers.length} caregiver${filteredCaregivers.length !== 1 ? 's' : ''} found`}

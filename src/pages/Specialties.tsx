@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { useState } from "react";
 import { 
   Heart, 
   Baby, 
@@ -16,84 +19,41 @@ import {
   ArrowRight,
   Star,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Eye,
+  Bone,
+  Loader2
 } from "lucide-react";
 
+const iconMap: Record<string, any> = {
+  "Nursing Care": Stethoscope,
+  "Geriatric Care": Heart,
+  "Pediatric Care": Baby,
+  "Physiotherapy": Activity,
+  "Mental Health": Brain,
+  "Palliative Care": Pill,
+  "Vision Care": Eye,
+  "Orthopedic Care": Bone,
+  "General Care": Stethoscope,
+  "Elderly Care": Users,
+  "Physical Therapy": Activity,
+  "Medication Management": Pill,
+  "Post-operative Care": Shield
+};
+
 const Specialties = () => {
-  const specialties = [
-    {
-      icon: Stethoscope,
-      title: "General Care",
-      description: "Comprehensive supportive care services for health monitoring, assistance with daily activities, and general wellness support. Medical diagnosis and treatment must be provided by your physician.",
-      services: ["Health monitoring", "Vital signs tracking", "Medication reminders", "Wound care assistance"],
-      caregivers: 45,
-      rating: 4.9,
-      color: "from-blue-500 to-blue-600"
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  
+  const { data: specialtiesData, isLoading } = useQuery({
+    queryKey: ["specialties-page"],
+    queryFn: async () => {
+      const response = await api.get("/public/specialties");
+      return response.data || {};
     },
-    {
-      icon: Users,
-      title: "Elderly Care",
-      description: "Specialized supportive care for seniors focusing on comfort, dignity, and maintaining independence at home. Works alongside your physician's medical care plan.",
-      services: ["Daily living assistance", "Mobility support", "Companionship", "Safety monitoring"],
-      caregivers: 32,
-      rating: 4.8,
-      color: "from-green-500 to-green-600"
-    },
-    {
-      icon: Baby,
-      title: "Pediatric Care",
-      description: "Expert healthcare services for children and adolescents with gentle, child-friendly approaches.",
-      services: ["Child health monitoring", "Vaccination support", "Growth tracking", "Developmental care"],
-      caregivers: 28,
-      rating: 4.9,
-      color: "from-pink-500 to-pink-600"
-    },
-    {
-      icon: Brain,
-      title: "Mental Health",
-      description: "Professional mental health support and counseling services in a comfortable home environment.",
-      services: ["Counseling sessions", "Stress management", "Anxiety support", "Behavioral therapy"],
-      caregivers: 18,
-      rating: 4.7,
-      color: "from-purple-500 to-purple-600"
-    },
-    {
-      icon: Activity,
-      title: "Physical Therapy",
-      description: "Rehabilitation and physical therapy services to help restore mobility and reduce pain.",
-      services: ["Mobility exercises", "Pain management", "Injury rehabilitation", "Strength training"],
-      caregivers: 22,
-      rating: 4.8,
-      color: "from-orange-500 to-orange-600"
-    },
-    {
-      icon: Heart,
-      title: "Nursing Care",
-      description: "Professional nursing support services including care assistance and health monitoring. All medical procedures and treatments must be prescribed and supervised by your physician.",
-      services: ["Care assistance", "Health monitoring", "Post-care support", "Medication reminders"],
-      caregivers: 38,
-      rating: 4.9,
-      color: "from-red-500 to-red-600"
-    },
-    {
-      icon: Pill,
-      title: "Medication Management",
-      description: "Expert medication administration and management to ensure proper treatment compliance.",
-      services: ["Medication reminders", "Dosage management", "Drug interaction monitoring", "Prescription coordination"],
-      caregivers: 25,
-      rating: 4.8,
-      color: "from-teal-500 to-teal-600"
-    },
-    {
-      icon: Shield,
-      title: "Post-operative Care",
-      description: "Specialized care for patients recovering from surgery, ensuring safe and comfortable healing.",
-      services: ["Wound monitoring", "Pain management", "Recovery exercises", "Complication prevention"],
-      caregivers: 20,
-      rating: 4.9,
-      color: "from-indigo-500 to-indigo-600"
-    }
-  ];
+  });
+
+  const specialties = specialtiesData?.specialties || [];
+  const stats = specialtiesData?.stats || { totalCaregivers: 0, averageRating: '4.9' };
 
   const benefits = [
     "All caregivers are professionally verified and licensed",
@@ -148,48 +108,54 @@ const Specialties = () => {
         {/* Specialties Grid */}
         <section className="py-16 lg:py-24">
           <div className="container">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {specialties.map((specialty, index) => (
-                <Card key={index} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                  <CardHeader className="pb-4">
-                    <div className={`h-16 w-16 rounded-2xl bg-gradient-to-r ${specialty.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                      <specialty.icon className="h-8 w-8 text-white" />
-                    </div>
-                    <CardTitle className="font-display text-xl mb-2">
-                      {specialty.title}
-                    </CardTitle>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        <span>{specialty.caregivers} caregivers</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-current text-yellow-500" />
-                        <span>{specialty.rating}</span>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground mb-4 text-sm">
-                      {specialty.description}
-                    </p>
-                    <div className="space-y-2 mb-6">
-                      {specialty.services.map((service, i) => (
-                        <div key={i} className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success flex-shrink-0" />
-                          <span className="text-muted-foreground">{service}</span>
+            {isLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {specialties.map((specialty: any) => {
+                  const IconComponent = iconMap[specialty.name] || Stethoscope;
+                  const isExpanded = expandedId === specialty.id;
+                  return (
+                    <Card key={specialty.id} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col">
+                      <CardHeader className="pb-4">
+                        <div className="h-16 w-16 rounded-2xl bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                          <IconComponent className="h-8 w-8 text-white" />
                         </div>
-                      ))}
-                    </div>
-                    <Link to="/register">
-                      <Button className="w-full" variant="outline">
-                        Find Caregivers
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                        <CardTitle className="font-display text-xl mb-2">
+                          {specialty.name}
+                        </CardTitle>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            <span>{specialty.caregiverCount || 0} caregivers</span>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="flex-grow flex flex-col">
+                        <p className={`text-muted-foreground mb-2 text-sm flex-grow ${isExpanded ? '' : 'line-clamp-4'}`}>
+                          {specialty.description}
+                        </p>
+                        {specialty.description && specialty.description.length > 100 && (
+                          <button
+                            onClick={() => setExpandedId(isExpanded ? null : specialty.id)}
+                            className="text-xs text-primary hover:text-primary/80 mb-4 text-left"
+                          >
+                            {isExpanded ? 'Read less' : 'Read more'}
+                          </button>
+                        )}
+                        <Link to={`/caregivers?specialty=${specialty.name.toLowerCase().replace(" ", "-")}`} className="mt-auto">
+                          <Button className="w-full" variant="outline">
+                            Find Caregivers
+                          </Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
 
@@ -217,13 +183,13 @@ const Specialties = () => {
               <div className="grid grid-cols-2 gap-4">
                 <Card className="p-6 text-center">
                   <CardContent className="p-0">
-                    <div className="text-3xl font-bold text-primary mb-2">250+</div>
+                    <div className="text-3xl font-bold text-primary mb-2">{stats.totalCaregivers}+</div>
                     <div className="text-sm text-muted-foreground">Verified Caregivers</div>
                   </CardContent>
                 </Card>
                 <Card className="p-6 text-center">
                   <CardContent className="p-0">
-                    <div className="text-3xl font-bold text-primary mb-2">4.9</div>
+                    <div className="text-3xl font-bold text-primary mb-2">{stats.averageRating}</div>
                     <div className="text-sm text-muted-foreground">Average Rating</div>
                   </CardContent>
                 </Card>
@@ -235,7 +201,7 @@ const Specialties = () => {
                 </Card>
                 <Card className="p-6 text-center">
                   <CardContent className="p-0">
-                    <div className="text-3xl font-bold text-primary mb-2">8</div>
+                    <div className="text-3xl font-bold text-primary mb-2">{specialties.length}</div>
                     <div className="text-sm text-muted-foreground">Medical Specialties</div>
                   </CardContent>
                 </Card>
