@@ -39,9 +39,7 @@ const Header = () => {
       <header className="sticky top-0 z-50 w-full bg-primary backdrop-blur supports-[backdrop-filter]:bg-primary/95 shadow-lg">
       <div className="container flex h-20 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-700">
-            <Heart className="h-5 w-5 text-white" />
-          </div>
+          <img src="/careconnectlogo.png" alt="CareConnect" className="h-12 w-12 rounded-xl" />
           <span className="font-display text-xl font-bold text-white">
             Care<span className="text-white">Connect</span>
           </span>
