@@ -8,17 +8,8 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // 30 seconds for slow mobile networks
-  withCredentials: true, // Ensure credentials are sent
-});
-
-// Request interceptor to add auth token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  timeout: 30000,
+  withCredentials: true, // Send cookies with requests
 });
 
 // Response interceptor for error handling
@@ -29,15 +20,12 @@ api.interceptors.response.use(
       const errorMessage = error.response?.data?.error;
       const isLoginRequest = error.config?.url?.includes('/auth/login');
       
-      // Handle login-related 401 errors without redirect
       if (isLoginRequest) {
         toast.error(errorMessage || 'Invalid credentials');
         return Promise.reject(error);
       }
       
-      // Handle authenticated session 401 errors with redirect
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      // Session expired - redirect to login
       window.location.href = '/login';
       toast.error('Session expired. Please login again.');
     } else if (error.response?.status === 403) {

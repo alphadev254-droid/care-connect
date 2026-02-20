@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,6 +67,11 @@ const Specialties = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Healthcare Specialties & Home Care Services | CareConnect Malawi</title>
+        <meta name="description" content="Comprehensive home healthcare services: Medication management, wound care, health education, chronic disease management, elderly care, palliative care, post-surgery care, diabetes management. Available across all Malawi regions." />
+        <meta name="keywords" content="healthcare services Malawi, medication management, wound care, health education, chronic disease care, elderly care, palliative care, post-surgery care, diabetes management, specialized nursing care" />
+      </Helmet>
       <Header />
       <main>
         {/* Hero Section */}
@@ -86,6 +92,24 @@ const Specialties = () => {
                   and assistance - not medical treatment. All patients must have a physician for 
                   medical diagnosis and treatment.
                 </p>
+                <noscript>
+                  <div className="bg-white/90 p-4 rounded-lg text-gray-900 mb-4">
+                    <p className="font-semibold mb-2">Our Specialties Include:</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      <li>Elderly Care - Specialized care for elderly patients</li>
+                      <li>General Care - General healthcare and assistance</li>
+                      <li>Health Education & Promotion - Training on nutrition, hygiene, safe water, disease prevention, and healthy lifestyles</li>
+                      <li>Medication Management - Safe medication administration and adherence support</li>
+                      <li>Mental Health - Mental health support and counseling</li>
+                      <li>Nursing Care - Professional nursing services</li>
+                      <li>Pediatric Care - Healthcare for children</li>
+                      <li>Personal Care - Assistance with daily living activities like bathing, dressing, grooming, and toileting</li>
+                      <li>Physiotherapy - Home-based physiotherapy for mobility improvement and rehabilitation</li>
+                      <li>Psychosocial Support - Counseling for patients and carers/guardians</li>
+                      <li>Wound Management and Basic Care - Routine wound cleansing, dressing changes, and infection monitoring</li>
+                    </ul>
+                  </div>
+                </noscript>
               </div>
               <div className="text-center lg:text-right">
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-end">

@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Card, CardContent } from "@/components/ui/card";
@@ -77,6 +78,11 @@ const About = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>About CareConnect - Quality Home Healthcare Services Across Malawi</title>
+        <meta name="description" content="CareConnect connects patients with verified healthcare professionals across all regions of Malawi. Our mission: accessible, affordable, quality healthcare at home. Serving Northern, Central, and Southern regions." />
+        <meta name="keywords" content="about CareConnect, healthcare platform Malawi, home care mission, verified caregivers nationwide, accessible healthcare" />
+      </Helmet>
       <Header />
       <main>
         {/* Hero Section */}

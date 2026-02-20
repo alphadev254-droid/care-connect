@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Heart, Phone, Mail, MapPin } from "lucide-react";
+import { CLOUDINARY_IMAGES } from "@/config/images";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -28,7 +29,7 @@ const Footer = () => {
           {/* Brand Column */}
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-6">
-              <img src="/careconnectlogo.png" alt="CareConnect" className="h-10 w-10 rounded-xl" />
+              <img src={CLOUDINARY_IMAGES.logo} alt="CareConnect" className="h-10 w-10 rounded-xl" />
               <span className="font-display text-xl font-bold">
                 Care<span className="text-primary">Connect</span>
               </span>
@@ -39,15 +40,15 @@ const Footer = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-white/80">
                 <Phone className="h-4 w-4 text-primary" />
-                <span>+265986227240</span>
+                <span>+265 986 227 240</span>
               </div>
               <div className="flex items-center gap-3 text-white/80">
                 <Mail className="h-4 w-4 text-primary" />
-                <span>support@careconnect.com</span>
+                <span>support@careconnectmalawi.com</span>
               </div>
               <div className="flex items-center gap-3 text-white/80">
                 <MapPin className="h-4 w-4 text-primary" />
-                <span>123 Healthcare Ave, Medical City</span>
+                <span>Area 58, Lilongwe, Central Region, Malawi</span>
               </div>
             </div>
           </div>

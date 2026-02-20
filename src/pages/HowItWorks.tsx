@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Card, CardContent } from "@/components/ui/card";
@@ -111,6 +112,11 @@ const HowItWorks = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>How CareConnect Works - Book Home Healthcare Services in 3 Easy Steps</title>
+        <meta name="description" content="Easy 3-step process: Find a caregiver in your region, book appointment, receive quality care at home. Secure payments, verified professionals, quality home healthcare across all Malawi regions." />
+        <meta name="keywords" content="book healthcare Malawi, how to book caregiver, home healthcare booking, find caregiver near me, healthcare appointment booking" />
+      </Helmet>
       <Header />
 
       <main>

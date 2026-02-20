@@ -29,8 +29,7 @@ export interface RegisterData {
 export const authService = {
   login: async (data: LoginData) => {
     const response = await api.post('/auth/login', data);
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
+    if (response.data.user) {
       localStorage.setItem('user', JSON.stringify(response.data.user));
     }
     return response.data;
@@ -40,22 +39,20 @@ export const authService = {
     const response = await api.post('/auth/register', data, {
       headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {}
     });
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
+    if (response.data.user) {
       localStorage.setItem('user', JSON.stringify(response.data.user));
     }
     return response.data;
   },
 
-  logout: () => {
-    localStorage.removeItem('token');
+  logout: async () => {
+    await api.post('/auth/logout');
     localStorage.removeItem('user');
   },
 
   getProfile: async (): Promise<User> => {
     const response = await api.get('/auth/profile');
     const user = response.data.user;
-    // Update localStorage with fresh profile data
     localStorage.setItem('user', JSON.stringify(user));
     return user;
   },
@@ -69,7 +66,12 @@ export const authService = {
     return userStr ? JSON.parse(userStr) : null;
   },
 
-  isAuthenticated: (): boolean => {
-    return !!localStorage.getItem('token');
+  isAuthenticated: async (): Promise<boolean> => {
+    try {
+      await api.get('/auth/profile');
+      return true;
+    } catch {
+      return false;
+    }
   }
 };

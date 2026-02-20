@@ -50,12 +50,10 @@ export const AvailabilityManager = () => {
     try {
       const response = await api.get('/caregivers/profile');
       const caregiver = response.data.caregiver;
-      console.log('caregiver ',caregiver)
       const actualCaregiverId = caregiver.id
       setCaregiverId(actualCaregiverId);
       loadAvailability(actualCaregiverId);
     } catch (error) {
-      console.error('Failed to fetch caregiver profile:', error);
       toast.error('Failed to load caregiver profile');
     }
   };
@@ -71,7 +69,6 @@ export const AvailabilityManager = () => {
         endTime: item.endTime,
       })));
     } catch (error) {
-      console.error('Failed to load availability:', error);
       toast.error('Failed to load availability');
       setSavedAvailability([]);
       setAvailability([]);
@@ -107,7 +104,6 @@ export const AvailabilityManager = () => {
         toast.success('Availability saved successfully');
       }
     } catch (error: any) {
-      console.error('Failed to save availability:', error);
       // Error messages are handled by api interceptor
     } finally {
       setLoading(false);
@@ -160,7 +156,7 @@ export const AvailabilityManager = () => {
         toast.success(`All availability cleared (${response.deleted} slots deleted)`);
       }
     } catch (error: any) {
-      console.error('Failed to delete:', error);
+      // Error handled by api interceptor
     } finally {
       setLoading(false);
       setDeleteDialogOpen(false);

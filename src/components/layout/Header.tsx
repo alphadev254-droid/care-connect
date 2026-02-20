@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, X, Heart, Phone, Home, Clock, MapPin } from "lucide-react";
+import { CLOUDINARY_IMAGES } from "@/config/images";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,7 +27,7 @@ const Header = () => {
         <div className="container flex items-center justify-between">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5"><Home className="h-3.5 w-3.5" /> Quality Home Healthcare Services</span>
-            <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> +265986227240</span>
+            <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> +265 986 227 240</span>
           </div>
           <div className="hidden md:flex items-center gap-4">
             <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Mon-Fri: 8AM-6PM</span>
@@ -39,7 +40,7 @@ const Header = () => {
       <header className="sticky top-0 z-50 w-full bg-primary backdrop-blur supports-[backdrop-filter]:bg-primary/95 shadow-lg">
       <div className="container flex h-20 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/careconnectlogo.png" alt="CareConnect" className="h-12 w-12 rounded-xl" />
+          <img src={CLOUDINARY_IMAGES.logo} alt="CareConnect" className="h-12 w-12 rounded-xl" />
           <span className="font-display text-xl font-bold text-white">
             Care<span className="text-white">Connect</span>
           </span>
@@ -66,7 +67,7 @@ const Header = () => {
         <div className="hidden lg:flex items-center gap-3">
           <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10">
             <Phone className="h-4 w-4" />
-            <span className="text-sm">+265986227240</span>
+            <span className="text-sm">+265 986 227 240</span>
           </Button>
           <Link to="/login">
             <Button variant="outline" size="sm" className="border-white/30 hover:bg-white/10">

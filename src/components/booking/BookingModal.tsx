@@ -87,20 +87,15 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
       });
 
       // Step 3: Redirect to Paychangu checkout
-      console.log('Payment response:', paymentResponse);
-      console.log('Checkout URL:', paymentResponse.checkoutUrl);
-      
       if (paymentResponse.checkoutUrl) {
         toast.success('Redirecting to payment...');
         onClose();
         // Use location.href instead of window.open to avoid popup blockers
         window.location.href = paymentResponse.checkoutUrl;
       } else {
-        console.error('No checkout URL in response:', paymentResponse);
         throw new Error('Payment URL not received');
       }
     } catch (error) {
-      console.error('Booking error:', error);
       
       // Show specific error message
       if (error.response?.data?.error) {
@@ -115,7 +110,7 @@ export const BookingModal = ({ open, onClose, caregiverId, caregiverName, specia
       try {
         await timeSlotService.unlockSlot(selectedSlot.id);
       } catch (unlockError) {
-        console.error('Failed to unlock slot:', unlockError);
+        // Unlock failed silently
       }
     } finally {
       setBooking(false);

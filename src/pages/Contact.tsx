@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { faqSchema } from "@/lib/structuredData";
 import { 
   Phone, 
   Mail, 
@@ -22,14 +24,14 @@ const Contact = () => {
       icon: Phone,
       title: "Phone Support",
       description: "Speak directly with our support team",
-      contact: "+265 1 234 567",
+      contact: "+265 986 227 240",
       availability: "24/7 Emergency Support"
     },
     {
       icon: Mail,
       title: "Email Support",
       description: "Send us your questions or concerns",
-      contact: "support@careconnect.mw",
+      contact: "support@careconnectmalawi.com",
       availability: "Response within 2 hours"
     },
     {
@@ -51,21 +53,21 @@ const Contact = () => {
   const offices = [
     {
       city: "Lilongwe",
-      address: "Area 47, Sector 3, Plot 123",
-      phone: "+265 1 234 567",
-      email: "lilongwe@careconnect.mw"
+      address: "Area 58, Lilongwe, Central Region, Malawi",
+      phone: "+265 986 227 240",
+      email: "support@careconnectmalawi.com"
     },
     {
       city: "Blantyre",
       address: "Limbe, Makata Road, Building 45",
-      phone: "+265 1 345 678",
-      email: "blantyre@careconnect.mw"
+      phone: "+265 986 227 240",
+      email: "support@careconnectmalawi.com"
     },
     {
       city: "Mzuzu",
       address: "Mzimba Street, Near Central Hospital",
-      phone: "+265 1 456 789",
-      email: "mzuzu@careconnect.mw"
+      phone: "+265 986 227 240",
+      email: "support@careconnectmalawi.com"
     }
   ];
 
@@ -90,6 +92,13 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Contact Us | CareConnect Malawi - 24/7 Support</title>
+        <meta name="description" content="Contact CareConnect Malawi for home healthcare services. Call +265 986 227 240 or email support@careconnectmalawi.com. Offices in Lilongwe, Blantyre & Mzuzu." />
+        <script type="application/ld+json">
+          {JSON.stringify(faqSchema(faqs))}
+        </script>
+      </Helmet>
       <Header />
       <main>
         {/* Hero Section */}
@@ -296,7 +305,7 @@ const Contact = () => {
                     <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-end">
                       <Button size="lg" className="gap-2 bg-red-600 text-white hover:bg-red-700">
                         <Phone className="h-5 w-5" />
-                        Call +265 1 911 911
+                        Call +265 986 227 240
                       </Button>
                       <Button size="lg" variant="outline" className="gap-2">
                         <MessageCircle className="h-5 w-5" />

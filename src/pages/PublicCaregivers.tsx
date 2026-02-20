@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { CLOUDINARY_IMAGES } from "@/config/images";
 
 const PublicCaregivers = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -172,13 +174,18 @@ const PublicCaregivers = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Find Verified Healthcare Caregivers Across Malawi | All Regions</title>
+        <meta name="description" content="Browse verified healthcare professionals across all Malawi regions. Registered nurses, health surveillance assistants, and specialized caregivers available for home visits. Northern, Central, and Southern regions covered." />
+        <meta name="keywords" content="find caregiver Malawi, registered nurses all regions, healthcare professionals nationwide, home care providers, verified caregivers, health surveillance assistants, nursing care" />
+      </Helmet>
       <Header />
       
       {/* Hero Section */}
       <section 
         className="py-4 lg:py-6 relative bg-cover bg-no-repeat rounded-b-3xl overflow-hidden"
         style={{ 
-          backgroundImage: 'url(/caregivers.png)', 
+          backgroundImage: `url(${CLOUDINARY_IMAGES.caregivers})`, 
           backgroundPosition: '0 45%',
           backgroundSize: 'cover'
         }}

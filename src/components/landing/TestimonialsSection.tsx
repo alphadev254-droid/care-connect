@@ -11,7 +11,7 @@ const testimonials = [
   },
   {
     name: "Grace Okonkwo",
-    role: "Registered Nurse",
+    role: "Caregiver",
     image: null,
     rating: 5,
     content:
