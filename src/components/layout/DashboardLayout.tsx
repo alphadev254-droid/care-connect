@@ -43,12 +43,13 @@ import {
   Search,
   Video,
   CreditCard,
-  Shield,
   ChevronDown,
   UserCheck,
   Key,
   Wallet,
+  HelpCircle,
 } from "lucide-react";
+import CaregiverOnboardingDialog from "@/components/CaregiverOnboardingDialog";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -61,6 +62,7 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
   const { user, logout, loading: authLoading } = useAuth();
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const queryClient = useQueryClient();
   
   // Fetch real notifications
@@ -248,6 +250,17 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
             </div>
 
             <div className="flex items-center gap-4">
+              {actualRole === 'caregiver' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setHelpOpen(true)}
+                  title="Help & Navigation Guide"
+                >
+                  <HelpCircle className="h-5 w-5" />
+                </Button>
+              )}
+
               <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="icon" className="relative">
@@ -358,6 +371,7 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
           </main>
         </div>
       </div>
+      <CaregiverOnboardingDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
     </SidebarProvider>
   );
 };
