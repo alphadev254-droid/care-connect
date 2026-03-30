@@ -34,7 +34,7 @@ const HeroSection = () => {
             </h1>
 
             <p className="text-sm text-muted-foreground max-w-lg leading-relaxed mb-8 border-l-2 border-primary/30 pl-4">
-              CareConnect is a licensed platform connecting patients with verified home-based
+              CareConnect is a platform connecting patients with verified home-based
               caregivers across all regions of Malawi. We provide supportive care services —
               not medical treatment. All patients must have a physician for diagnosis and prescriptions.
             </p>
@@ -53,7 +53,7 @@ const HeroSection = () => {
             </div>
 
             <div className="flex flex-wrap gap-4 pt-6 border-t border-border">
-              {["Licensed & Regulated", "Verified Professionals", "Secure Payments"].map((item) => (
+              {[ "Verified Professionals", "Secure Payments"].map((item) => (
                 <span key={item} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <CheckCircle className="h-3.5 w-3.5 text-secondary" />
                   {item}

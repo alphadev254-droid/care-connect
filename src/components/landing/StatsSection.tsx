@@ -5,7 +5,7 @@ const StatsSection = () => {
 
   const stats = [
     { value: data ? `${data.patients.toLocaleString()}+` : "500+", label: "Families Served", detail: "Across all regions" },
-    { value: data ? `${data.caregivers}+` : "0+", label: "Verified Caregivers", detail: "Licensed professionals" },
+    { value: data ? `${data.caregivers}+` : "0+", label: "Verified Caregivers", detail: " professionals" },
     { value: data ? `${data.sessions.toLocaleString()}+` : "1,000+", label: "Care Sessions", detail: "Completed successfully" },
     { value: data ? `${data.averageRating}/5` : "4.9/5", label: "Average Rating", detail: "Patient satisfaction" },
   ];

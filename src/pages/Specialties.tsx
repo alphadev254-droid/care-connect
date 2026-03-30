@@ -30,7 +30,7 @@ const iconMap: Record<string, any> = {
 };
 
 const benefits = [
-  "All caregivers are professionally verified and licensed",
+  "All caregivers are professionally verified and ",
   "Personalized care plans tailored to your specific needs",
   "24/7 emergency support and monitoring available",
   "Comprehensive care reports after each session",
@@ -224,7 +224,7 @@ const Specialties = () => {
                 </div>
                 <div className="grid grid-cols-2">
                 {[
-                  { value: platformStats ? `${platformStats.caregivers}+` : "0+", label: "Verified Caregivers", sub: "Licensed professionals" },
+                  { value: platformStats ? `${platformStats.caregivers}+` : "0+", label: "Verified Caregivers", sub: " professionals" },
                   { value: platformStats ? `${platformStats.averageRating}/5` : "4.9/5", label: "Average Rating", sub: "Patient satisfaction" },
                   { value: "24/7", label: "Support Available", sub: "Round the clock" },
                   { value: `${specialties.length}`, label: "Specialties", sub: "Care categories" },

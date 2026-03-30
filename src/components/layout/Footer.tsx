@@ -36,7 +36,7 @@ const Footer = () => {
               </div>
             </Link>
             <p className="text-sm text-white/60 mb-5 max-w-xs leading-relaxed">
-              Malawi's licensed platform connecting patients with verified home-based caregivers
+              Malawi's platform connecting patients with verified home-based caregivers
               across all regions. Supportive care services — not medical treatment.
             </p>
             <div className="space-y-2">
@@ -93,7 +93,7 @@ const Footer = () => {
             <div className="flex items-start gap-2 p-3 border border-white/10 rounded-sm bg-white/5">
               <Shield className="h-4 w-4 text-secondary flex-shrink-0 mt-0.5" />
               <p className="text-[11px] text-white/50 leading-relaxed">
-                Licensed & regulated home healthcare platform. All caregivers are professionally verified.
+                regulated home healthcare platform. All caregivers are professionally verified.
               </p>
             </div>
           </div>
