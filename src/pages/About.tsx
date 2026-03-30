@@ -80,6 +80,8 @@ const About = () => {
         <title>About CareConnect - Quality Home Healthcare Services Across Malawi</title>
         <meta name="description" content="CareConnect connects patients with verified healthcare professionals across all regions of Malawi. Our mission: accessible, affordable, quality healthcare at home. Serving Northern, Central, and Southern regions." />
         <meta name="keywords" content="about CareConnect, healthcare platform Malawi, home care mission, verified caregivers nationwide, accessible healthcare" />
+        <link rel="canonical" href="https://careconnectmalawi.com/about" />
+        <meta property="og:url" content="https://careconnectmalawi.com/about" />
       </Helmet>
       <Header />
       <main>

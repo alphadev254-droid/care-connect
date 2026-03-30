@@ -1,4 +1,12 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.careconnectmalawi.com" }],
+      "destination": "https://careconnectmalawi.com/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://13.221.93.123.nip.io/api/:path*" },
     { "source": "/(.*)", "destination": "/" }

@@ -5,7 +5,7 @@ export const organizationSchema = {
   "@type": "MedicalBusiness",
   "name": "CareConnect Malawi",
   "description": "Professional home healthcare services connecting patients with verified caregivers across all regions of Malawi",
-  "url": "https://careconnectmalawi.com",
+  "url": "https://careconnectmalawi.com/",
   "logo": "https://res.cloudinary.com/dmpcgydyf/image/upload/v1771566755/landing-pages/careconnectlogo.png",
   "telephone": "+265986227240",
   "email": "support@careconnectmalawi.com",
@@ -35,7 +35,7 @@ export const organizationSchema = {
     }
   ],
   "sameAs": [
-    "https://careconnectmalawi.com"
+    "https://careconnectmalawi.com/"
   ],
   "priceRange": "$$",
   "openingHours": "Mo-Su 00:00-23:59"

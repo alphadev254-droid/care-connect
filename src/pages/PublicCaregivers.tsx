@@ -178,6 +178,8 @@ const PublicCaregivers = () => {
         <title>Find Verified Healthcare Caregivers Across Malawi | All Regions</title>
         <meta name="description" content="Browse verified healthcare professionals across all Malawi regions. Registered nurses, health surveillance assistants, and specialized caregivers available for home visits. Northern, Central, and Southern regions covered." />
         <meta name="keywords" content="find caregiver Malawi, registered nurses all regions, healthcare professionals nationwide, home care providers, verified caregivers, health surveillance assistants, nursing care" />
+         <link rel="canonical" href="https://careconnectmalawi.com/caregivers" />
+        <meta property="og:url" content="https://careconnectmalawi.com/caregivers" />
       </Helmet>
       <Header />
       

@@ -18,7 +18,7 @@ const SEO = ({
   structuredData 
 }: SEOProps) => {
   const fullTitle = title.includes("CareConnect") ? title : `${title} | CareConnect Malawi`;
-  const url = canonical || "https://careconnectmalawi.com";
+  const url = canonical || "https://careconnectmalawi.com/";
 
   return (
     <Helmet>

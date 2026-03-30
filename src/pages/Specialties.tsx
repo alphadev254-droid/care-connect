@@ -58,6 +58,8 @@ const Specialties = () => {
         <title>Healthcare Specialties & Home Care Services | CareConnect Malawi</title>
         <meta name="description" content="Comprehensive home healthcare services: Medication management, wound care, health education, chronic disease management, elderly care, palliative care, post-surgery care, diabetes management. Available across all Malawi regions." />
         <meta name="keywords" content="healthcare services Malawi, medication management, wound care, health education, chronic disease care, elderly care, palliative care, post-surgery care, diabetes management, specialized nursing care" />
+        <link rel="canonical" href="https://careconnectmalawi.com/specialties" />
+        <meta property="og:url" content="https://careconnectmalawi.com/specialties" />
       </Helmet>
       <Header />
 

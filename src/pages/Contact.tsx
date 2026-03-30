@@ -95,6 +95,8 @@ const Contact = () => {
       <Helmet>
         <title>Contact Us | CareConnect Malawi - 24/7 Support</title>
         <meta name="description" content="Contact CareConnect Malawi for home healthcare services. Call +265 986 227 240 or email support@careconnectmalawi.com. Offices in Lilongwe, Blantyre & Mzuzu." />
+        <link rel="canonical" href="https://careconnectmalawi.com/contact" />
+        <meta property="og:url" content="https://careconnectmalawi.com/contact" />
         <script type="application/ld+json">
           {JSON.stringify(faqSchema(faqs))}
         </script>

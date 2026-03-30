@@ -128,6 +128,8 @@ const HowItWorks = () => {
         <title>How CareConnect Works - Book Home Healthcare Services in 3 Easy Steps</title>
         <meta name="description" content="Easy 3-step process: Find a caregiver in your region, book appointment, receive quality care at home. Secure payments, verified professionals, quality home healthcare across all Malawi regions." />
         <meta name="keywords" content="book healthcare Malawi, how to book caregiver, home healthcare booking, find caregiver near me, healthcare appointment booking" />
+        <link rel="canonical" href="https://careconnectmalawi.com/how-it-works" />
+        <meta property="og:url" content="https://careconnectmalawi.com/how-it-works" />
       </Helmet>
       <Header />
 

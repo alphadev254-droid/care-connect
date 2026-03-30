@@ -75,7 +75,7 @@ const Footer = () => {
                 <li key={link.href}>
                   {link.external ? (
                     <a
-                      href={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}${link.href}`}
+                      href={`https://api.careconnectmalawi.com${link.href}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-white/70 hover:text-primary transition-colors"

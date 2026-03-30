@@ -14,6 +14,10 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-white">
       <Helmet>
+        <title>Home Healthcare Services Across Malawi | CareConnect</title>
+        <meta name="description" content="Professional home healthcare services across all regions of Malawi. Book verified caregivers, registered nurses, and healthcare professionals. 24/7 support." />
+        <link rel="canonical" href="https://careconnectmalawi.com/" />
+        <meta property="og:url" content="https://careconnectmalawi.com/" />
         <script type="application/ld+json">
           {JSON.stringify(organizationSchema)}
         </script>
