@@ -12,22 +12,35 @@ export const api = axios.create({
   withCredentials: true, // Send cookies with requests
 });
 
+// Prevent multiple simultaneous redirects to login
+let isRedirectingToLogin = false;
+
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       const errorMessage = error.response?.data?.error;
-      const isLoginRequest = error.config?.url?.includes('/auth/login');
-      
+      const url = error.config?.url || '';
+      const isLoginRequest = url.includes('/auth/login');
+      const isProfileRequest = url.includes('/auth/profile');
+
       if (isLoginRequest) {
         toast.error(errorMessage || 'Invalid credentials');
         return Promise.reject(error);
       }
-      
-      // Session expired - redirect to login
-      window.location.href = '/login';
-      toast.error('Session expired. Please login again.');
+
+      // Silently reject profile 401s — AuthContext handles cleanup
+      if (isProfileRequest) {
+        return Promise.reject(error);
+      }
+
+      // For all other 401s, redirect once and only if not already on /login
+      if (!isRedirectingToLogin && window.location.pathname !== '/login') {
+        isRedirectingToLogin = true;
+        toast.error('Session expired. Please login again.');
+        window.location.href = '/login';
+      }
     } else if (error.response?.status === 403) {
       const errorMessage = error.response?.data?.error || 'You do not have permission to perform this action.';
       toast.error('Permission Denied', {

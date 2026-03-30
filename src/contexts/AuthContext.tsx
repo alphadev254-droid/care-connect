@@ -20,18 +20,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const initAuth = async () => {
       try {
         const currentUser = authService.getCurrentUser();
-        if (currentUser && authService.isAuthenticated()) {
+        if (currentUser) {
           try {
             const profile = await authService.getProfile();
             setUser(profile);
-          } catch (error) {
-            console.error('Failed to fetch user profile:', error);
-            authService.logout();
+          } catch {
+            // Profile fetch failed (expired session) — clear storage only, no logout API call
+            localStorage.removeItem('user');
             setUser(null);
           }
         }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
+      } catch {
         setUser(null);
       } finally {
         setLoading(false);
