@@ -116,7 +116,7 @@ const CaregiverVerification = () => {
 
   const saveMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const response = await api.patch("/caregivers/verification", payload);
+      const response = await api.put("/caregivers/verification", payload);
       return response.data;
     },
     onSuccess: () => {
