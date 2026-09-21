@@ -971,6 +971,32 @@ const Register = () => {
                               Have a referral code from another caregiver? Enter it here to support them!
                             </p>
                           </div>
+                          <div className="flex items-start space-x-2 pt-2">
+                            <Checkbox
+                              id="caregiverTerms"
+                              checked={formData.agreeTerms}
+                              onCheckedChange={(checked) =>
+                                setFormData({ ...formData, agreeTerms: checked as boolean })
+                              }
+                              required
+                            />
+                            <label
+                              htmlFor="caregiverTerms"
+                              className="text-sm text-muted-foreground cursor-pointer leading-tight"
+                            >
+                              I agree to the{" "}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                                  window.open(`${apiUrl}/terms/caregiver/pdf`, '_blank');
+                                }}
+                                className="text-primary hover:underline"
+                              >
+                                Terms of Service and Privacy Policy
+                              </button>
+                            </label>
+                          </div>
                         </>
                       )}
                     </div>
