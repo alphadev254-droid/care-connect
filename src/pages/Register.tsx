@@ -953,9 +953,6 @@ const Register = () => {
                       {/* Caregiver Type */}
                       {formData.userType === 'caregiver' && (
                         <>
-                          <div className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
-                            Create your caregiver account now. After you sign in, you will complete verification on a dedicated page where each field and document saves separately for better performance on slow networks.
-                          </div>
                           <div className="space-y-2">
                             <Label htmlFor="caregiverReferralCode" className="flex items-center gap-2">
                               Referral Code (Optional)
