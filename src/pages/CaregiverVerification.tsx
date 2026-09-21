@@ -11,7 +11,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, FileUp, Loader2, LogOut, ShieldCheck } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { CheckCircle2, ExternalLink, FileUp, Loader2, LogOut, ShieldCheck, Trash2 } from "lucide-react";
 
 const toArray = (value: any): string[] => {
   if (!value) return [];
@@ -22,6 +32,29 @@ const toArray = (value: any): string[] => {
   } catch {
     return [String(value)];
   }
+};
+
+const toDocuments = (value: any): any[] => {
+  let items: any[] = [];
+  if (Array.isArray(value)) {
+    items = value;
+  } else if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      items = Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      items = [value];
+    }
+  } else if (value) {
+    items = [value];
+  }
+
+  return items.map((item) => {
+    if (typeof item === "string") {
+      return { url: item, filename: item.split("/").pop() || "Document" };
+    }
+    return item;
+  });
 };
 
 const CaregiverVerification = () => {
@@ -45,6 +78,13 @@ const CaregiverVerification = () => {
   const [districts, setDistricts] = useState<string[]>([]);
   const [wards, setWards] = useState<string[]>([]);
   const [villages, setVillages] = useState<string[]>([]);
+  const [savingSection, setSavingSection] = useState<string | null>(null);
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    field: "profileImage" | "idDocuments" | "supportingDocuments";
+    index?: number;
+    label: string;
+  } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["caregiver-verification"],
@@ -125,6 +165,15 @@ const CaregiverVerification = () => {
     },
   });
 
+  const saveSection = async (section: string, payload: any) => {
+    setSavingSection(section);
+    try {
+      await saveMutation.mutateAsync(payload);
+    } finally {
+      setSavingSection(null);
+    }
+  };
+
   const uploadMutation = useMutation({
     mutationFn: async ({ field, file }: { field: string; file: File }) => {
       const payload = new FormData();
@@ -138,6 +187,21 @@ const CaregiverVerification = () => {
       queryClient.invalidateQueries({ queryKey: ["caregiver-verification"] });
       toast.success("File uploaded");
     },
+    onSettled: () => {
+      setUploadingField(null);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (payload: { field: string; index?: number }) => {
+      const response = await api.delete("/caregivers/verification/files", { data: payload });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["caregiver-verification"] });
+      toast.success("Document deleted");
+      setDeleteTarget(null);
+    },
   });
 
   const checklist = data?.checklist || {};
@@ -146,6 +210,12 @@ const CaregiverVerification = () => {
     [checklist]
   );
   const caregiver = data?.caregiver;
+  const profileImage = caregiver?.profileImage;
+  const idDocuments = toDocuments(caregiver?.idDocuments);
+  const supportingDocuments = toDocuments(caregiver?.supportingDocuments);
+  const isSaving = saveMutation.isPending || Boolean(savingSection);
+  const fileViewUrl = (field: "profileImage" | "idDocuments" | "supportingDocuments", index = 0) =>
+    `${api.defaults.baseURL || ""}/caregivers/verification/files/view/${field}/${index}`;
 
   const toggleValue = (key: "traditionalAuthority" | "village" | "specialtyIds", value: string, checked: boolean) => {
     setForm((current) => ({
@@ -208,11 +278,11 @@ const CaregiverVerification = () => {
           <CardContent className="grid gap-3 md:grid-cols-2">
             <div className="space-y-2">
               <Label>National ID number</Label>
-              <Input value={form.idNumber} onChange={(event) => setForm({ ...form, idNumber: event.target.value })} onBlur={() => saveMutation.mutate({ idNumber: form.idNumber })} />
+              <Input disabled={savingSection === "personal"} value={form.idNumber} onChange={(event) => setForm({ ...form, idNumber: event.target.value })} onBlur={() => saveSection("personal", { idNumber: form.idNumber })} />
             </div>
             <div className="space-y-2">
               <Label>Date of birth</Label>
-              <Input type="date" value={form.dateOfBirth} onChange={(event) => setForm({ ...form, dateOfBirth: event.target.value })} onBlur={() => saveMutation.mutate({ dateOfBirth: form.dateOfBirth })} />
+              <Input disabled={savingSection === "personal"} type="date" value={form.dateOfBirth} onChange={(event) => setForm({ ...form, dateOfBirth: event.target.value })} onBlur={() => saveSection("personal", { dateOfBirth: form.dateOfBirth })} />
             </div>
           </CardContent>
         </Card>
@@ -222,31 +292,33 @@ const CaregiverVerification = () => {
           <CardContent className="grid gap-3 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Licensing institution</Label>
-              <Input value={form.licensingInstitution} onChange={(event) => setForm({ ...form, licensingInstitution: event.target.value })} onBlur={() => saveMutation.mutate({ licensingInstitution: form.licensingInstitution })} />
+              <Input disabled={savingSection === "professional"} value={form.licensingInstitution} onChange={(event) => setForm({ ...form, licensingInstitution: event.target.value })} onBlur={() => saveSection("professional", { licensingInstitution: form.licensingInstitution })} />
             </div>
             <div className="space-y-2">
               <Label>License number</Label>
-              <Input value={form.licenseNumber} onChange={(event) => setForm({ ...form, licenseNumber: event.target.value })} onBlur={() => saveMutation.mutate({ licenseNumber: form.licenseNumber })} />
+              <Input disabled={savingSection === "professional"} value={form.licenseNumber} onChange={(event) => setForm({ ...form, licenseNumber: event.target.value })} onBlur={() => saveSection("professional", { licenseNumber: form.licenseNumber })} />
             </div>
             <div className="space-y-2">
               <Label>Years of experience</Label>
-              <Input type="number" min="0" value={form.experience} onChange={(event) => setForm({ ...form, experience: event.target.value })} onBlur={() => saveMutation.mutate({ experience: form.experience })} />
+              <Input disabled={savingSection === "professional"} type="number" min="0" value={form.experience} onChange={(event) => setForm({ ...form, experience: event.target.value })} onBlur={() => saveSection("professional", { experience: form.experience })} />
             </div>
             <div className="space-y-2">
               <Label>Qualifications</Label>
-              <Input value={form.qualifications} onChange={(event) => setForm({ ...form, qualifications: event.target.value })} onBlur={() => saveMutation.mutate({ qualifications: form.qualifications })} />
+              <Input disabled={savingSection === "professional"} value={form.qualifications} onChange={(event) => setForm({ ...form, qualifications: event.target.value })} onBlur={() => saveSection("professional", { qualifications: form.qualifications })} />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>Specialties</Label>
               <div className="grid max-h-48 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-2">
                 {(specialtiesData || []).map((specialty: any) => (
                   <label key={specialty.id} className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={form.specialtyIds.includes(String(specialty.id))} onCheckedChange={(checked) => toggleValue("specialtyIds", String(specialty.id), Boolean(checked))} />
+                    <Checkbox disabled={savingSection === "professional"} checked={form.specialtyIds.includes(String(specialty.id))} onCheckedChange={(checked) => toggleValue("specialtyIds", String(specialty.id), Boolean(checked))} />
                     {specialty.name}
                   </label>
                 ))}
               </div>
-              <Button size="sm" onClick={() => saveMutation.mutate({ specialtyIds: form.specialtyIds })}>Save specialties</Button>
+              <Button size="sm" disabled={savingSection === "professional"} onClick={() => saveSection("professional", { specialtyIds: form.specialtyIds })}>
+                {savingSection === "professional" ? "Saving..." : "Save specialties"}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -256,14 +328,14 @@ const CaregiverVerification = () => {
           <CardContent className="grid gap-3 md:grid-cols-2">
             <div className="space-y-2">
               <Label>County</Label>
-              <Select value={form.region} onValueChange={(value) => setForm({ ...form, region: value, district: "", traditionalAuthority: [], village: [] })}>
+              <Select disabled={savingSection === "location"} value={form.region} onValueChange={(value) => setForm({ ...form, region: value, district: "", traditionalAuthority: [], village: [] })}>
                 <SelectTrigger><SelectValue placeholder="Select county" /></SelectTrigger>
                 <SelectContent>{regions.map((region) => <SelectItem key={region} value={region}>{region}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>Constituency</Label>
-              <Select value={form.district} onValueChange={(value) => setForm({ ...form, district: value, traditionalAuthority: [], village: [] })}>
+              <Select disabled={savingSection === "location"} value={form.district} onValueChange={(value) => setForm({ ...form, district: value, traditionalAuthority: [], village: [] })}>
                 <SelectTrigger><SelectValue placeholder="Select constituency" /></SelectTrigger>
                 <SelectContent>{districts.map((district) => <SelectItem key={district} value={district}>{district}</SelectItem>)}</SelectContent>
               </Select>
@@ -273,7 +345,7 @@ const CaregiverVerification = () => {
               <div className="max-h-44 overflow-y-auto rounded-md border p-3 space-y-2">
                 {wards.map((ward) => (
                   <label key={ward} className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={form.traditionalAuthority.includes(ward)} onCheckedChange={(checked) => toggleValue("traditionalAuthority", ward, Boolean(checked))} />
+                    <Checkbox disabled={savingSection === "location"} checked={form.traditionalAuthority.includes(ward)} onCheckedChange={(checked) => toggleValue("traditionalAuthority", ward, Boolean(checked))} />
                     {ward}
                   </label>
                 ))}
@@ -284,19 +356,19 @@ const CaregiverVerification = () => {
               <div className="max-h-44 overflow-y-auto rounded-md border p-3 space-y-2">
                 {villages.map((village) => (
                   <label key={village} className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={form.village.includes(village)} onCheckedChange={(checked) => toggleValue("village", village, Boolean(checked))} />
+                    <Checkbox disabled={savingSection === "location"} checked={form.village.includes(village)} onCheckedChange={(checked) => toggleValue("village", village, Boolean(checked))} />
                     {village}
                   </label>
                 ))}
               </div>
             </div>
             <div className="md:col-span-2">
-              <Button onClick={() => saveMutation.mutate({
+              <Button disabled={savingSection === "location"} onClick={() => saveSection("location", {
                 region: form.region,
                 district: form.district,
                 traditionalAuthority: form.traditionalAuthority,
                 village: form.village,
-              })}>Save location</Button>
+              })}>{savingSection === "location" ? "Saving..." : "Save location"}</Button>
             </div>
           </CardContent>
         </Card>
@@ -305,25 +377,99 @@ const CaregiverVerification = () => {
           <CardHeader><CardTitle className="text-base">Documents</CardTitle></CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-3">
             {[
-              ["profilePicture", "Profile picture", ".jpg,.jpeg,.png"],
-              ["idDocuments", "ID document", ".pdf,.jpg,.jpeg,.png"],
-              ["supportingDocuments", "Supporting document", ".pdf,.doc,.docx,.jpg,.jpeg,.png"],
-            ].map(([field, label, accept]) => (
+              ["profilePicture", "Profile picture", ".jpg,.jpeg,.png", profileImage ? 1 : 0, 1],
+              ["idDocuments", "ID document", ".pdf,.jpg,.jpeg,.png", idDocuments.length, 2],
+              ["supportingDocuments", "Supporting document", ".pdf,.doc,.docx,.jpg,.jpeg,.png", supportingDocuments.length, 5],
+            ].map(([field, label, accept, count, max]) => (
               <div key={field} className="space-y-2 rounded-md border p-3">
-                <Label>{label}</Label>
-                <Input type="file" accept={accept} onChange={(event) => {
+                <div className="flex items-center justify-between gap-2">
+                  <Label>{label}</Label>
+                  <Badge variant="outline">{count}/{max}</Badge>
+                </div>
+                <Input disabled={uploadingField === field || Number(count) >= Number(max)} type="file" accept={accept as string} onChange={(event) => {
                   const file = event.target.files?.[0];
-                  if (file) uploadMutation.mutate({ field, file });
+                  if (file) {
+                    setUploadingField(field as string);
+                    uploadMutation.mutate({ field: field as string, file });
+                    event.target.value = "";
+                  }
                 }} />
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <FileUp className="h-3 w-3" />
-                  Saves immediately after selection
+                  {uploadingField === field ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3" />}
+                  {uploadingField === field ? "Uploading..." : Number(count) >= Number(max) ? "Delete an existing file to replace it" : "Saves immediately after selection"}
                 </p>
               </div>
             ))}
+            <div className="space-y-2 rounded-md border p-3 md:col-span-3">
+              <Label>Uploaded documents</Label>
+              <div className="grid gap-2 md:grid-cols-3">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Profile picture</p>
+                  {profileImage ? (
+                    <div className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
+                      <a href={fileViewUrl("profileImage")} target="_blank" rel="noreferrer" className="inline-flex min-w-0 items-center gap-1 text-primary hover:underline">
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                        <span className="truncate">View profile picture</span>
+                      </a>
+                      <Button variant="ghost" size="icon" disabled={deleteMutation.isPending} onClick={() => setDeleteTarget({ field: "profileImage", label: "profile picture" })}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : <p className="text-xs text-muted-foreground">No profile picture uploaded.</p>}
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">ID documents</p>
+                  {idDocuments.length > 0 ? idDocuments.map((document, index) => (
+                    <div key={`${document.url}-${index}`} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
+                      <a href={fileViewUrl("idDocuments", index)} target="_blank" rel="noreferrer" className="inline-flex min-w-0 items-center gap-1 text-primary hover:underline">
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{document.filename || `ID document ${index + 1}`}</span>
+                      </a>
+                      <Button variant="ghost" size="icon" disabled={deleteMutation.isPending} onClick={() => setDeleteTarget({ field: "idDocuments", index, label: document.filename || `ID document ${index + 1}` })}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )) : <p className="text-xs text-muted-foreground">No ID documents uploaded.</p>}
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Supporting documents</p>
+                  {supportingDocuments.length > 0 ? supportingDocuments.map((document, index) => (
+                    <div key={`${document.url}-${index}`} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
+                      <a href={fileViewUrl("supportingDocuments", index)} target="_blank" rel="noreferrer" className="inline-flex min-w-0 items-center gap-1 text-primary hover:underline">
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{document.filename || `Supporting document ${index + 1}`}</span>
+                      </a>
+                      <Button variant="ghost" size="icon" disabled={deleteMutation.isPending} onClick={() => setDeleteTarget({ field: "supportingDocuments", index, label: document.filename || `Supporting document ${index + 1}` })}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )) : <p className="text-xs text-muted-foreground">No supporting documents uploaded.</p>}
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete document?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove {deleteTarget?.label}. You can upload a replacement after deleting it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 };

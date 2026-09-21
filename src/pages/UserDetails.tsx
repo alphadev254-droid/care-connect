@@ -87,6 +87,11 @@ const UserDetails = () => {
     }
   };
 
+  const openCaregiverFile = (field: "profileImage" | "idDocuments" | "supportingDocuments", index = 0) => {
+    const apiBaseUrl = api.defaults.baseURL || "";
+    window.open(`${apiBaseUrl}/admin/users/${userId}/files/${field}/${index}`, '_blank');
+  };
+
   const { data: userData, isLoading } = useQuery({
     queryKey: ["user", userId],
     queryFn: async () => {
@@ -179,7 +184,7 @@ const UserDetails = () => {
             <CardHeader className="text-center">
               {userData.Caregiver?.profileImage ? (
                 <img
-                  src={userData.Caregiver.profileImage}
+                  src={`${api.defaults.baseURL || ""}/admin/users/${userId}/files/profileImage/0`}
                   alt={`${userData.firstName} ${userData.lastName}`}
                   className="h-24 w-24 rounded-full object-cover mx-auto mb-4 border-2 border-primary/20"
                 />
@@ -378,7 +383,7 @@ const UserDetails = () => {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => window.open(doc.url, '_blank')}
+                                  onClick={() => openCaregiverFile("supportingDocuments", index)}
                                   className="gap-2"
                                 >
                                   <Download className="h-4 w-4" />
@@ -410,7 +415,7 @@ const UserDetails = () => {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => window.open(doc.url, '_blank')}
+                                  onClick={() => openCaregiverFile("idDocuments", index)}
                                   className="gap-2"
                                 >
                                   <Download className="h-4 w-4" />
