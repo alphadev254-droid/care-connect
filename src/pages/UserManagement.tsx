@@ -55,8 +55,26 @@ import {
   Plus,
   Trash2,
   MoreHorizontal,
+  ShieldOff,
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+const normalizeVerificationStatus = (status?: string) => String(status || "").toLowerCase();
+
+const getVerificationLabel = (status?: string) => {
+  const normalized = normalizeVerificationStatus(status);
+  if (normalized === "approved" || normalized === "verified") return "Verified";
+  if (normalized === "rejected") return "Rejected";
+  if (normalized === "pending") return "Awaiting";
+  return status || "Awaiting";
+};
+
+const getVerificationBadgeVariant = (status?: string) => {
+  const normalized = normalizeVerificationStatus(status);
+  if (normalized === "approved" || normalized === "verified") return "default";
+  if (normalized === "rejected") return "destructive";
+  return "secondary";
+};
 
 const UserManagement = () => {
   const { user } = useAuth();
@@ -178,6 +196,18 @@ const UserManagement = () => {
       queryClient.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Caregiver rejected successfully");
       setRejectDialog({ open: false, userId: "", reason: "" });
+    },
+    onSettled: () => setActionInProgress(null),
+  });
+
+  const revokeVerification = useMutation({
+    mutationFn: async (userId: string) => {
+      setActionInProgress({ userId, label: "Revoking..." });
+      await api.put(`/admin/caregivers/${userId}/revoke-verification`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
+      toast.success("Caregiver verification revoked");
     },
     onSettled: () => setActionInProgress(null),
   });
@@ -490,6 +520,8 @@ const UserManagement = () => {
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="pending">Awaiting Verification</SelectItem>
+                  <SelectItem value="verified">Verified</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
@@ -566,13 +598,10 @@ const UserManagement = () => {
                       <TableCell>
                         {user.role === 'caregiver' && user.Caregiver ? (
                           <Badge
-                            variant={
-                              user.Caregiver.verificationStatus === 'APPROVED' ? "default" :
-                              user.Caregiver.verificationStatus === 'REJECTED' ? "destructive" : "secondary"
-                            }
+                            variant={getVerificationBadgeVariant(user.Caregiver.verificationStatus)}
                             className="whitespace-nowrap"
                           >
-                            {user.Caregiver.verificationStatus === 'PENDING' ? 'Awaiting' : user.Caregiver.verificationStatus}
+                            {getVerificationLabel(user.Caregiver.verificationStatus)}
                           </Badge>
                         ) : (
                           <span className={responsive.bodyMuted}>N/A</span>
@@ -624,7 +653,7 @@ const UserManagement = () => {
                               {/* Caregiver verification actions */}
                               {user.role === 'caregiver' && user.Caregiver && (
                                 <>
-                                  {(user.Caregiver.verificationStatus === 'PENDING' || user.Caregiver.verificationStatus === 'REJECTED') && (
+                                  {(normalizeVerificationStatus(user.Caregiver.verificationStatus) === 'pending' || normalizeVerificationStatus(user.Caregiver.verificationStatus) === 'rejected') && (
                                     <>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem
@@ -632,11 +661,24 @@ const UserManagement = () => {
                                         disabled={verifyCaregiver.isPending && verifyCaregiver.variables === user.id}
                                       >
                                         <UserCheck className="h-4 w-4 mr-2 text-green-600" />
-                                        {user.Caregiver.verificationStatus === 'REJECTED' ? 'Re-verify' : 'Verify'}
+                                        {normalizeVerificationStatus(user.Caregiver.verificationStatus) === 'rejected' ? 'Re-verify' : 'Verify'}
                                       </DropdownMenuItem>
                                     </>
                                   )}
-                                  {user.Caregiver.verificationStatus === 'PENDING' && (
+                                  {(normalizeVerificationStatus(user.Caregiver.verificationStatus) === 'approved' || normalizeVerificationStatus(user.Caregiver.verificationStatus) === 'verified') && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        onClick={() => revokeVerification.mutate(user.id)}
+                                        disabled={revokeVerification.isPending}
+                                        className="text-orange-600 focus:text-orange-600"
+                                      >
+                                        <ShieldOff className="h-4 w-4 mr-2" />
+                                        Revoke verification
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                  {normalizeVerificationStatus(user.Caregiver.verificationStatus) === 'pending' && (
                                     <DropdownMenuItem
                                       onClick={() => handleRejectCaregiver(user.id)}
                                       disabled={rejectCaregiver.isPending}
@@ -665,7 +707,7 @@ const UserManagement = () => {
                               )}
 
                               {/* Delete - show for inactive users or rejected caregivers */}
-                              {hasPermission('delete_users') && (!user.isActive || (user.role === 'caregiver' && user.Caregiver?.verificationStatus === 'REJECTED')) && (
+                              {hasPermission('delete_users') && (!user.isActive || (user.role === 'caregiver' && normalizeVerificationStatus(user.Caregiver?.verificationStatus) === 'rejected')) && (
                                 <>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
