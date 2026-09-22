@@ -4,16 +4,24 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Shield, Phone, Calendar, MapPin, Edit } from "lucide-react";
 import { dashboardCard, responsive } from "@/theme";
+import { api } from "@/lib/api";
 
 interface Props {
   profileData: any;
   isEditing: boolean;
   imagePreview: string | null;
   onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  canEditProfileImage?: boolean;
 }
 
-export const ProfileSidebar = ({ profileData, isEditing, imagePreview, onImageChange }: Props) => {
+export const ProfileSidebar = ({ profileData, isEditing, imagePreview, onImageChange, canEditProfileImage = true }: Props) => {
   const initials = `${profileData?.firstName?.charAt(0) ?? ""}${profileData?.lastName?.charAt(0) ?? ""}`;
+  const caregiverImage = profileData?.Caregiver?.profileImage;
+  const caregiverImageSrc = typeof caregiverImage === "string"
+    ? caregiverImage
+    : caregiverImage
+      ? `${api.defaults.baseURL || ""}/caregivers/verification/files/view/profileImage/0`
+      : null;
 
   return (
     <Card className={dashboardCard.base}>
@@ -21,14 +29,14 @@ export const ProfileSidebar = ({ profileData, isEditing, imagePreview, onImageCh
         <div className="relative">
           {imagePreview ? (
             <img src={imagePreview} alt="Preview" className="h-20 w-20 rounded-full object-cover border-2 border-primary/20" />
-          ) : profileData?.Caregiver?.profileImage ? (
-            <img src={profileData.Caregiver.profileImage} alt={profileData.firstName} className="h-20 w-20 rounded-full object-cover border-2 border-primary/20" />
+          ) : caregiverImageSrc ? (
+            <img src={caregiverImageSrc} alt={profileData.firstName} className="h-20 w-20 rounded-full object-cover border-2 border-primary/20" />
           ) : (
             <div className="h-20 w-20 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-2xl">
               {initials}
             </div>
           )}
-          {isEditing && profileData?.role === "caregiver" && (
+          {isEditing && profileData?.role === "caregiver" && canEditProfileImage && (
             <div className="absolute bottom-0 right-0">
               <Label htmlFor="profileImageInput" className="cursor-pointer">
                 <div className="bg-primary text-primary-foreground rounded-full p-1.5 hover:bg-primary/90">

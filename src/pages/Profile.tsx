@@ -36,6 +36,8 @@ const Profile = () => {
     queryKey: ["profile"],
     queryFn: async () => (await api.get("/users/profile")).data.user,
   });
+  const caregiverStatus = String(profileData?.Caregiver?.verificationStatus || "").toLowerCase();
+  const isVerifiedCaregiver = profileData?.role === "caregiver" && ["approved", "verified"].includes(caregiverStatus);
 
   const { data: regions } = useQuery({
     queryKey: ["regions-list"],
@@ -122,7 +124,7 @@ const Profile = () => {
         Array.isArray(v) ? fd.append(k, JSON.stringify(v)) : v && fd.append(k, v);
       }
     });
-    if (profileImage) fd.append("profileImage", profileImage);
+    if (profileImage && !isVerifiedCaregiver) fd.append("profileImage", profileImage);
     updateMutation.mutate(fd);
   };
 
@@ -202,9 +204,10 @@ const Profile = () => {
               isEditing={isEditing}
               imagePreview={imagePreview}
               onImageChange={handleImageChange}
+              canEditProfileImage={!isVerifiedCaregiver}
             />
             {profileData?.role === "caregiver" &&
-              profileData?.Caregiver?.verificationStatus === "APPROVED" && (
+              isVerifiedCaregiver && (
                 <ReferralSection />
               )}
           </div>

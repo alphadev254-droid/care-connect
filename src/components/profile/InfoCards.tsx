@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Shield, MapPin, FileText, Heart, Users } from "lucide-react";
+import { Shield, MapPin, Heart, Users } from "lucide-react";
 import { dashboardCard, responsive } from "@/theme";
 
 interface PatientCardProps {
@@ -217,36 +217,6 @@ export const ProfessionalInfoCard = ({
             </div>
           )}
         </div>
-
-        {/* Documents */}
-        {(Array.isArray(cg?.idDocuments) || Array.isArray(cg?.supportingDocuments)) && (
-          <div className="border-t pt-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <div className={dashboardCard.iconWell.secondary}><FileText className="h-3.5 w-3.5 text-secondary" /></div>
-              <h3 className={responsive.cardTitle}>Uploaded Documents</h3>
-            </div>
-            {Array.isArray(cg?.idDocuments) && cg.idDocuments.length > 0 && (
-              <div className="p-2 rounded-lg bg-muted/40 space-y-1">
-                <p className={`${responsive.body} font-medium`}>ID Documents ({cg.idDocuments.length})</p>
-                {cg.idDocuments.map((doc: any, i: number) => (
-                  <p key={i} className={`${responsive.bodyMuted} flex items-center gap-1.5`}>
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary inline-block" />{doc.filename}
-                  </p>
-                ))}
-              </div>
-            )}
-            {Array.isArray(cg?.supportingDocuments) && cg.supportingDocuments.length > 0 && (
-              <div className="p-2 rounded-lg bg-muted/40 space-y-1">
-                <p className={`${responsive.body} font-medium`}>Supporting Documents ({cg.supportingDocuments.length})</p>
-                {cg.supportingDocuments.map((doc: any, i: number) => (
-                  <p key={i} className={`${responsive.bodyMuted} flex items-center gap-1.5`}>
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary inline-block" />{doc.filename}
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </CardContent>
     </Card>
   );
