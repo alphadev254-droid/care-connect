@@ -100,8 +100,10 @@ export const AvailabilityManager = () => {
 
   const mutating = saveMutation.isPending || deleteMutation.isPending;
 
-  const addAvailabilitySlot = () =>
+  const addAvailabilitySlot = () => {
+    if (!editing) setEditing(true);
     setDraftSlots(prev => [...prev, { dayOfWeek: 1, startTime: '09:00', endTime: '17:00' }]);
+  };
 
   const removeAvailabilitySlot = (index: number) =>
     setDraftSlots(prev => prev.filter((_, i) => i !== index));
@@ -127,7 +129,9 @@ export const AvailabilityManager = () => {
     deleteMutation.mutate({ action: deleteAction!, slotId: slotToDelete ?? undefined });
   };
 
-  const activeSlots = editing ? draftSlots : savedAvailability.map(({ dayOfWeek, startTime, endTime }) => ({ dayOfWeek, startTime, endTime }));
+  const activeSlots = editing || savedAvailability.length === 0
+    ? draftSlots
+    : savedAvailability.map(({ dayOfWeek, startTime, endTime }) => ({ dayOfWeek, startTime, endTime }));
 
 
   const generateTimeSlotsForSlot = async (availabilityId: number) => {
