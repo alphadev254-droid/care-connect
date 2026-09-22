@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Shield, Phone, Calendar, MapPin, Edit } from "lucide-react";
+import { Shield, Phone, Calendar, MapPin, Camera } from "lucide-react";
 import { dashboardCard, responsive } from "@/theme";
 import { api } from "@/lib/api";
 
@@ -11,10 +11,9 @@ interface Props {
   isEditing: boolean;
   imagePreview: string | null;
   onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  canEditProfileImage?: boolean;
 }
 
-export const ProfileSidebar = ({ profileData, isEditing, imagePreview, onImageChange, canEditProfileImage = true }: Props) => {
+export const ProfileSidebar = ({ profileData, isEditing, imagePreview, onImageChange }: Props) => {
   const initials = `${profileData?.firstName?.charAt(0) ?? ""}${profileData?.lastName?.charAt(0) ?? ""}`;
   const caregiverImage = profileData?.Caregiver?.profileImage;
   const caregiverImageSrc = typeof caregiverImage === "string"
@@ -36,17 +35,19 @@ export const ProfileSidebar = ({ profileData, isEditing, imagePreview, onImageCh
               {initials}
             </div>
           )}
-          {isEditing && profileData?.role === "caregiver" && canEditProfileImage && (
-            <div className="absolute bottom-0 right-0">
-              <Label htmlFor="profileImageInput" className="cursor-pointer">
-                <div className="bg-primary text-primary-foreground rounded-full p-1.5 hover:bg-primary/90">
-                  <Edit className="h-3 w-3" />
-                </div>
-              </Label>
-              <Input id="profileImageInput" type="file" accept="image/*" onChange={onImageChange} className="hidden" />
-            </div>
-          )}
         </div>
+        {isEditing && profileData?.role === "caregiver" && (
+          <div className="flex items-center justify-center">
+            <Label
+              htmlFor="profileImageInput"
+              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <Camera className="h-3.5 w-3.5" />
+              Change photo
+            </Label>
+            <Input id="profileImageInput" type="file" accept="image/*" onChange={onImageChange} className="hidden" />
+          </div>
+        )}
         <div>
           <p className={`${responsive.cardTitle} font-semibold`}>{profileData?.firstName} {profileData?.lastName}</p>
           <p className={responsive.bodyMuted}>{profileData?.email}</p>

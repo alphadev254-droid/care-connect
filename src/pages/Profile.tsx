@@ -124,7 +124,7 @@ const Profile = () => {
         Array.isArray(v) ? fd.append(k, JSON.stringify(v)) : v && fd.append(k, v);
       }
     });
-    if (profileImage && !isVerifiedCaregiver) fd.append("profileImage", profileImage);
+    if (profileImage) fd.append("profileImage", profileImage);
     updateMutation.mutate(fd);
   };
 
@@ -204,7 +204,6 @@ const Profile = () => {
               isEditing={isEditing}
               imagePreview={imagePreview}
               onImageChange={handleImageChange}
-              canEditProfileImage={!isVerifiedCaregiver}
             />
             {profileData?.role === "caregiver" &&
               isVerifiedCaregiver && (
