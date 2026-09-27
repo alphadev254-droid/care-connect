@@ -142,7 +142,6 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
       { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
       { icon: Search, label: "Find Caregivers", href: "/dashboard/caregivers" },
       { icon: Calendar, label: "Appointments", href: "/dashboard/appointments" },
-      { icon: FileText, label: "Care Reports", href: "/dashboard/reports" },
       { icon: CreditCard, label: "Billing", href: "/dashboard/billing" },
     ],
     caregiver: [

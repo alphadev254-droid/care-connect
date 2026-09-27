@@ -40,6 +40,82 @@ import {
   Star,
 } from "lucide-react";
 
+const SESSION_STATUS_OPTIONS = [
+  { value: "completed_scheduled", label: "Completed as scheduled" },
+  { value: "completed_shorter", label: "Completed, but shorter than scheduled" },
+  { value: "not_completed", label: "Could not be completed" },
+  { value: "client_unavailable", label: "Client unavailable" },
+];
+
+const SESSION_STATUS_REASON_OPTIONS = [
+  { value: "client_declined", label: "Client declined care" },
+  { value: "client_unavailable", label: "Client not at home / not available" },
+  { value: "caregiver_delayed", label: "Caregiver delayed or unable to attend" },
+  { value: "unsafe_environment", label: "Unsafe environment" },
+  { value: "other_operational", label: "Other operational reason" },
+];
+
+const CARE_PROVIDED_OPTIONS = [
+  { value: "personal_hygiene", label: "Personal hygiene / bathing assistance" },
+  { value: "dressing_grooming", label: "Dressing / grooming assistance" },
+  { value: "feeding_meal", label: "Feeding / meal assistance" },
+  { value: "mobility", label: "Mobility / movement assistance" },
+  { value: "toileting", label: "Toileting assistance" },
+  { value: "companionship", label: "Companionship / social support" },
+  { value: "light_household", label: "Light household assistance" },
+];
+
+const SESSION_OUTCOME_OPTIONS = [
+  { value: "all_completed", label: "All scheduled care activities completed" },
+  { value: "some_not_completed", label: "Some scheduled activities not completed" },
+];
+
+const INCOMPLETE_REASON_OPTIONS = [
+  { value: "client_declined", label: "Client declined" },
+  { value: "insufficient_time", label: "Insufficient time" },
+  { value: "equipment_unavailable", label: "Equipment or supplies unavailable" },
+  { value: "other_operational", label: "Other operational reason" },
+];
+
+const ADDITIONAL_ASSISTANCE_OPTIONS = [
+  { value: "none", label: "No additional assistance required" },
+  { value: "beyond_scheduled", label: "Care beyond the scheduled activities was needed" },
+];
+
+const SAFETY_INCIDENT_OPTIONS = [
+  { value: "none", label: "No safety concern or incident" },
+  { value: "concern_reported", label: "Safety concern noted and reported to supervisor" },
+  { value: "incident_report_submitted", label: "Incident occurred and incident report submitted" },
+];
+
+const FOLLOW_UP_OPTIONS = [
+  { value: "none", label: "No follow-up required" },
+  { value: "supervisor", label: "Supervisor follow-up required" },
+  { value: "client_family", label: "Client / family follow-up required" },
+];
+
+const optionLabel = (options: Array<{ value: string; label: string }>, value?: string) =>
+  options.find((option) => option.value === value)?.label || "Not recorded";
+
+const optionLabels = (options: Array<{ value: string; label: string }>, values?: string[]) =>
+  Array.isArray(values) && values.length
+    ? values.map((value) => optionLabel(options, value)).join(", ")
+    : "None recorded";
+
+const defaultReportForm = {
+  actualCheckIn: "",
+  actualCheckOut: "",
+  sessionStatus: "completed_scheduled",
+  sessionStatusReason: "",
+  careProvided: [] as string[],
+  sessionOutcome: "all_completed",
+  incompleteReason: [] as string[],
+  additionalAssistance: "none",
+  safetyIncident: "none",
+  followUpActions: ["none"] as string[],
+  caregiverConfirmed: false,
+};
+
 const CareReports = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
@@ -48,7 +124,7 @@ const CareReports = () => {
   const appointmentId = searchParams.get('appointment');
   const isCaregiver = user?.role === 'caregiver';
   const isPatient = user?.role === 'patient';
-  const bypassPermissionCheck = isCaregiver || isPatient;
+  const bypassPermissionCheck = isCaregiver;
 
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -177,6 +253,12 @@ const CareReports = () => {
   const totalPages = Math.ceil(totalCount / pageSize);
   const reports = Array.isArray(reportsData) ? reportsData : [];
 
+  useEffect(() => {
+    if (isPatient) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isPatient, navigate]);
+
   console.log('Appointments:', appointments);
   console.log('Reports:', reports);
 
@@ -266,14 +348,16 @@ const CareReports = () => {
       { header: "Caregiver Email", accessor: (row: Record<string, any>) => row.Caregiver?.User?.email || 'N/A' },
       { header: "Specialty", accessor: (row: Record<string, any>) => row.Specialty?.name || 'General Care' },
       { header: "Duration", accessor: (row: Record<string, any>) => `${row.duration || 180} min` },
-      { header: "Patient Status", accessor: (row: Record<string, any>) => row.report?.patientStatus || 'N/A' },
-      { header: "Observations", accessor: (row: Record<string, any>) => row.report?.observations || 'N/A' },
-      { header: "Interventions", accessor: (row: Record<string, any>) => row.report?.interventions || 'N/A' },
-      { header: "Session Summary", accessor: (row: Record<string, any>) => row.report?.sessionSummary || 'N/A' },
-      { header: "Recommendations", accessor: (row: Record<string, any>) => row.report?.recommendations || 'N/A' },
-      { header: "Blood Pressure", accessor: (row: Record<string, any>) => row.report?.vitals?.bloodPressure || 'N/A' },
-      { header: "Heart Rate", accessor: (row: Record<string, any>) => row.report?.vitals?.heartRate || 'N/A' },
-      { header: "Temperature", accessor: (row: Record<string, any>) => row.report?.vitals?.temperature || 'N/A' },
+      { header: "Session Status", accessor: (row: Record<string, any>) => optionLabel(SESSION_STATUS_OPTIONS, row.report?.sessionStatus) },
+      { header: "Status Reason", accessor: (row: Record<string, any>) => optionLabel(SESSION_STATUS_REASON_OPTIONS, row.report?.sessionStatusReason) },
+      { header: "Care Provided", accessor: (row: Record<string, any>) => optionLabels(CARE_PROVIDED_OPTIONS, row.report?.careProvided) },
+      { header: "Session Outcome", accessor: (row: Record<string, any>) => optionLabel(SESSION_OUTCOME_OPTIONS, row.report?.sessionOutcome) },
+      { header: "Incomplete Reasons", accessor: (row: Record<string, any>) => optionLabels(INCOMPLETE_REASON_OPTIONS, row.report?.incompleteReason) },
+      { header: "Additional Assistance", accessor: (row: Record<string, any>) => optionLabel(ADDITIONAL_ASSISTANCE_OPTIONS, row.report?.additionalAssistance) },
+      { header: "Safety / Incident", accessor: (row: Record<string, any>) => optionLabel(SAFETY_INCIDENT_OPTIONS, row.report?.safetyIncident) },
+      { header: "Follow-up", accessor: (row: Record<string, any>) => optionLabels(FOLLOW_UP_OPTIONS, row.report?.followUpActions) },
+      { header: "Actual Check-in", accessor: (row: Record<string, any>) => row.report?.actualCheckIn ? new Date(row.report.actualCheckIn).toLocaleString() : 'N/A' },
+      { header: "Actual Check-out", accessor: (row: Record<string, any>) => row.report?.actualCheckOut ? new Date(row.report.actualCheckOut).toLocaleString() : 'N/A' },
       { header: "Report Created", accessor: (row: Record<string, any>) => row.report?.createdAt ? new Date(row.report.createdAt).toLocaleDateString() : 'N/A' },
     ];
   };
@@ -299,6 +383,27 @@ const CareReports = () => {
   const attachmentsRef = useRef<HTMLInputElement>(null);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [reportForm, setReportForm] = useState(defaultReportForm);
+
+  const updateReportField = (field: keyof typeof defaultReportForm, value: any) => {
+    setReportForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const toggleReportArrayValue = (field: "careProvided" | "incompleteReason" | "followUpActions", value: string) => {
+    setReportForm((prev) => {
+      const current = prev[field] || [];
+      if (field === "followUpActions" && value === "none") {
+        return { ...prev, followUpActions: ["none"] };
+      }
+
+      const withoutNone = field === "followUpActions" ? current.filter((item) => item !== "none") : current;
+      const next = withoutNone.includes(value)
+        ? withoutNone.filter((item) => item !== value)
+        : [...withoutNone, value];
+
+      return { ...prev, [field]: next };
+    });
+  };
 
   useEffect(() => {
     if (appointmentId && completedAppointments.length > 0) {
@@ -329,42 +434,55 @@ const CareReports = () => {
     }
   }, [appointmentId, appointmentsWithReports]);
 
+  useEffect(() => {
+    if (!selectedAppointment) {
+      setReportForm(defaultReportForm);
+      return;
+    }
+
+    const report = selectedAppointment.report;
+    if (!report) {
+      setReportForm(defaultReportForm);
+      return;
+    }
+
+    setReportForm({
+      actualCheckIn: report.actualCheckIn ? new Date(report.actualCheckIn).toISOString().slice(0, 16) : "",
+      actualCheckOut: report.actualCheckOut ? new Date(report.actualCheckOut).toISOString().slice(0, 16) : "",
+      sessionStatus: report.sessionStatus || "completed_scheduled",
+      sessionStatusReason: report.sessionStatusReason || "",
+      careProvided: Array.isArray(report.careProvided) ? report.careProvided : [],
+      sessionOutcome: report.sessionOutcome || "all_completed",
+      incompleteReason: Array.isArray(report.incompleteReason) ? report.incompleteReason : [],
+      additionalAssistance: report.additionalAssistance || "none",
+      safetyIncident: report.safetyIncident || "none",
+      followUpActions: Array.isArray(report.followUpActions) && report.followUpActions.length ? report.followUpActions : ["none"],
+      caregiverConfirmed: Boolean(report.caregiverConfirmed),
+    });
+  }, [selectedAppointment]);
+
   const createReportMutation = useMutation({
     mutationFn: async (reportData: any) => {
       const formData = new FormData();
-      
-      // Add text fields with validation
+
       formData.append('appointmentId', reportData.appointmentId.toString());
-      formData.append('patientId', reportData.patientId.toString());
-      formData.append('caregiverId', reportData.caregiverId.toString());
-      formData.append('observations', reportData.observations);
-      formData.append('interventions', reportData.interventions);
-      formData.append('sessionSummary', reportData.sessionSummary);
-      formData.append('patientStatus', reportData.patientStatus);
-      formData.append('recommendations', reportData.recommendations || '');
-      formData.append('followUpDate', reportData.followUpDate || '');
-      formData.append('medications', reportData.medications || '');
-      formData.append('activities', reportData.activities || '');
-      formData.append('notes', reportData.notes || '');
-      formData.append('vitals', JSON.stringify(reportData.vitals));
-      
-      // Add file attachments
-      if (reportData.attachments && reportData.attachments.length > 0) {
-        reportData.attachments.forEach((file) => {
-          formData.append('attachments', file);
-        });
-      }
-      
+      formData.append('actualCheckIn', reportData.actualCheckIn || '');
+      formData.append('actualCheckOut', reportData.actualCheckOut || '');
+      formData.append('sessionStatus', reportData.sessionStatus);
+      formData.append('sessionStatusReason', reportData.sessionStatusReason || '');
+      formData.append('careProvided', JSON.stringify(reportData.careProvided || []));
+      formData.append('sessionOutcome', reportData.sessionOutcome);
+      formData.append('incompleteReason', JSON.stringify(reportData.incompleteReason || []));
+      formData.append('additionalAssistance', reportData.additionalAssistance || '');
+      formData.append('safetyIncident', reportData.safetyIncident);
+      formData.append('followUpActions', JSON.stringify(reportData.followUpActions || []));
+      formData.append('caregiverConfirmed', reportData.caregiverConfirmed ? 'true' : 'false');
+
       console.log('Submitting report data:', {
         appointmentId: reportData.appointmentId,
-        patientId: reportData.patientId,
-        caregiverId: reportData.caregiverId,
-        observations: reportData.observations,
-        interventions: reportData.interventions,
-        sessionSummary: reportData.sessionSummary,
-        patientStatus: reportData.patientStatus,
-        vitals: reportData.vitals,
-        attachments: reportData.attachments ? reportData.attachments.length : 0
+        sessionStatus: reportData.sessionStatus,
+        sessionOutcome: reportData.sessionOutcome,
+        safetyIncident: reportData.safetyIncident
       });
       
       const response = await api.post('/reports', formData, {
@@ -381,8 +499,6 @@ const CareReports = () => {
       toast.success('Report created successfully');
       queryClient.invalidateQueries({ queryKey: ['care-reports'] });
       queryClient.invalidateQueries({ queryKey: ['appointments-reports'] });
-      // Mark appointment as completed
-      api.patch(`/appointments/${selectedAppointment.id}/status`, { status: 'session_attended' });
       // Close the form and go back to sessions list
       setSelectedAppointment(null);
     },
@@ -395,61 +511,38 @@ const CareReports = () => {
 
   const handleSubmitReport = () => {
     if (!selectedAppointment) return;
-    
-    // Get form values
-    const observations = observationsRef.current?.value?.trim() || '';
-    const interventions = interventionsRef.current?.value?.trim() || '';
-    const sessionSummary = sessionSummaryRef.current?.value?.trim() || '';
-    const patientStatus = patientStatusRef.current?.value || 'stable';
-    
-    // Validate required fields
-    if (!observations) {
-      toast.error('Observations field is required');
-      observationsRef.current?.focus();
+
+    if (!reportForm.sessionStatus || !reportForm.sessionOutcome || !reportForm.safetyIncident) {
+      toast.error('Complete session status, outcome, and safety/incident sections');
       return;
     }
-    
-    if (!interventions) {
-      toast.error('Interventions field is required');
-      interventionsRef.current?.focus();
+
+    if (
+      ["completed_shorter", "not_completed", "client_unavailable"].includes(reportForm.sessionStatus) &&
+      !reportForm.sessionStatusReason
+    ) {
+      toast.error('Select a reason for the session status');
       return;
     }
-    
-    if (!sessionSummary) {
-      toast.error('Session Summary field is required');
-      sessionSummaryRef.current?.focus();
+
+    if (reportForm.sessionStatus === "completed_scheduled" && reportForm.careProvided.length === 0) {
+      toast.error('Select at least one care activity provided');
       return;
     }
-    
-    // Get file attachments
-    const files = attachmentsRef.current?.files ? Array.from(attachmentsRef.current.files) : [];
-    
-    const formData = {
-      observations,
-      interventions,
-      sessionSummary,
-      patientStatus,
-      recommendations: recommendationsRef.current?.value?.trim() || '',
-      followUpDate: followUpDateRef.current?.value || '',
-      medications: medicationsRef.current?.value?.trim() || '',
-      activities: activitiesRef.current?.value?.trim() || '',
-      notes: notesRef.current?.value?.trim() || '',
-      vitals: {
-        bloodPressure: bloodPressureRef.current?.value?.trim() || '',
-        heartRate: heartRateRef.current?.value?.trim() || '',
-        temperature: temperatureRef.current?.value?.trim() || '',
-        respiratoryRate: respiratoryRateRef.current?.value?.trim() || '',
-        oxygenSaturation: oxygenSaturationRef.current?.value?.trim() || '',
-        bloodSugar: bloodSugarRef.current?.value?.trim() || ''
-      },
-      attachments: files
-    };
-    
+
+    if (reportForm.sessionOutcome === "some_not_completed" && reportForm.incompleteReason.length === 0) {
+      toast.error('Select why some activities were not completed');
+      return;
+    }
+
+    if (!reportForm.caregiverConfirmed) {
+      toast.error('Please confirm the report is accurate');
+      return;
+    }
+
     createReportMutation.mutate({
       appointmentId: selectedAppointment.id,
-      patientId: selectedAppointment.patientId,
-      caregiverId: selectedAppointment.caregiverId,
-      ...formData
+      ...reportForm
     });
   };
 
@@ -826,346 +919,256 @@ const CareReports = () => {
             </CardHeader>
             <CardContent className="space-y-4 p-4">
               {isCaregiver && !selectedAppointment.hasReport ? (
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-3">
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-3 rounded-lg border bg-muted/20 p-3">
                     <div>
-                      <Label htmlFor="observations" className="text-xs">Observations *</Label>
-                      <Textarea
-                        ref={observationsRef}
-                        placeholder="Enter observations..."
-                        className="text-sm min-h-[80px]"
-                        required
+                      <Label className="text-xs text-muted-foreground">Caregiver name / ID</Label>
+                      <p className="text-sm font-medium">{selectedAppointment.Caregiver?.User?.firstName} {selectedAppointment.Caregiver?.User?.lastName} / #{selectedAppointment.caregiverId}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Booking / session ID</Label>
+                      <p className="text-sm font-medium">#{selectedAppointment.id}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Date</Label>
+                      <p className="text-sm font-medium">{new Date(selectedAppointment.scheduledDate).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Scheduled time</Label>
+                      <p className="text-sm font-medium">{selectedAppointment.TimeSlot ? `${selectedAppointment.TimeSlot.startTime.slice(0,5)} - ${selectedAppointment.TimeSlot.endTime.slice(0,5)}` : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="actualCheckIn" className="text-xs">Actual check-in</Label>
+                      <Input
+                        id="actualCheckIn"
+                        type="datetime-local"
+                        value={reportForm.actualCheckIn}
+                        onChange={(e) => updateReportField('actualCheckIn', e.target.value)}
+                        className="h-9 text-sm"
                       />
                     </div>
-
                     <div>
-                      <Label htmlFor="interventions" className="text-xs">Interventions *</Label>
-                      <Textarea
-                        ref={interventionsRef}
-                        placeholder="Enter interventions performed..."
-                        className="text-sm min-h-[80px]"
-                        required
+                      <Label htmlFor="actualCheckOut" className="text-xs">Actual check-out</Label>
+                      <Input
+                        id="actualCheckOut"
+                        type="datetime-local"
+                        value={reportForm.actualCheckOut}
+                        onChange={(e) => updateReportField('actualCheckOut', e.target.value)}
+                        className="h-9 text-sm"
                       />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="sessionSummary" className="text-xs">Session Summary *</Label>
-                      <Textarea
-                        ref={sessionSummaryRef}
-                        placeholder="Enter session summary..."
-                        className="text-sm min-h-[80px]"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="patientStatus" className="text-xs">Patient Status *</Label>
-                      <select
-                        ref={patientStatusRef}
-                        className="w-full p-2 border rounded-md text-sm"
-                        defaultValue="stable"
-                        required
-                      >
-                        <option value="stable">Stable</option>
-                        <option value="improving">Improving</option>
-                        <option value="deteriorating">Deteriorating</option>
-                        <option value="critical">Critical</option>
-                        <option value="cured">Cured</option>
-                        <option value="deceased">Deceased</option>
-                      </select>
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="recommendations" className="text-xs">Recommendations</Label>
-                      <Textarea
-                        ref={recommendationsRef}
-                        placeholder="Enter recommendations..."
-                        className="text-sm min-h-[60px]"
-                      />
+                  <div className="grid lg:grid-cols-2 gap-4">
+                    <div className="space-y-3 rounded-lg border p-3">
+                      <h3 className="text-sm font-semibold">1. Session status</h3>
+                      {SESSION_STATUS_OPTIONS.map((option) => (
+                        <label key={option.value} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="radio"
+                            name="sessionStatus"
+                            value={option.value}
+                            checked={reportForm.sessionStatus === option.value}
+                            onChange={() => updateReportField('sessionStatus', option.value)}
+                          />
+                          {option.label}
+                        </label>
+                      ))}
+
+                      {["completed_shorter", "not_completed", "client_unavailable"].includes(reportForm.sessionStatus) && (
+                        <div className="border-t pt-3 space-y-2">
+                          <Label className="text-xs font-medium">1a. Reason</Label>
+                          {SESSION_STATUS_REASON_OPTIONS.map((option) => (
+                            <label key={option.value} className="flex items-center gap-2 text-sm">
+                              <input
+                                type="radio"
+                                name="sessionStatusReason"
+                                value={option.value}
+                                checked={reportForm.sessionStatusReason === option.value}
+                                onChange={() => updateReportField('sessionStatusReason', option.value)}
+                              />
+                              {option.label}
+                            </label>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    <div>
-                      <Label htmlFor="followUpDate" className="text-xs">Follow-up Date</Label>
-                      <Input
-                        ref={followUpDateRef}
-                        type="date"
-                        className="text-sm"
-                      />
+                    <div className="space-y-3 rounded-lg border p-3">
+                      <h3 className="text-sm font-semibold">2. Care provided</h3>
+                      <p className="text-xs text-muted-foreground">Tick all provided. Skip if the session did not take place.</p>
+                      {CARE_PROVIDED_OPTIONS.map((option) => (
+                        <label key={option.value} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={reportForm.careProvided.includes(option.value)}
+                            onChange={() => toggleReportArrayValue('careProvided', option.value)}
+                            disabled={reportForm.sessionStatus === 'not_completed' || reportForm.sessionStatus === 'client_unavailable'}
+                          />
+                          {option.label}
+                        </label>
+                      ))}
                     </div>
 
-                    <div>
-                      <Label htmlFor="medications" className="text-xs">Medications</Label>
-                      <Textarea
-                        ref={medicationsRef}
-                        placeholder="Medications prescribed or administered..."
-                        className="text-sm min-h-[60px]"
-                      />
-                    </div>
+                    <div className="space-y-3 rounded-lg border p-3">
+                      <h3 className="text-sm font-semibold">3. Session outcome</h3>
+                      {SESSION_OUTCOME_OPTIONS.map((option) => (
+                        <label key={option.value} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="radio"
+                            name="sessionOutcome"
+                            value={option.value}
+                            checked={reportForm.sessionOutcome === option.value}
+                            onChange={() => updateReportField('sessionOutcome', option.value)}
+                          />
+                          {option.label}
+                        </label>
+                      ))}
 
-                    <div>
-                      <Label htmlFor="activities" className="text-xs">Activities</Label>
-                      <Textarea
-                        ref={activitiesRef}
-                        placeholder="Activities performed with patient (exercises, therapy, etc.)..."
-                        className="text-sm min-h-[60px]"
-                      />
-                    </div>
+                      {reportForm.sessionOutcome === 'some_not_completed' && (
+                        <div className="border-t pt-3 space-y-2">
+                          <Label className="text-xs font-medium">3a. Reason activities were not completed</Label>
+                          {INCOMPLETE_REASON_OPTIONS.map((option) => (
+                            <label key={option.value} className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={reportForm.incompleteReason.includes(option.value)}
+                                onChange={() => toggleReportArrayValue('incompleteReason', option.value)}
+                              />
+                              {option.label}
+                            </label>
+                          ))}
+                        </div>
+                      )}
 
-                    <div>
-                      <Label htmlFor="notes" className="text-xs">Additional Notes</Label>
-                      <Textarea
-                        ref={notesRef}
-                        placeholder="Additional notes..."
-                        className="text-sm min-h-[60px]"
-                      />
-                    </div>
-
-                    <div>
-                      <Label className="text-xs">Vital Signs</Label>
-                      <div className="grid grid-cols-2 gap-2 mt-1.5">
-                        <Input
-                          ref={bloodPressureRef}
-                          placeholder="Blood Pressure (e.g., 120/80)"
-                          className="text-sm h-9"
-                        />
-                        <Input
-                          ref={heartRateRef}
-                          placeholder="Heart Rate (bpm)"
-                          className="text-sm h-9"
-                        />
-                        <Input
-                          ref={temperatureRef}
-                          placeholder="Temperature (°C)"
-                          className="text-sm h-9"
-                        />
-                        <Input
-                          ref={respiratoryRateRef}
-                          placeholder="Respiratory Rate"
-                          className="text-sm h-9"
-                        />
-                        <Input
-                          ref={oxygenSaturationRef}
-                          placeholder="Oxygen Saturation (%)"
-                          className="text-sm h-9"
-                        />
-                        <Input
-                          ref={bloodSugarRef}
-                          placeholder="Blood Sugar (mg/dL)"
-                          className="text-sm h-9"
-                        />
+                      <div className="border-t pt-3 space-y-2">
+                        <Label className="text-xs font-medium">3b. Additional assistance</Label>
+                        {ADDITIONAL_ASSISTANCE_OPTIONS.map((option) => (
+                          <label key={option.value} className="flex items-center gap-2 text-sm">
+                            <input
+                              type="radio"
+                              name="additionalAssistance"
+                              value={option.value}
+                              checked={reportForm.additionalAssistance === option.value}
+                              onChange={() => updateReportField('additionalAssistance', option.value)}
+                            />
+                            {option.label}
+                          </label>
+                        ))}
                       </div>
                     </div>
 
-                    <div>
-                      <Label htmlFor="attachments" className="text-xs">File Attachments</Label>
-                      <Input
-                        ref={attachmentsRef}
-                        id="attachments"
-                        type="file"
-                        multiple
-                        className="text-sm h-9"
-                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      />
+                    <div className="space-y-3 rounded-lg border p-3">
+                      <h3 className="text-sm font-semibold">4. Safety / incident</h3>
+                      {SAFETY_INCIDENT_OPTIONS.map((option) => (
+                        <label key={option.value} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="radio"
+                            name="safetyIncident"
+                            value={option.value}
+                            checked={reportForm.safetyIncident === option.value}
+                            onChange={() => updateReportField('safetyIncident', option.value)}
+                          />
+                          {option.label}
+                        </label>
+                      ))}
+
+                      <div className="border-t pt-3 space-y-2">
+                        <h3 className="text-sm font-semibold">5. Follow-up</h3>
+                        {FOLLOW_UP_OPTIONS.map((option) => (
+                          <label key={option.value} className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={reportForm.followUpActions.includes(option.value)}
+                              onChange={() => toggleReportArrayValue('followUpActions', option.value)}
+                            />
+                            {option.label}
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   </div>
+
+                  <label className="flex items-start gap-2 rounded-lg border p-3 text-sm">
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      checked={reportForm.caregiverConfirmed}
+                      onChange={(e) => updateReportField('caregiverConfirmed', e.target.checked)}
+                    />
+                    <span>I confirm this report accurately reflects the care provided during this session.</span>
+                  </label>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {selectedAppointment.report ? (
-                    <Tabs defaultValue="overview" className="w-full">
-                      <TabsList className="grid w-full grid-cols-5 h-9">
-                        <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
-                        <TabsTrigger value="vitals" className="text-xs">Vitals</TabsTrigger>
-                        <TabsTrigger value="recommendations" className="text-xs">Notes</TabsTrigger>
-                        <TabsTrigger value="attachments" className="text-xs">
-                          Files
-                          {selectedAppointment.report.attachments?.length > 0 && (
-                            <Badge variant="secondary" className="ml-1 text-xs px-1 py-0 h-4">
-                              {selectedAppointment.report.attachments.length}
-                            </Badge>
-                          )}
-                        </TabsTrigger>
-                      </TabsList>
-
-                      <TabsContent value="overview" className="space-y-3 mt-4">
-                        <div className="grid md:grid-cols-3 gap-3">
-                          <div className="border rounded-lg p-3 bg-white">
-                            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Status</Label>
-                            <div className="mt-1.5">
-                              <Badge
-                                variant={
-                                  selectedAppointment.report.patientStatus === 'stable' ||
-                                  selectedAppointment.report.patientStatus === 'improving' ||
-                                  selectedAppointment.report.patientStatus === 'cured' ? 'default' : 'destructive'
-                                }
-                                className="text-xs font-medium"
-                              >
-                                {selectedAppointment.report.patientStatus?.toUpperCase()}
-                              </Badge>
-                            </div>
-                          </div>
-                          {selectedAppointment.report.followUpDate && (
-                            <div className="border rounded-lg p-3 bg-white">
-                              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Follow-up</Label>
-                              <p className="text-sm font-medium mt-1.5">
-                                {new Date(selectedAppointment.report.followUpDate).toLocaleDateString()}
-                              </p>
-                            </div>
-                          )}
-                          <div className="border rounded-lg p-3 bg-white">
-                            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Report Date</Label>
-                            <p className="text-sm font-medium mt-1.5">
-                              {new Date(selectedAppointment.report.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-
+                    <div className="space-y-4">
+                      <div className="grid md:grid-cols-3 gap-3">
                         <div className="border rounded-lg p-3 bg-white">
-                          <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Observations</Label>
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                            {selectedAppointment.report.observations || 'No observations recorded'}
-                          </p>
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Session status</Label>
+                          <p className="text-sm font-medium mt-1.5">{optionLabel(SESSION_STATUS_OPTIONS, selectedAppointment.report.sessionStatus)}</p>
                         </div>
-
                         <div className="border rounded-lg p-3 bg-white">
-                          <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Interventions</Label>
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                            {selectedAppointment.report.interventions || 'No interventions recorded'}
-                          </p>
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Session outcome</Label>
+                          <p className="text-sm font-medium mt-1.5">{optionLabel(SESSION_OUTCOME_OPTIONS, selectedAppointment.report.sessionOutcome)}</p>
                         </div>
-
                         <div className="border rounded-lg p-3 bg-white">
-                          <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Summary</Label>
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                            {selectedAppointment.report.sessionSummary || 'No summary recorded'}
-                          </p>
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Date submitted</Label>
+                          <p className="text-sm font-medium mt-1.5">{new Date(selectedAppointment.report.createdAt).toLocaleDateString()}</p>
                         </div>
+                      </div>
 
-                        {selectedAppointment.report.notes && (
-                          <div className="border rounded-lg p-3 bg-white">
-                            <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Additional Notes</Label>
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                              {selectedAppointment.report.notes}
-                            </p>
-                          </div>
-                        )}
-                      </TabsContent>
-
-                      <TabsContent value="vitals" className="space-y-3 mt-4">
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {selectedAppointment?.report?.vitals?.bloodPressure && (
-                            <div className="border rounded-lg p-3 bg-white">
-                              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Blood Pressure</Label>
-                              <p className="text-lg font-semibold mt-1">{selectedAppointment.report.vitals.bloodPressure}</p>
-                              <p className="text-xs text-muted-foreground">mmHg</p>
-                            </div>
-                          )}
-                          {selectedAppointment.report.vitals?.heartRate && (
-                            <div className="border rounded-lg p-3 bg-white">
-                              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Heart Rate</Label>
-                              <p className="text-lg font-semibold mt-1">{selectedAppointment.report.vitals.heartRate}</p>
-                              <p className="text-xs text-muted-foreground">bpm</p>
-                            </div>
-                          )}
-                          {selectedAppointment.report.vitals?.temperature && (
-                            <div className="border rounded-lg p-3 bg-white">
-                              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Temperature</Label>
-                              <p className="text-lg font-semibold mt-1">{selectedAppointment.report.vitals.temperature}</p>
-                              <p className="text-xs text-muted-foreground">°C</p>
-                            </div>
-                          )}
-                          {selectedAppointment.report.vitals?.respiratoryRate && (
-                            <div className="border rounded-lg p-3 bg-white">
-                              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Respiratory Rate</Label>
-                              <p className="text-lg font-semibold mt-1">{selectedAppointment.report.vitals.respiratoryRate}</p>
-                              <p className="text-xs text-muted-foreground">breaths/min</p>
-                            </div>
-                          )}
-                          {selectedAppointment.report.vitals?.oxygenSaturation && (
-                            <div className="border rounded-lg p-3 bg-white">
-                              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Oxygen Saturation</Label>
-                              <p className="text-lg font-semibold mt-1">{selectedAppointment.report.vitals.oxygenSaturation}%</p>
-                              <p className="text-xs text-muted-foreground">SpO2</p>
-                            </div>
-                          )}
-                          {selectedAppointment.report.vitals?.bloodSugar && (
-                            <div className="border rounded-lg p-3 bg-white">
-                              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Blood Sugar</Label>
-                              <p className="text-lg font-semibold mt-1">{selectedAppointment.report.vitals.bloodSugar}</p>
-                              <p className="text-xs text-muted-foreground">mg/dL</p>
-                            </div>
-                          )}
+                      <div className="grid md:grid-cols-2 gap-3">
+                        <div className="border rounded-lg p-3 bg-white">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Actual check-in</Label>
+                          <p className="text-sm mt-1.5">{selectedAppointment.report.actualCheckIn ? new Date(selectedAppointment.report.actualCheckIn).toLocaleString() : 'Not recorded'}</p>
                         </div>
-                        {(!selectedAppointment?.report?.vitals || Object.keys(selectedAppointment?.report?.vitals || {}).length === 0) && (
-                          <div className="text-center p-6 text-muted-foreground border rounded-lg bg-gray-50">
-                            <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">No vital signs recorded</p>
-                          </div>
-                        )}
-                      </TabsContent>
+                        <div className="border rounded-lg p-3 bg-white">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Actual check-out</Label>
+                          <p className="text-sm mt-1.5">{selectedAppointment.report.actualCheckOut ? new Date(selectedAppointment.report.actualCheckOut).toLocaleString() : 'Not recorded'}</p>
+                        </div>
+                        <div className="border rounded-lg p-3 bg-white">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Status reason</Label>
+                          <p className="text-sm mt-1.5">{optionLabel(SESSION_STATUS_REASON_OPTIONS, selectedAppointment.report.sessionStatusReason)}</p>
+                        </div>
+                        <div className="border rounded-lg p-3 bg-white">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Additional assistance</Label>
+                          <p className="text-sm mt-1.5">{optionLabel(ADDITIONAL_ASSISTANCE_OPTIONS, selectedAppointment.report.additionalAssistance)}</p>
+                        </div>
+                      </div>
 
+                      <div className="border rounded-lg p-3 bg-white">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">Care provided</Label>
+                        <p className="text-sm mt-1.5">{optionLabels(CARE_PROVIDED_OPTIONS, selectedAppointment.report.careProvided)}</p>
+                      </div>
 
-                      <TabsContent value="recommendations" className="space-y-3 mt-4">
-                        {selectedAppointment.report.recommendations ? (
-                          <div className="border rounded-lg p-3 bg-white">
-                            <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Recommendations</Label>
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                              {selectedAppointment.report.recommendations}
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="text-center p-6 text-muted-foreground border rounded-lg bg-gray-50">
-                            <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">No recommendations provided</p>
-                          </div>
-                        )}
-                      </TabsContent>
+                      <div className="border rounded-lg p-3 bg-white">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">Reasons activities were not completed</Label>
+                        <p className="text-sm mt-1.5">{optionLabels(INCOMPLETE_REASON_OPTIONS, selectedAppointment.report.incompleteReason)}</p>
+                      </div>
 
-                      <TabsContent value="attachments" className="space-y-3 mt-4">
-                        {selectedAppointment.report.attachments && selectedAppointment.report.attachments.length > 0 ? (
-                          <div className="grid gap-2">
-                            {selectedAppointment.report.attachments.map((attachment, index) => (
-                              <div key={index} className="border rounded-lg p-3 bg-white hover:bg-gray-50 transition-colors">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <div className="p-2 bg-primary/10 rounded">
-                                      <FileText className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="font-medium text-sm truncate">{attachment.filename || attachment.name || `Document ${index + 1}`}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {attachment.size ? `${(attachment.size / 1024).toFixed(2)} KB` : 'File'}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 text-xs ml-2"
-                                    onClick={() => {
-                                      const url = attachment.url || attachment.path;
-                                      if (url) {
-                                        window.open(url, '_blank');
-                                      }
-                                    }}
-                                  >
-                                    <Download className="h-3 w-3 mr-1" />
-                                    Download
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center p-6 text-muted-foreground border rounded-lg bg-gray-50">
-                            <Upload className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">No documents attached</p>
-                          </div>
-                        )}
-                      </TabsContent>
-                    </Tabs>
+                      <div className="grid md:grid-cols-2 gap-3">
+                        <div className="border rounded-lg p-3 bg-white">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Safety / incident</Label>
+                          <p className="text-sm mt-1.5">{optionLabel(SAFETY_INCIDENT_OPTIONS, selectedAppointment.report.safetyIncident)}</p>
+                        </div>
+                        <div className="border rounded-lg p-3 bg-white">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Follow-up</Label>
+                          <p className="text-sm mt-1.5">{optionLabels(FOLLOW_UP_OPTIONS, selectedAppointment.report.followUpActions)}</p>
+                        </div>
+                      </div>
+
+                      <div className="border rounded-lg p-3 bg-white">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">Caregiver confirmation</Label>
+                        <p className="text-sm mt-1.5">{selectedAppointment.report.caregiverConfirmed ? 'Confirmed' : 'Not confirmed'}</p>
+                      </div>
+
+                      {!selectedAppointment.report.sessionStatus && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                          This is an older report format. Some operational fields were not captured on this report.
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <p className="text-muted-foreground">No report available for this session.</p>
                   )}
