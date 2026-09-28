@@ -71,6 +71,7 @@ interface Appointment {
   Caregiver?: Caregiver;
   Patient?: Patient;
   Specialty?: Specialty;
+  CareSessionReport?: { id: number };
 }
 
 interface Transaction {
@@ -672,7 +673,7 @@ const Earnings = () => {
                 accessor: (row: Transaction) => row.paymentMethod || 'Card',
               },
               {
-                header: "Base Fee",
+                header: user?.role === 'caregiver' ? "Client Base Fee" : "Base Fee",
                 accessor: (row: Transaction) => row.baseFee || 0,
                 format: (value: number) => `MWK ${value.toLocaleString()}`,
               },
@@ -700,30 +701,32 @@ const Earnings = () => {
               ] : []),
               ...(user?.role === 'caregiver' ? [
                 {
-                  header: "Commission Deducted",
+                  header: "CareConnect Commission",
                   accessor: (row: Transaction) => row.platformCommissionAmount || 0,
                   format: (value: number) => `MWK ${value.toLocaleString()}`,
                 },
                 {
-                  header: "Net Earnings",
+                  header: "Your Earnings",
                   accessor: (row: Transaction) => row.caregiverEarnings || 0,
                   format: (value: number) => `MWK ${value.toLocaleString()}`,
                 },
               ] : []),
-              {
+              ...(user?.role !== 'caregiver' ? [{
                 header: "Processing Fee",
                 accessor: (row: Transaction) => row.convenienceFeeAmount || 0,
                 format: (value: number) => `MWK ${value.toLocaleString()}`,
-              },
+              }] : []),
               {
-                header: "Status",
-                accessor: "status",
+                header: user?.role === 'caregiver' ? "Earning Status" : "Status",
+                accessor: (row: Transaction) => user?.role === 'caregiver'
+                  ? row.Appointment?.CareSessionReport ? 'Available' : 'Locked'
+                  : row.status,
               },
-              {
+              ...(user?.role !== 'caregiver' ? [{
                 header: "Total Amount",
                 accessor: (row: Transaction) => parseFloat(row.amount || '0'),
                 format: (value: number) => `MWK ${value.toLocaleString()}`,
-              },
+              }] : []),
               {
                 header: "Currency",
                 accessor: (row: Transaction) => row.currency || 'MWK',
@@ -1071,14 +1074,16 @@ const Earnings = () => {
                       </TableHead>
                       <TableHead className={dashboardCard.th}>Service</TableHead>
                       <TableHead className={dashboardCard.th}>Payment Type</TableHead>
-                      <TableHead className={`${dashboardCard.th} text-right`}>Base Fee</TableHead>
-                      <TableHead className={`${dashboardCard.th} text-right`}>Tax</TableHead>
-                      <TableHead className={`${dashboardCard.th} text-right`}>Processing Fee</TableHead>
+                      <TableHead className={`${dashboardCard.th} text-right`}>
+                        {user?.role === 'caregiver' ? 'Client Base Fee' : 'Base Fee'}
+                      </TableHead>
+                      {user?.role !== 'caregiver' && <TableHead className={`${dashboardCard.th} text-right`}>Tax</TableHead>}
+                      {user?.role !== 'caregiver' && <TableHead className={`${dashboardCard.th} text-right`}>Processing Fee</TableHead>}
                       {isAdmin && <TableHead className={`${dashboardCard.th} text-right`}>Commission</TableHead>}
-                      {user?.role === 'caregiver' && <TableHead className={`${dashboardCard.th} text-right`}>Commission</TableHead>}
-                      {user?.role === 'caregiver' && <TableHead className={`${dashboardCard.th} text-right`}>Net Earnings</TableHead>}
-                      <TableHead className={`${dashboardCard.th} text-right`}>Total</TableHead>
-                      <TableHead className={dashboardCard.th}>Status</TableHead>
+                      {user?.role === 'caregiver' && <TableHead className={`${dashboardCard.th} text-right`}>CareConnect Commission</TableHead>}
+                      {user?.role === 'caregiver' && <TableHead className={`${dashboardCard.th} text-right`}>Your Earnings</TableHead>}
+                      {user?.role !== 'caregiver' && <TableHead className={`${dashboardCard.th} text-right`}>Total</TableHead>}
+                      <TableHead className={dashboardCard.th}>{user?.role === 'caregiver' ? 'Earning Status' : 'Status'}</TableHead>
                       {(isAdmin || user?.role === 'caregiver') && <TableHead className={dashboardCard.th}>Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
@@ -1147,12 +1152,12 @@ const Earnings = () => {
                       <TableCell className="text-right text-xs">
                         MWK {(transaction.baseFee || 0).toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-right text-xs">
+                      {user?.role !== 'caregiver' && <TableCell className="text-right text-xs">
                         MWK {(transaction.taxAmount || 0).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right text-xs">
+                      </TableCell>}
+                      {user?.role !== 'caregiver' && <TableCell className="text-right text-xs">
                         MWK {(transaction.convenienceFeeAmount || 0).toLocaleString()}
-                      </TableCell>
+                      </TableCell>}
                       {isAdmin && (
                         <TableCell className="text-right text-xs">
                           MWK {(transaction.platformCommissionAmount || 0).toLocaleString()}
@@ -1168,17 +1173,21 @@ const Earnings = () => {
                           MWK {(transaction.caregiverEarnings || 0).toLocaleString()}
                         </TableCell>
                       )}
-                      <TableCell className="text-right">
+                      {user?.role !== 'caregiver' && <TableCell className="text-right">
                         <p className="font-semibold text-xs">
                           MWK {parseFloat(transaction.amount || 0).toLocaleString()}
                         </p>
-                      </TableCell>
+                      </TableCell>}
                       <TableCell>
                         <Badge
-                          variant={transaction.status === 'completed' ? 'default' : 'secondary'}
+                          variant={user?.role === 'caregiver'
+                            ? transaction.Appointment?.CareSessionReport ? 'default' : 'secondary'
+                            : transaction.status === 'completed' ? 'default' : 'secondary'}
                           className="text-xs"
                         >
-                          {transaction.status}
+                          {user?.role === 'caregiver'
+                            ? transaction.Appointment?.CareSessionReport ? 'Available' : 'Locked'
+                            : transaction.status}
                         </Badge>
                       </TableCell>
                       {(isAdmin || user?.role === 'caregiver') && (
@@ -1199,8 +1208,8 @@ const Earnings = () => {
                                     <h4 className="font-medium mb-2">Transaction Info</h4>
                                     <div className="space-y-1 text-sm">
                                       <p><strong>ID:</strong> {transaction.transactionId || `TXN-${transaction.id}`}</p>
-                                      <p><strong>Total Amount:</strong> MWK {parseFloat(transaction.amount || '0').toLocaleString()}</p>
-                                      <p><strong>Status:</strong> {transaction.status}</p>
+                                      {user?.role !== 'caregiver' && <p><strong>Total Amount:</strong> MWK {parseFloat(transaction.amount || '0').toLocaleString()}</p>}
+                                      <p><strong>{user?.role === 'caregiver' ? 'Earning Status' : 'Status'}:</strong> {user?.role === 'caregiver' ? transaction.Appointment?.CareSessionReport ? 'Available' : 'Locked' : transaction.status}</p>
                                       <p><strong>Method:</strong> {transaction.paymentMethod || 'N/A'}</p>
                                       <p><strong>Type:</strong> {transaction.paymentType === 'booking_fee' ? 'Booking Fee' : 'Session Fee'}</p>
                                       <p><strong>Date:</strong> {new Date(transaction.createdAt).toLocaleString()}</p>
@@ -1210,19 +1219,19 @@ const Earnings = () => {
                                     <h4 className="font-medium mb-2">Fee Breakdown</h4>
                                     <div className="space-y-1 text-sm">
                                       {transaction.baseFee !== undefined && (
-                                        <p><strong>Base Fee:</strong> MWK {(transaction.baseFee || 0).toLocaleString()}</p>
+                                        <p><strong>{user?.role === 'caregiver' ? 'Client Base Fee' : 'Base Fee'}:</strong> MWK {(transaction.baseFee || 0).toLocaleString()}</p>
                                       )}
-                                      {transaction.taxAmount !== undefined && transaction.taxAmount > 0 && (
+                                      {user?.role !== 'caregiver' && transaction.taxAmount !== undefined && transaction.taxAmount > 0 && (
                                         <p><strong>Tax ({transaction.taxRate}%):</strong> MWK {(transaction.taxAmount || 0).toLocaleString()}</p>
                                       )}
-                                      {transaction.convenienceFeeAmount !== undefined && (
+                                      {user?.role !== 'caregiver' && transaction.convenienceFeeAmount !== undefined && (
                                         <p><strong>Processing ({transaction.convenienceFeeRate}%):</strong> MWK {(transaction.convenienceFeeAmount || 0).toLocaleString()}</p>
                                       )}
                                       {transaction.platformCommissionAmount !== undefined && transaction.platformCommissionAmount > 0 && (
-                                        <p><strong>Platform Commission ({transaction.platformCommissionRate}%):</strong> MWK {(transaction.platformCommissionAmount || 0).toLocaleString()}</p>
+                                        <p><strong>{user?.role === 'caregiver' ? 'CareConnect Commission' : 'Platform Commission'} ({transaction.platformCommissionRate}%):</strong> MWK {(transaction.platformCommissionAmount || 0).toLocaleString()}</p>
                                       )}
                                       {transaction.caregiverEarnings !== undefined && transaction.caregiverEarnings > 0 && (
-                                        <p className="text-green-600"><strong>Caregiver Earnings:</strong> MWK {(transaction.caregiverEarnings || 0).toLocaleString()}</p>
+                                        <p className="text-green-600"><strong>{user?.role === 'caregiver' ? 'Your Earnings' : 'Caregiver Earnings'}:</strong> MWK {(transaction.caregiverEarnings || 0).toLocaleString()}</p>
                                       )}
                                     </div>
                                   </div>
