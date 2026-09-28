@@ -649,12 +649,12 @@ const Earnings = () => {
                   ? `${row.Appointment?.Patient?.User?.firstName} ${row.Appointment?.Patient?.User?.lastName}`
                   : `${row.Appointment?.Caregiver?.User?.firstName} ${row.Appointment?.Caregiver?.User?.lastName}`,
               },
-              {
+              ...(user?.role !== 'caregiver' ? [{
                 header: "Email",
                 accessor: (row: Transaction) => isAdmin || user?.role === 'caregiver'
                   ? row.Appointment?.Patient?.User?.email
                   : row.Appointment?.Caregiver?.User?.email,
-              },
+              }] : []),
               {
                 header: "Service",
                 accessor: (row: Transaction) => row.Appointment?.Specialty?.name || 'General Care',
@@ -668,10 +668,10 @@ const Earnings = () => {
                 header: "Payment Type",
                 accessor: (row: Transaction) => row.paymentType === 'booking_fee' ? 'Booking Fee' : 'Session Fee',
               },
-              {
+              ...(user?.role !== 'caregiver' ? [{
                 header: "Payment Method",
                 accessor: (row: Transaction) => row.paymentMethod || 'Card',
-              },
+              }] : []),
               {
                 header: user?.role === 'caregiver' ? "Client Base Fee" : "Base Fee",
                 accessor: (row: Transaction) => row.baseFee || 0,
@@ -1132,12 +1132,12 @@ const Earnings = () => {
                                 : `${transaction.Appointment?.Caregiver?.User?.firstName} ${transaction.Appointment?.Caregiver?.User?.lastName}`
                               }
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                              {isAdmin || user?.role === 'caregiver'
+                            {user?.role !== 'caregiver' && <p className="text-xs text-muted-foreground">
+                              {isAdmin
                                 ? transaction.Appointment?.Patient?.User?.email
                                 : `ID: ${transaction.transactionId || `TXN-${transaction.id}`}`
                               }
-                            </p>
+                            </p>}
                           </div>
                         </div>
                       </TableCell>
@@ -1210,7 +1210,7 @@ const Earnings = () => {
                                       <p><strong>ID:</strong> {transaction.transactionId || `TXN-${transaction.id}`}</p>
                                       {user?.role !== 'caregiver' && <p><strong>Total Amount:</strong> MWK {parseFloat(transaction.amount || '0').toLocaleString()}</p>}
                                       <p><strong>{user?.role === 'caregiver' ? 'Earning Status' : 'Status'}:</strong> {user?.role === 'caregiver' ? transaction.Appointment?.CareSessionReport ? 'Available' : 'Locked' : transaction.status}</p>
-                                      <p><strong>Method:</strong> {transaction.paymentMethod || 'N/A'}</p>
+                                      {user?.role !== 'caregiver' && <p><strong>Method:</strong> {transaction.paymentMethod || 'N/A'}</p>}
                                       <p><strong>Type:</strong> {transaction.paymentType === 'booking_fee' ? 'Booking Fee' : 'Session Fee'}</p>
                                       <p><strong>Date:</strong> {new Date(transaction.createdAt).toLocaleString()}</p>
                                     </div>
@@ -1252,8 +1252,8 @@ const Earnings = () => {
                                     <h4 className="font-medium mb-2">Patient Details</h4>
                                     <div className="space-y-1 text-sm">
                                       <p><strong>Name:</strong> {transaction.Appointment?.Patient?.User?.firstName} {transaction.Appointment?.Patient?.User?.lastName}</p>
-                                      <p><strong>Email:</strong> {transaction.Appointment?.Patient?.User?.email}</p>
-                                      <p><strong>Phone:</strong> {transaction.Appointment?.Patient?.User?.phone}</p>
+                                      {user?.role !== 'caregiver' && <p><strong>Email:</strong> {transaction.Appointment?.Patient?.User?.email}</p>}
+                                      {user?.role !== 'caregiver' && <p><strong>Phone:</strong> {transaction.Appointment?.Patient?.User?.phone}</p>}
                                       {user?.role === 'caregiver' && (
                                         <>
                                           <p><strong>Location:</strong> {transaction.Appointment?.Patient?.district}, {transaction.Appointment?.Patient?.region}</p>
