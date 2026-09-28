@@ -3,21 +3,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Lock, Eye, EyeOff, Trash2, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Lock, Eye, EyeOff } from "lucide-react";
 import { dashboardCard, responsive } from "@/theme";
 
 interface Props {
   onPasswordChange: (data: { currentPassword: string; newPassword: string }) => void;
   isPending: boolean;
-  onDeleteAccount: () => void;
-  isDeleting: boolean;
-  showDelete: boolean;
-  deleteDialogOpen: boolean;
-  setDeleteDialogOpen: (v: boolean) => void;
 }
 
-export const SecurityCard = ({ onPasswordChange, isPending, onDeleteAccount, isDeleting, showDelete, deleteDialogOpen, setDeleteDialogOpen }: Props) => {
+export const SecurityCard = ({ onPasswordChange, isPending }: Props) => {
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [passwordData, setPasswordData] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const [showCurrent, setShowCurrent] = useState(false);
@@ -74,47 +69,6 @@ export const SecurityCard = ({ onPasswordChange, isPending, onDeleteAccount, isD
             </div>
           </DialogContent>
         </Dialog>
-
-        {showDelete && (
-          <div className="border-t pt-3">
-            <div className="flex items-start justify-between gap-3 p-2 sm:p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-              <div>
-                <p className={`${responsive.body} font-medium text-destructive`}>Delete Account</p>
-                <p className={responsive.bodyMuted}>Permanently removes your account and all data. Cannot be undone.</p>
-              </div>
-              <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="destructive" size="sm" className="h-7 text-xs shrink-0">
-                    <Trash2 className="h-3 w-3 mr-1" />Delete
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle className={`${responsive.dialogTitle} flex items-center gap-2 text-destructive`}>
-                      <AlertTriangle className="h-4 w-4" />Delete Account
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="py-3 space-y-2">
-                    <p className={responsive.body}>This will:</p>
-                    <ul className={`${responsive.bodyMuted} list-disc list-inside space-y-1`}>
-                      <li>Remove your personal information from active systems</li>
-                      <li>Cancel all future appointments</li>
-                      <li>Process within 30 days</li>
-                      <li>Retain some data as required by law</li>
-                    </ul>
-                    <p className={`${responsive.body} font-medium text-destructive`}>This action cannot be undone.</p>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>Cancel</Button>
-                    <Button variant="destructive" onClick={onDeleteAccount} disabled={isDeleting}>
-                      {isDeleting ? "Deleting..." : "Delete Account"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

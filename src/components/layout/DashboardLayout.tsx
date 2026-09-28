@@ -27,7 +27,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -36,7 +35,6 @@ import {
   Calendar,
   Users,
   FileText,
-  Settings,
   Bell,
   LogOut,
   User,
@@ -56,6 +54,14 @@ import { responsive } from "@/theme";
 interface DashboardLayoutProps {
   children: ReactNode;
   userRole?: "patient" | "caregiver" | "physician" | "admin";
+}
+
+interface DashboardNotification {
+  id: number;
+  isRead: boolean;
+  title?: string;
+  message?: string;
+  createdAt?: string;
 }
 
 const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProps) => {
@@ -108,7 +114,7 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
     },
   });
   
-  const notifications = notificationsData?.notifications || [];
+  const notifications: DashboardNotification[] = notificationsData?.notifications || [];
   const unreadCount = unreadCountData?.count || 0;
   
   // Use actual user role if available, fallback to prop
@@ -222,14 +228,6 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/dashboard/settings")}>
-                      <Link to="/dashboard/settings">
-                        <Settings className="h-4 w-4" />
-                        <span>Settings</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -277,7 +275,7 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {notifications.length > 0 ? (
-                      notifications.map((notification: any) => (
+                      notifications.map((notification) => (
                         <div
                           key={notification.id}
                           className={`p-4 border-b last:border-b-0 hover:bg-muted/50 cursor-pointer ${
@@ -345,13 +343,6 @@ const DashboardLayout = ({ children, userRole = "patient" }: DashboardLayoutProp
                       Profile
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/dashboard/settings" className="cursor-pointer">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-destructive cursor-pointer"
                     onClick={handleLogout}

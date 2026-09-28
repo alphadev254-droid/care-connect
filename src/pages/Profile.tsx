@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ReferralSection } from "@/components/referral/ReferralSection";
 import { Button } from "@/components/ui/button";
@@ -14,13 +13,33 @@ import { BasicInfoCard } from "@/components/profile/BasicInfoCard";
 import { PatientInfoCard, ProfessionalInfoCard } from "@/components/profile/InfoCards";
 import { SecurityCard } from "@/components/profile/SecurityCard";
 
+interface ProfileData {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  role?: string;
+  Patient?: {
+    dateOfBirth?: string;
+    address?: string;
+    emergencyContact?: string;
+  };
+  Caregiver?: {
+    bio?: string;
+    region?: string;
+    district?: string;
+    traditionalAuthority?: string | string[];
+    village?: string | string[];
+    verificationStatus?: string;
+  };
+}
+
+const toArray = (value: string | string[] | undefined) =>
+  typeof value === "string" ? (value ? [value] : []) : value || [];
+
 const Profile = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [allVillages, setAllVillages] = useState<string[]>([]);
@@ -34,7 +53,7 @@ const Profile = () => {
 
   const { data: profileData, isLoading } = useQuery({
     queryKey: ["profile"],
-    queryFn: async () => (await api.get("/users/profile")).data.user,
+    queryFn: async (): Promise<ProfileData> => (await api.get("/users/profile")).data.user,
   });
   const caregiverStatus = String(profileData?.Caregiver?.verificationStatus || "").toLowerCase();
   const isVerifiedCaregiver = profileData?.role === "caregiver" && ["approved", "verified"].includes(caregiverStatus);
@@ -79,9 +98,7 @@ const Profile = () => {
     fetchVillages();
   }, [formData.region, formData.district, formData.traditionalAuthority]);
 
-  const toArray = (v: any) => (typeof v === "string" ? (v ? [v] : []) : v || []);
-
-  const syncForm = (data: any) => {
+  const syncForm = (data: ProfileData) => {
     setFormData({
       firstName: data.firstName || "",
       lastName: data.lastName || "",
@@ -98,7 +115,23 @@ const Profile = () => {
     });
   };
 
-  useEffect(() => { if (profileData) syncForm(profileData); }, [profileData]);
+  useEffect(() => {
+    if (!profileData) return;
+    setFormData({
+      firstName: profileData.firstName || "",
+      lastName: profileData.lastName || "",
+      phone: profileData.phone || "",
+      dateOfBirth: profileData.Patient?.dateOfBirth
+        ? new Date(profileData.Patient.dateOfBirth).toISOString().split("T")[0] : "",
+      address: profileData.Patient?.address || "",
+      emergencyContact: profileData.Patient?.emergencyContact || "",
+      bio: profileData.Caregiver?.bio || "",
+      region: profileData.Caregiver?.region || "",
+      district: profileData.Caregiver?.district || "",
+      traditionalAuthority: toArray(profileData.Caregiver?.traditionalAuthority),
+      village: toArray(profileData.Caregiver?.village),
+    });
+  }, [profileData]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: FormData) =>
@@ -112,7 +145,8 @@ const Profile = () => {
   });
 
   const passwordMutation = useMutation({
-    mutationFn: async (data: any) => (await api.put("/users/change-password", data)).data,
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) =>
+      (await api.put("/users/change-password", data)).data,
     onSuccess: () => toast.success("Password changed successfully!"),
     onError: () => toast.error("Failed to change password"),
   });
@@ -121,7 +155,8 @@ const Profile = () => {
     const fd = new FormData();
     Object.entries(formData).forEach(([k, v]) => {
       if (v !== null && v !== undefined) {
-        Array.isArray(v) ? fd.append(k, JSON.stringify(v)) : v && fd.append(k, v);
+        if (Array.isArray(v)) fd.append(k, JSON.stringify(v));
+        else if (v) fd.append(k, v);
       }
     });
     if (profileImage) fd.append("profileImage", profileImage);
@@ -140,16 +175,6 @@ const Profile = () => {
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result as string);
     reader.readAsDataURL(file);
-  };
-
-  const handleDeleteAccount = async () => {
-    setIsDeleting(true);
-    try {
-      await api.delete("/account/delete");
-      toast.success("Account deletion initiated. You will be logged out.");
-      setTimeout(() => { logout(); navigate("/"); }, 2000);
-    } catch { toast.error("Failed to delete account. Please try again."); }
-    finally { setIsDeleting(false); setShowDeleteDialog(false); }
   };
 
   const handleRegionChange = (v: string) =>
@@ -247,11 +272,6 @@ const Profile = () => {
             <SecurityCard
               onPasswordChange={(data) => passwordMutation.mutate(data)}
               isPending={passwordMutation.isPending}
-              onDeleteAccount={handleDeleteAccount}
-              isDeleting={isDeleting}
-              showDelete={true}
-              deleteDialogOpen={showDeleteDialog}
-              setDeleteDialogOpen={setShowDeleteDialog}
             />
           </div>
         </div>

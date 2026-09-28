@@ -22,7 +22,6 @@ import Specialties from "./pages/Specialties";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
 import Schedule from "./pages/Schedule";
 import Patients from "./pages/Patients";
 import Earnings from "./pages/Earnings";
@@ -128,14 +127,6 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Profile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
                 </ProtectedRoute>
               }
             />

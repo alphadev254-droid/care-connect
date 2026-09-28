@@ -21,7 +21,6 @@ import {
   ArrowRight,
   Star,
   Activity,
-  Bell,
   Loader2,
   Users,
   Heart,
@@ -172,13 +171,6 @@ const Dashboard = () => {
             description: "Manage specialties",
             href: "/dashboard/specialties",
             color: "accent",
-          },
-          {
-            icon: Bell,
-            label: "Settings",
-            description: "System config",
-            href: "/dashboard/settings",
-            color: "success",
           },
         ];
       case 'Accountant':
