@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { AxiosError } from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Wallet, ArrowDownToLine, Clock, CheckCircle, XCircle, AlertCircle, Lock } from 'lucide-react';
+import { Wallet, ArrowDownToLine, Clock, CheckCircle, XCircle, AlertCircle, Lock, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { withdrawalService } from '@/services/withdrawalService';
+import { withdrawalService, type WithdrawalDetails } from '@/services/withdrawalService';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { dashboardCard, responsive } from '@/theme';
 
@@ -22,30 +22,61 @@ const WithdrawalsPage = () => {
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [recipientType, setRecipientType] = useState('mobile_money');
   const [recipientNumber, setRecipientNumber] = useState('');
+  const [operator, setOperator] = useState<'airtel' | 'tnm'>('airtel');
+  const [bankCode, setBankCode] = useState('');
+  const [accountName, setAccountName] = useState('');
   const [withdrawalToken, setWithdrawalToken] = useState('');
   const [tokenSent, setTokenSent] = useState(false);
   const [tokenExpiry, setTokenExpiry] = useState<Date | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [secondsRemaining, setSecondsRemaining] = useState(0);
+  const [withdrawalPreview, setWithdrawalPreview] = useState<{
+    requestedAmount: string;
+    withdrawalFee: string;
+    netPayout: string;
+    currency: string;
+  } | null>(null);
+
+  const withdrawalDetails = (): WithdrawalDetails => ({
+    amount: Number(withdrawalAmount),
+    recipientType: recipientType as 'mobile_money' | 'bank',
+    recipientNumber: recipientNumber.trim(),
+    ...(recipientType === 'mobile_money'
+      ? { operator }
+      : { bankCode: bankCode.trim(), accountName: accountName.trim() })
+  });
 
   // Fetch balance using React Query
-  const { data: balance, isLoading: balanceLoading } = useQuery({
+  const { data: balance, isLoading: balanceLoading, isError: balanceError, refetch: refetchBalance } = useQuery({
     queryKey: ['caregiver-balance', user?.id],
     queryFn: () => withdrawalService.getBalance(),
     enabled: !!user?.id
   });
 
   // Fetch withdrawal history using React Query
-  const { data: withdrawalsData, isLoading: withdrawalsLoading } = useQuery({
-    queryKey: ['withdrawal-history', user?.id],
-    queryFn: () => withdrawalService.getHistory(),
-    enabled: !!user?.id
+  const { data: withdrawalsData, isLoading: withdrawalsLoading, isError: historyError, refetch: refetchHistory } = useQuery({
+    queryKey: ['withdrawal-history', user?.id, historyPage],
+    queryFn: () => withdrawalService.getHistory(historyPage),
+    enabled: !!user?.id,
+    refetchInterval: (query) =>
+      query.state.data?.withdrawals?.some((item) => ['pending', 'processing'].includes(item.status)) ? 15000 : false
+  });
+
+  const { data: banks = [], isLoading: banksLoading, isError: banksError } = useQuery({
+    queryKey: ['paychangu-payout-banks'],
+    queryFn: withdrawalService.getBanks,
+    enabled: isDialogOpen && recipientType === 'bank',
+    staleTime: 30 * 60 * 1000,
+    retry: 1
   });
 
   // Token request mutation
   const tokenMutation = useMutation({
     mutationFn: withdrawalService.requestWithdrawalToken,
-    onSuccess: () => {
+    onSuccess: (data) => {
       setTokenSent(true);
+      setWithdrawalPreview(data);
       setTokenExpiry(new Date(Date.now() + 3 * 60 * 1000)); // 3 minutes
       toast.success('Withdrawal token sent to your email');
     },
@@ -58,9 +89,14 @@ const WithdrawalsPage = () => {
   const withdrawalMutation = useMutation({
     mutationFn: withdrawalService.requestWithdrawal,
     onSuccess: (data) => {
-      toast.success(
+      const isComplete = data.status === 'completed';
+      const isFailed = data.status === 'failed';
+      const notify = isComplete ? toast.success : isFailed ? toast.error : toast.info;
+      notify(
         <div className="space-y-2">
-          <div className="font-semibold">Withdrawal Successful!</div>
+          <div className="font-semibold">
+            {isComplete ? 'Withdrawal completed' : isFailed ? 'Withdrawal failed' : 'Withdrawal processing'}
+          </div>
           <div className="text-sm space-y-1">
             <div>Amount: {data.currency} {data.requestedAmount}</div>
             <div>Fee: {data.currency} {data.withdrawalFee}</div>
@@ -74,9 +110,12 @@ const WithdrawalsPage = () => {
       setIsDialogOpen(false);
       setWithdrawalAmount('');
       setRecipientNumber('');
+      setBankCode('');
+      setAccountName('');
       setWithdrawalToken('');
       setTokenSent(false);
       setTokenExpiry(null);
+      setWithdrawalPreview(null);
       // Invalidate and refetch data
       queryClient.invalidateQueries({ queryKey: ['caregiver-balance'] });
       queryClient.invalidateQueries({ queryKey: ['withdrawal-history'] });
@@ -86,8 +125,19 @@ const WithdrawalsPage = () => {
     }
   });
 
-  // Check if token is expired
-  const isTokenExpired = tokenExpiry && new Date() > tokenExpiry;
+  useEffect(() => {
+    if (!tokenExpiry) {
+      setSecondsRemaining(0);
+      return;
+    }
+    const updateCountdown = () =>
+      setSecondsRemaining(Math.max(0, Math.ceil((tokenExpiry.getTime() - Date.now()) / 1000)));
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(timer);
+  }, [tokenExpiry]);
+
+  const isTokenExpired = tokenSent && secondsRemaining === 0;
 
   // Reset token state when dialog closes
   const handleDialogClose = (open: boolean) => {
@@ -96,6 +146,7 @@ const WithdrawalsPage = () => {
       setTokenSent(false);
       setTokenExpiry(null);
       setWithdrawalToken('');
+      setWithdrawalPreview(null);
     }
   };
 
@@ -134,6 +185,25 @@ const WithdrawalsPage = () => {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (balanceError || historyError) {
+    return (
+      <DashboardLayout userRole="caregiver">
+        <Card className={dashboardCard.base}>
+          <CardContent className="flex min-h-[280px] flex-col items-center justify-center gap-4 text-center">
+            <AlertCircle className="h-10 w-10 text-destructive" />
+            <div>
+              <h2 className={responsive.cardTitle}>We couldn't load your withdrawals</h2>
+              <p className={responsive.bodyMuted}>Your balance has not been changed. Please try again.</p>
+            </div>
+            <Button onClick={() => { void refetchBalance(); void refetchHistory(); }}>
+              <RefreshCw className="mr-2 h-4 w-4" /> Try again
+            </Button>
+          </CardContent>
+        </Card>
       </DashboardLayout>
     );
   }
@@ -243,6 +313,18 @@ const WithdrawalsPage = () => {
                             </SelectContent>
                           </Select>
                         </div>
+                        {recipientType === 'mobile_money' && (
+                          <div>
+                            <Label htmlFor="operator">Mobile Network</Label>
+                            <Select value={operator} onValueChange={(value) => setOperator(value as 'airtel' | 'tnm')}>
+                              <SelectTrigger id="operator"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="airtel">Airtel Money</SelectItem>
+                                <SelectItem value="tnm">TNM Mpamba</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
                         <div>
                           <Label htmlFor="recipientNumber">
                             {recipientType === 'mobile_money' ? 'Phone Number' : 'Account Number'}
@@ -254,6 +336,28 @@ const WithdrawalsPage = () => {
                             onChange={(e) => setRecipientNumber(e.target.value)}
                           />
                         </div>
+                        {recipientType === 'bank' && (
+                          <>
+                            <div>
+                              <Label htmlFor="accountName">Account Name</Label>
+                              <Input id="accountName" value={accountName} onChange={(e) => setAccountName(e.target.value)} />
+                            </div>
+                            <div>
+                              <Label htmlFor="bankCode">Bank</Label>
+                              <Select value={bankCode} onValueChange={setBankCode} disabled={banksLoading || banksError}>
+                                <SelectTrigger id="bankCode">
+                                  <SelectValue placeholder={banksLoading ? 'Loading banks...' : 'Select a bank'} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {banks.map((bank) => (
+                                    <SelectItem key={bank.uuid} value={bank.uuid}>{bank.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {banksError && <p className="mt-1 text-xs text-destructive">Bank withdrawals are temporarily unavailable.</p>}
+                            </div>
+                          </>
+                        )}
                       </>
                     ) : (
                       <>
@@ -266,10 +370,18 @@ const WithdrawalsPage = () => {
                           </p>
                           {tokenExpiry && (
                             <p className="text-xs text-orange-600 mt-1">
-                              Token expires in {Math.max(0, Math.ceil((tokenExpiry.getTime() - Date.now()) / 1000))} seconds
+                              Token expires in {secondsRemaining} seconds
                             </p>
                           )}
                         </div>
+                        {withdrawalPreview && (
+                          <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+                            <div className="flex justify-between"><span>Amount</span><span>{withdrawalPreview.currency} {withdrawalPreview.requestedAmount}</span></div>
+                            <div className="flex justify-between"><span>Withdrawal fee</span><span>{withdrawalPreview.currency} {withdrawalPreview.withdrawalFee}</span></div>
+                            <div className="mt-2 flex justify-between border-t pt-2 font-semibold"><span>You receive</span><span>{withdrawalPreview.currency} {withdrawalPreview.netPayout}</span></div>
+                            <div className="mt-2 flex justify-between text-muted-foreground"><span>Destination</span><span>{recipientNumber}</span></div>
+                          </div>
+                        )}
                         <div>
                           <Label htmlFor="token">Withdrawal Token</Label>
                           <Input
@@ -320,7 +432,11 @@ const WithdrawalsPage = () => {
                             toast.error('Please enter recipient details');
                             return;
                           }
-                          tokenMutation.mutate();
+                          if (recipientType === 'bank' && (!bankCode.trim() || !accountName.trim())) {
+                            toast.error('Enter the bank code and account name');
+                            return;
+                          }
+                          tokenMutation.mutate(withdrawalDetails());
                         }}
                         disabled={tokenMutation.isPending}
                       >
@@ -339,13 +455,12 @@ const WithdrawalsPage = () => {
                           }
                           
                           // First verify token with amount
-                          withdrawalService.verifyWithdrawalToken(withdrawalToken, parseFloat(withdrawalAmount))
+                          const details = withdrawalDetails();
+                          withdrawalService.verifyWithdrawalToken(withdrawalToken, details)
                             .then(() => {
                               // If verification succeeds, proceed with withdrawal
                               withdrawalMutation.mutate({
-                                amount: parseFloat(withdrawalAmount),
-                                recipientType: recipientType as 'mobile_money' | 'bank',
-                                recipientNumber,
+                                ...details,
                                 token: withdrawalToken
                               });
                             })
@@ -427,6 +542,31 @@ const WithdrawalsPage = () => {
                   ))}
                 </TableBody>
               </Table>
+              {(withdrawalsData?.pagination?.totalPages || 1) > 1 && (
+                <div className="flex items-center justify-between border-t px-4 py-3">
+                  <p className={responsive.bodyMuted}>
+                    Page {withdrawalsData.pagination.currentPage} of {withdrawalsData.pagination.totalPages}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={historyPage <= 1}
+                      onClick={() => setHistoryPage((page) => Math.max(1, page - 1))}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={historyPage >= withdrawalsData.pagination.totalPages}
+                      onClick={() => setHistoryPage((page) => page + 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
