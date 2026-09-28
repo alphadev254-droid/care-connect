@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import type { AxiosError } from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,7 +49,7 @@ const WithdrawalsPage = () => {
       setTokenExpiry(new Date(Date.now() + 3 * 60 * 1000)); // 3 minutes
       toast.success('Withdrawal token sent to your email');
     },
-    onError: (error: any) => {
+    onError: (error: AxiosError<{ error?: string }>) => {
       toast.error(error.response?.data?.error || 'Failed to send token');
     }
   });
@@ -80,7 +81,7 @@ const WithdrawalsPage = () => {
       queryClient.invalidateQueries({ queryKey: ['caregiver-balance'] });
       queryClient.invalidateQueries({ queryKey: ['withdrawal-history'] });
     },
-    onError: (error: any) => {
+    onError: (error: AxiosError<{ error?: string }>) => {
       toast.error(error.response?.data?.error || 'Failed to submit withdrawal request');
     }
   });
@@ -181,6 +182,19 @@ const WithdrawalsPage = () => {
                 {balance?.currency} {balance?.lockedBalance || '0.00'}
               </p>
               <p className={responsive.bodyMuted}>Submit reports to unlock</p>
+            </div>
+            <div className={dashboardCard.balanceBlockPrimary}>
+              <p className={responsive.bodyMuted}>Processing</p>
+              <p className={dashboardCard.compactBalanceValue}>
+                {balance?.currency} {balance?.reservedBalance || '0.00'}
+              </p>
+              <p className={responsive.bodyMuted}>Reserved for payout</p>
+            </div>
+            <div className={dashboardCard.balanceBlockSuccess}>
+              <p className={responsive.bodyMuted}>Total Withdrawn</p>
+              <p className={dashboardCard.compactBalanceValue}>
+                {balance?.currency} {balance?.totalPaid || '0.00'}
+              </p>
             </div>
             <div className="flex items-center justify-center">
               <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>

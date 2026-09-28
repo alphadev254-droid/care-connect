@@ -104,6 +104,14 @@ interface EarningsData {
   averagePerSession?: number;
   transactions?: Transaction[];
   payments?: Transaction[];
+  balances?: {
+    lifetimeEarned: string;
+    locked: string;
+    available: string;
+    reserved: string;
+    paid: string;
+    currency: string;
+  };
   pagination?: {
     currentPage: number;
     totalPages: number;
@@ -500,37 +508,37 @@ const Earnings = () => {
     } else if (user?.role === 'caregiver') {
       const completedTransactions = transactions.filter((t: Transaction) => t.status === 'completed' && t.paymentType === 'session_fee');
       const netEarnings = completedTransactions.reduce((sum: number, t: Transaction) => sum + Number(t.caregiverEarnings || 0), 0);
-      const commissionDeducted = completedTransactions.reduce((sum: number, t: Transaction) => sum + Number(t.platformCommissionAmount || 0), 0);
-      const totalTax = completedTransactions.reduce((sum: number, t: Transaction) => sum + Number(t.taxAmount || 0), 0);
+      const balances = earnings.balances;
+      const currency = balances?.currency || 'MWK';
 
       return [
         {
-          title: "Net Earnings",
-          value: `MWK ${Math.round(netEarnings).toLocaleString()}`,
+          title: "Lifetime Earned",
+          value: `${currency} ${Number(balances?.lifetimeEarned || netEarnings).toLocaleString()}`,
           icon: DollarSign,
           trendUp: true,
         },
         {
-          title: "Tax on Sessions",
-          value: `MWK ${Math.round(totalTax).toLocaleString()}`,
+          title: "Available",
+          value: `${currency} ${Number(balances?.available || 0).toLocaleString()}`,
           icon: TrendingUp,
           trendUp: true,
         },
         {
-          title: "Commission Deducted",
-          value: `MWK ${Math.round(commissionDeducted).toLocaleString()}`,
-          icon: TrendingUp,
+          title: "Locked",
+          value: `${currency} ${Number(balances?.locked || 0).toLocaleString()}`,
+          icon: Clock,
           trendUp: false,
         },
         {
-          title: "Sessions Completed",
-          value: completedTransactions.length,
-          icon: Clock,
-          trendUp: true,
+          title: "Payout Processing",
+          value: `${currency} ${Number(balances?.reserved || 0).toLocaleString()}`,
+          icon: CreditCard,
+          trendUp: false,
         },
         {
-          title: "Avg Earnings/Session",
-          value: `MWK ${completedTransactions.length > 0 ? Math.round(netEarnings / completedTransactions.length).toLocaleString() : 0}`,
+          title: "Total Withdrawn",
+          value: `${currency} ${Number(balances?.paid || 0).toLocaleString()}`,
           icon: CreditCard,
           trendUp: true,
         },
