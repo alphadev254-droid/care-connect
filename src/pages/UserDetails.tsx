@@ -301,6 +301,34 @@ const UserDetails = () => {
                         <label className="text-sm font-medium text-muted-foreground">Qualifications</label>
                         <p className="font-medium">{userData.Caregiver.qualifications}</p>
                       </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Caregiver Status</label>
+                        <div className="mt-1">
+                          <Badge variant={userData.Caregiver.verificationStatus === 'verified' ? 'default' : 'secondary'} className="capitalize">
+                            {(userData.Caregiver.verificationStatus || 'pending').replace('_', ' ')}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Credential Check</label>
+                        <div className="mt-1">
+                          <Badge variant={userData.Caregiver.credentialVerificationStatus === 'verified' ? 'default' : 'secondary'} className="capitalize">
+                            {(userData.Caregiver.credentialVerificationStatus || 'not_started').replaceAll('_', ' ')}
+                          </Badge>
+                        </div>
+                      </div>
+                      {userData.Caregiver.credentialVerifiedAt && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Credential Verified On</label>
+                          <p className="font-medium">{new Date(userData.Caregiver.credentialVerifiedAt).toLocaleDateString()}</p>
+                        </div>
+                      )}
+                      {userData.Caregiver.credentialVerificationNotes && (
+                        <div className="col-span-2">
+                          <label className="text-sm font-medium text-muted-foreground">Credential Check Notes</label>
+                          <p className="whitespace-pre-wrap font-medium">{userData.Caregiver.credentialVerificationNotes}</p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Specialties with Fees */}

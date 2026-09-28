@@ -44,6 +44,9 @@ const UserEdit = () => {
     yearsOfExperience: "",
     bio: "",
     serviceLocations: "",
+    verificationStatus: "pending",
+    credentialVerificationStatus: "not_started",
+    credentialVerificationNotes: "",
   });
 
   const { data: userData, isLoading } = useQuery({
@@ -90,6 +93,9 @@ const UserEdit = () => {
         yearsOfExperience: userData.Caregiver?.yearsOfExperience?.toString() || "",
         bio: userData.Caregiver?.bio || "",
         serviceLocations: userData.Caregiver?.serviceLocations || "",
+        verificationStatus: userData.Caregiver?.verificationStatus || "pending",
+        credentialVerificationStatus: userData.Caregiver?.credentialVerificationStatus || "not_started",
+        credentialVerificationNotes: userData.Caregiver?.credentialVerificationNotes || "",
       });
     }
   }, [userData]);
@@ -130,6 +136,9 @@ const UserEdit = () => {
         yearsOfExperience: formData.yearsOfExperience ? parseInt(formData.yearsOfExperience) : null,
         bio: formData.bio,
         serviceLocations: formData.serviceLocations,
+        verificationStatus: formData.verificationStatus,
+        credentialVerificationStatus: formData.credentialVerificationStatus,
+        credentialVerificationNotes: formData.credentialVerificationNotes,
       };
     }
 
@@ -312,23 +321,57 @@ const UserEdit = () => {
                   </div>
 
                   {userData?.Role?.name === 'caregiver' && (
-                    <div className="space-y-2">
-                      <Label htmlFor="specialty">Specialty</Label>
-                      <Select
-                        value={formData.specialtyId}
-                        onValueChange={(value) => handleInputChange('specialtyId', value)}
-                      >
-                        <SelectTrigger id="specialty">
-                          <SelectValue placeholder="Select specialty" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {specialties?.map((specialty: any) => (
-                            <SelectItem key={specialty.id} value={specialty.id.toString()}>
-                              {specialty.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="space-y-4 rounded-lg border p-4">
+                      <div>
+                        <h3 className="font-medium">Caregiver Verification</h3>
+                        <p className="text-sm text-muted-foreground">Manage platform approval separately from the institution credential check.</p>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="specialty">Specialty</Label>
+                          <Select value={formData.specialtyId} onValueChange={(value) => handleInputChange('specialtyId', value)}>
+                            <SelectTrigger id="specialty"><SelectValue placeholder="Select specialty" /></SelectTrigger>
+                            <SelectContent>
+                              {specialties?.map((specialty: any) => (
+                                <SelectItem key={specialty.id} value={specialty.id.toString()}>{specialty.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="verificationStatus">Caregiver Status</Label>
+                          <Select value={formData.verificationStatus} onValueChange={(value) => handleInputChange('verificationStatus', value)}>
+                            <SelectTrigger id="verificationStatus"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="verified">Verified</SelectItem>
+                              <SelectItem value="rejected">Rejected</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="credentialVerificationStatus">Credential Check</Label>
+                          <Select value={formData.credentialVerificationStatus} onValueChange={(value) => handleInputChange('credentialVerificationStatus', value)}>
+                            <SelectTrigger id="credentialVerificationStatus"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="not_started">Not Started</SelectItem>
+                              <SelectItem value="in_review">In Review</SelectItem>
+                              <SelectItem value="verified">Verified</SelectItem>
+                              <SelectItem value="could_not_verify">Could Not Verify</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="credentialVerificationNotes">Credential Check Notes</Label>
+                        <Textarea
+                          id="credentialVerificationNotes"
+                          value={formData.credentialVerificationNotes}
+                          onChange={(e) => handleInputChange('credentialVerificationNotes', e.target.value)}
+                          placeholder="Institution contacted, reference used, or reason verification could not be completed"
+                          rows={3}
+                        />
+                      </div>
                     </div>
                   )}
 
